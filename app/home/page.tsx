@@ -316,6 +316,7 @@ export default function HomePage() {
   const { session, needsUsername, isAuthenticated } = useSession()
   const roomNumber = session?.roomNumber
   const username = session?.username
+  const mascot = session?.mascot
 
   /**
    * Read storage directly rather than trusting isAuthenticated.
@@ -390,7 +391,7 @@ export default function HomePage() {
   // waiting for the localStorage persistence effect to run after paint.
   const leaderboardRank = useMemo(() => {
     if (!roomNumber || !username) return 0
-    const current = { username, roomNumber }
+    const current = { username, roomNumber, mascot }
     const entries = buildLeaderboard(current)
     const me = entries.find((entry) => entry.isCurrentUser)
     if (!me) return 0

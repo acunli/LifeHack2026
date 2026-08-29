@@ -63,6 +63,7 @@ export default function LeaderboardPage() {
       <LeaderboardBoard
         username={session.username}
         roomNumber={session.roomNumber}
+        mascot={session.mascot}
       />
 
       <Footer />

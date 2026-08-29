@@ -26,16 +26,19 @@ function ordinal(n: number): string {
 export function LeaderboardBoard({
   username,
   roomNumber,
+  mascot,
 }: {
   username: string
   roomNumber: string
+  /** The character picked at sign-up; undefined falls back to the hash. */
+  mascot?: string
 }) {
   const [status, setStatus] = useState<Status>('loading')
   const [entries, setEntries] = useState<LeaderboardEntry[]>([])
 
   const current = useMemo(
-    () => ({ username, roomNumber }),
-    [username, roomNumber],
+    () => ({ username, roomNumber, mascot }),
+    [username, roomNumber, mascot],
   )
 
   const [attempt, setAttempt] = useState(0)

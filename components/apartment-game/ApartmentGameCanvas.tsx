@@ -60,6 +60,15 @@ export default function ApartmentGameCanvas({
           debug: false, // Set to true to see collision bounds
         },
       },
+      /*
+       * The room plays no sounds of its own — the soundtrack is an <audio>
+       * element in the layout, so it survives navigation. Left enabled, Phaser
+       * still opens a WebAudio context and suspends it on window blur; if the
+       * game has already been destroyed (a route change, a Strict Mode
+       * remount) that context is closed and the suspend throws
+       * "Cannot suspend a closed AudioContext".
+       */
+      audio: { noAudio: true },
       input: {
         mouse: {
           // Phaser calls preventDefault on wheel events by default, which

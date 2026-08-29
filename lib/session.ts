@@ -18,6 +18,12 @@ const SCORE_KEY = 'wattlah.scores'
 export type Session = {
   username: string
   roomNumber: string
+  /**
+   * The character the resident picked at sign-up. Optional because sessions
+   * created before the picker existed do not have one — those fall back to a
+   * hash of the user id rather than being forced through setup again.
+   */
+  mascot?: string
   loggedIn: true
 }
 
@@ -25,6 +31,7 @@ export type Session = {
 type StoredSession = {
   username?: string
   roomNumber?: string
+  mascot?: string
   loggedIn?: boolean
 }
 
@@ -62,6 +69,7 @@ export function getSession(): Session | null {
   return {
     username: raw.username,
     roomNumber: raw.roomNumber,
+    mascot: raw.mascot,
     loggedIn: true,
   }
 }
@@ -91,16 +99,23 @@ export function saveSession(session: Session): void {
 }
 
 /** Attach a username to an existing (legacy) session. */
-export function setUsername(username: string): void {
+export function setUsername(username: string, mascot?: string): void {
   const raw = readRawSession()
   const roomNumber = raw?.roomNumber || ''
-  saveSession({ username: username.trim(), roomNumber, loggedIn: true })
+  saveSession({
+    username: username.trim(),
+    roomNumber,
+    mascot: mascot ?? raw?.mascot,
+    loggedIn: true,
+  })
 }
 
 export function login(username: string, roomNumber: string): void {
+  const existing = readRawSession()
   saveSession({
     username: username.trim(),
     roomNumber: roomNumber.trim(),
+    mascot: existing?.mascot,
     loggedIn: true,
   })
 }

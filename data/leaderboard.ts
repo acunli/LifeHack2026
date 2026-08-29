@@ -10,7 +10,7 @@
 
 import { computeScore, dailyChange, rankTier, type DailyChange } from '@/lib/leagueScoring'
 import { userIdFromRoom, getSavedScore } from '@/lib/session'
-import { mascotForId, type MascotName } from '@/data/mascotSprites'
+import { mascotFor, type MascotName } from '@/data/mascotSprites'
 
 export type LeaderboardEntry = {
   id: string
@@ -102,6 +102,7 @@ function toEntry(
   resident: Resident,
   periodSeed: string,
   currentUserId: string | null,
+  chosenMascot?: string,
 ): Omit<LeaderboardEntry, 'rank'> {
   const id = userIdFromRoom(resident.roomNumber)
   const isCurrentUser = currentUserId === id
@@ -127,7 +128,7 @@ function toEntry(
     id,
     username: resident.username,
     roomNumber: resident.roomNumber,
-    mascot: mascotForId(id),
+    mascot: mascotFor(isCurrentUser ? chosenMascot : undefined, id),
     score,
     previousScore,
     change: dailyChange(score, previousScore),
@@ -141,6 +142,8 @@ function toEntry(
 export type CurrentUser = {
   username: string
   roomNumber: string
+  /** The character they picked at sign-up, if any. */
+  mascot?: string
 }
 
 /**
@@ -153,10 +156,18 @@ export function buildLeaderboard(
 ): LeaderboardEntry[] {
   const currentUserId = current ? userIdFromRoom(current.roomNumber) : null
 
-  const residents = [...RESIDENTS]
+  let residents = [...RESIDENTS]
   // If the logged-in user isn't one of the seeded residents, add them so their
   // rank can be shown even when outside the visible range.
   if (current && !residents.some((r) => r.roomNumber === current.roomNumber)) {
+    /*
+     * Drop any seeded neighbour who already holds the name the resident chose.
+     * The roster's usernames are also the ones offered as examples, so a
+     * resident who picks "VoltViper" would otherwise appear twice on the board
+     * — once as themselves and once as the mock — which reads as a bug.
+     */
+    const taken = current.username.trim().toLowerCase()
+    residents = residents.filter((r) => r.username.toLowerCase() !== taken)
     residents.push({
       username: current.username,
       roomNumber: current.roomNumber,
@@ -164,7 +175,9 @@ export function buildLeaderboard(
     })
   }
 
-  const entries = residents.map((r) => toEntry(r, periodSeed, currentUserId))
+  const entries = residents.map((r) =>
+    toEntry(r, periodSeed, currentUserId, current?.mascot),
+  )
   // If the current user matched a seeded resident, override the display name
   // with their chosen username.
   if (current) {

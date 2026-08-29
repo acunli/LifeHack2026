@@ -151,6 +151,21 @@ export function paletteColor(palette: MascotPalette, key: string): string | null
   }
 }
 
+/**
+ * The character to draw for a resident.
+ *
+ * Prefers the one they picked at sign-up. `chosen` is a plain string off
+ * localStorage, so it is validated against the roster rather than trusted —
+ * a hand-edited or stale value falls back to the hash instead of rendering a
+ * broken sprite path.
+ */
+export function mascotFor(chosen: string | undefined, userId: string): MascotName {
+  if (chosen && (MASCOT_ORDER as string[]).includes(chosen)) {
+    return chosen as MascotName
+  }
+  return mascotForId(userId)
+}
+
 /** Deterministically assign a mascot to a user id (no Math.random). */
 export function mascotForId(userId: string): MascotName {
   let hash = 0
