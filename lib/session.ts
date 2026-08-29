@@ -142,6 +142,13 @@ function writeScores(scores: StoredScores): void {
 export function saveScore(userId: string, score: number): void {
   const scores = readScores()
   const existing = scores[userId]
+
+  // Only move `previous` when the score actually changes. The dashboard saves
+  // on every mount, so rewriting it unconditionally collapsed previous into
+  // current the moment you navigated back — the gain you had just made showed
+  // as "no change since yesterday".
+  if (existing && existing.current === score) return
+
   scores[userId] = {
     current: score,
     previous: existing?.current ?? score,
