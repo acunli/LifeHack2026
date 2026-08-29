@@ -1,515 +1,558 @@
-# WattWise (working title) — Gamified Energy Saving for Housing Complexes
+# WattWise — Gamified Energy Saving for Housing Complexes
 
-> Planning document and single source of truth for the MVP build. No application code exists yet — this repository currently contains only pixel-art assets. This README defines what we build first, what we deliberately defer, and how a 2-person team executes it under a tight deadline.
+**LifeHack 2026 · Ecovolt track: "Small Green Habits"**
+
+> Planning document and single source of truth. No application code exists yet —
+> this repository currently contains pixel-art assets and this plan.
 
 ---
 
-## 1. Project Overview
+## 0. What changed in this revision
 
-WattWise is a gamified web application that lets residents of a housing complex log into a virtual, top-down pixel-art version of their own apartment, see their energy consumption translated into a game-like score, and (eventually) compare that score against neighbors on a building-wide leaderboard.
+This builds on Ayushman's plan (`a999937`), which was right about the things that
+matter most: DOM/CSS sprite cropping over a canvas engine, deterministic mock
+data, the 32×32 tier, and a tightly-bounded MVP. Those decisions all stand.
 
-This document covers:
-- The **MVP** we can realistically ship under the current deadline.
-- The **future product vision** the MVP must not architecturally block.
-- The **exact tech stack, file structure, task breakdown, and team split** needed to start building immediately.
+Added or changed:
 
-## 2. Problem Statement
+| # | Change | Why |
+|---|---|---|
+| 1 | **§1–2: the actual brief and rubric** | The previous revision was written without the Ecovolt problem statement. The rubric changes what we should prioritise. |
+| 2 | **§6: required deliverables** | The brief requires a demo video and a written rationale. Neither was in the plan. A perfect app that misses these scores zero on them. |
+| 3 | **§15: four-person split** | Previous split assumed two people. |
+| 4 | **§16: dated timeline with cut-lines** | Phases had no clock against a hard deadline. |
+| 5 | **§9: asset measurements verified** | All ten PNGs measured with `sips`. Ayushman's figures were correct; exact tile grids now recorded. |
+| 6 | **§9.7: licence resolved** | Was an open item. It's LimeZu *Modern Interiors*. |
+| 7 | **§12: measurability** | The rubric asks for a baseline, a metric and a target. We had none. |
 
-Residents in multi-unit housing complexes rarely see individualized, actionable feedback on their energy use. Utility bills are delayed, aggregated, and unengaging. There's no immediate feedback loop, no social comparison, and no incentive structure that makes saving energy feel rewarding rather than just virtuous. A game-like interface — your own apartment, your own score, your own rank — creates an emotional hook that a spreadsheet or bill never will.
+---
 
-## 3. Product Vision
+## 1. The brief we are being judged against
 
-Long-term, a resident should be able to:
-1. Log in and see their real apartment, represented as a 2D pixel-art room.
-2. See real sockets/appliances in that room, each with real or simulated energy draw.
-3. Interact with individual appliances to see appliance-level energy data.
-4. See an overall apartment score derived from real consumption data.
-5. Compare that score against other apartments in the same building/complex on a leaderboard.
-6. Participate in energy-saving challenges and earn rewards for improvement.
+From the Ecovolt problem statement:
 
-This is a multi-quarter product. The MVP is a deliberately thin vertical slice of steps 1, 4 (mocked), and a preview of the visual identity — nothing else.
+> **How might we nudge ordinary people toward sustainable habits — around energy,
+> water, waste, or consumption — in a way that produces real, measurable
+> behaviour change rather than just good intentions?**
 
-## 4. MVP Scope
+The framing to internalise, in their words:
 
-The MVP is exactly these five things:
+> *"Sustainability does not have a data problem; it has a behaviour problem."*
+
+Their deck lists what has already failed: **Dashboards — Ignored. Statistics —
+Ignored. Stern reminders — Ignored.**
+
+**Hard constraints** (from §4 of the brief):
+
+1. Usable end-to-end by a real person
+2. Targets **one concrete sustainable behaviour**
+3. Makes a credible, **measurable** case for why the behaviour would change
+
+**Explicitly permitted:** *"You do NOT need real sensors, hardware, or live data;
+you may invent or mock any inputs."* Our entire mock-data approach is sanctioned —
+we never need to apologise for simulated telemetry.
+
+**Explicitly discounted:** *"A technically heavy backend will not earn extra points
+if it does not move behaviour."*
+
+---
+
+## 2. Judging rubric → what it means for our scope
+
+Weights are from the Ecovolt slide deck (the PDF lists criteria without weights;
+the deck is the later document and carries the weightings).
+
+| Criterion | Weight | What it asks |
+|---|---|---|
+| **Fun and engagement** | **40%** | Would you use it regularly? Would you tell friends? |
+| Behaviour change | 20% | A real behaviour, and a believable path to it |
+| Stickiness | 20% | Survives the novelty. Streaks, social hooks |
+| Craft and usability | 20% | Usable end to end, polished, clear |
+
+The PDF also lists **Measurability** as a criterion — dropped from the deck's
+weighted list but still a hard constraint in §4. Cover it (see §12).
+
+### What this means for us
+
+**Fun and engagement is the single heaviest criterion, and the pixel apartment is
+our answer to it.** Protect it. Every hour spent on the room and its polish is
+spent on the 40%.
+
+**⚠️ Open scope risk.** The current MVP specifies a *fully static* room. Against
+"would you use it regularly, would you tell your friends," a picture you look at
+once is thin. The cheapest fix that materially moves this criterion is **hover-to-
+inspect on 3–4 appliances** — one tooltip component, no new state, no new routes.
+See §21, decision 1. This is a scope call the team should make deliberately rather
+than by default.
+
+**Behaviour change and Measurability are our weakest axes** and we should be
+honest with ourselves about it. A general apartment score does not target one
+concrete behaviour, which is hard constraint #2. §12 sets out the strongest
+credible case we can make within the current direction.
+
+---
+
+## 3. Project overview
+
+WattWise lets a resident of a housing complex log into a top-down pixel-art version
+of their own apartment, see their energy consumption translated into a game-like
+score, and understand how they compare to the rest of the building.
+
+The apartment **is** the interface. We are not building another dashboard with a
+room graphic bolted on; the room is the primary surface and the numbers live
+around it.
+
+---
+
+## 4. MVP scope
+
+Exactly these six things:
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Fake login | Any room number + any password succeeds. No backend, no validation beyond "non-empty." |
-| 2 | 2D pixel-art apartment view | Static top-down room built from the provided asset packs. No character movement required. |
-| 3 | Gamified energy dashboard (HUD) | Shown alongside the room. Total consumption, score, comparison vs. reference, estimated cost, status/rank. |
-| 4 | Apartment-level energy score | One number, deterministically computed from mock data, with a clearly documented formula. |
-| 5 | Basic navigation/state | Login → apartment/dashboard. Room number visible in the UI. Logout returns to login. |
+| 1 | Fake login | Any room number + non-empty password succeeds. No backend. |
+| 2 | 2D pixel-art apartment | Static top-down room from the asset packs. No movement. |
+| 3 | Energy HUD | Consumption, score, comparison vs reference, estimated cost, rank label. |
+| 4 | Apartment score | One number, deterministic, documented formula (§11). |
+| 5 | Navigation & session | Login → apartment. Room number visible. Logout works. Refresh survives. |
+| 6 | **Demo video + rationale** | Required deliverables (§6). Not optional extras. |
 
-All data is **mocked and deterministic** — same inputs always produce the same numbers. Nothing is randomized on load, and nothing requires a network call.
+All data is **mocked and deterministic**: same inputs always produce the same
+numbers, no `Math.random()` anywhere in the render path (it also causes React
+hydration mismatches under SSR, which surface as visible flicker or a crash).
 
-## 5. Out of Scope (Explicitly Deferred)
+---
 
-None of the following are part of the MVP. They are listed here so that neither teammate nor Claude Code accidentally scope-creeps into them:
+## 5. Out of scope
 
-- Appliance hover interactions, popups, or socket selection
-- Appliance placement / drag-and-drop
-- Real smart plugs, IoT integration, real meters, real-time telemetry
-- Real authentication, database-backed users, any backend service
-- AI recommendations / machine learning
-- Character movement, multiplayer
-- Real-time leaderboard
-- Complex animations or game mechanics
+Listed so nobody — human or Claude Code — scope-creeps into them:
+
+- Appliance placement, drag-and-drop, socket configuration flows
+- Real smart plugs, IoT, meters, live telemetry
+- Real authentication, databases, any backend service
+- AI recommendations, ML prediction
+- Character movement, multiplayer, physics
+- Real-time or persisted leaderboard
 - Admin dashboard, notifications, mobile app
 
-Every item above reappears in [Section 23 — Future Roadmap](#23-future-roadmap) with a note on how the MVP architecture accommodates it later.
+**Deliberately undecided:** appliance *hover* interaction — see §2 and §21.
 
-## 6. User Flow
+---
 
-**MVP flow (implement now):**
+## 6. Required deliverables
+
+The brief lists three required outputs. **All three are graded. Two of them are
+not code.**
+
+| # | Deliverable | Spec | Owner |
+|---|---|---|---|
+| 1 | Working prototype | Web app a real person can pick up and use | Lanes A–C |
+| 2 | **Demo video** | 2–3 min, end-to-end, "ideally with someone actually using it" | **Lane D** |
+| 3 | **Written rationale** | Target audience · the specific behaviour · the mechanic · how success is measured | **Lane D** |
+
+Deliverable 3 is four questions with four short answers. It takes an hour and
+carries real marks. It has historically been the thing teams discover at 10:40am.
+
+---
+
+## 7. User flow
 
 ```
-Login screen (room number + password, any values)
-        ↓
-Client-side "session" stored (localStorage)
-        ↓
-Apartment screen: pixel-art room + energy dashboard HUD, room number shown
-        ↓
-(optional) Logout → back to login, session cleared
+LOGIN  (room number + password)
+  ↓
+APARTMENT
+  ├── pixel-art room, rendered from sprite sheets
+  ├── HUD: consumption · score · comparison · cost · rank
+  └── logout
 ```
 
-**Long-term flow (do not build yet — see Section 25):**
+Two routes. That is the whole application.
 
-```
-LOGIN → PERSONAL APARTMENT → USER SEES SOCKETS/APPLIANCES → SELECT SOCKET →
-SELECT APPLIANCE → APPLIANCE APPEARS IN ROOM → USER INTERACTS WITH APPLIANCE →
-ENERGY DATA + COMPARISONS → APPLIANCE ENERGY SCORE → OVERALL APARTMENT SCORE →
-BUILDING/COMPLEX LEADERBOARD → ENERGY-SAVING CHALLENGES / REWARDS
-```
+---
 
-## 7. UI/UX Concept
+## 8. Technology stack
 
-**Visual hierarchy:** the apartment room is the emotional centerpiece; the dashboard is a HUD that frames it, not a competing focal point.
-
-1. **Login screen** — simple centered card: room number input, password input (any value accepted), a "pixel" button style consistent with the game aesthetic. No branding complexity needed; this can even reuse a cropped interior tile as a background.
-2. **Main apartment screen** — the pixel-art room fills the dominant visual space (left/center on desktop). Rendered at a fixed, crisp pixel scale (see Section 10).
-3. **Energy dashboard (HUD)** — docked to one side (or as an overlay panel/bottom bar on mobile), styled like a game HUD: chunky stat cards, a prominent score "badge" (think a level/rank indicator, not a corporate KPI tile), a small comparison bar (you vs. reference apartment), and a status pill ("Energy Saver 🌱", "Good", "Needs Improvement").
-4. **Score presentation** — the score is the single largest number on screen after the room itself. Pair it with the status label and a one-line plain-English explanation ("Better than 80% of a typical apartment").
-5. **Navigation** — room number always visible in a header/corner; a small logout/back-to-login control, no nested navigation needed for MVP.
-
-Design language: pixel-art-consistent (`image-rendering: pixelated`), rounded/game-like cards for the HUD (a light "modern-retro" mix is fine — the room stays strictly pixel-perfect, the HUD chrome around it can be modern CSS as long as the color palette is drawn from the tileset so it reads as one coherent product, not two mismatched UIs).
-
-## 8. Technology Stack
-
-| Layer | Choice | 
+| Layer | Choice |
 |---|---|
 | Framework | Next.js (App Router) |
-| UI library | React 18 |
 | Language | TypeScript |
-| Styling | Tailwind CSS |
-| State | React `useState`/`useContext` + `localStorage` (no library) |
-| Data | Static TypeScript modules (mock data), no database |
-| Backend | None — no API routes needed for MVP |
-| Rendering of pixel art | Plain DOM + CSS (`background-position` sprite cropping), no canvas |
-| Game engine | None (Phaser explicitly rejected — see Section 9) |
-| Testing | Vitest + React Testing Library (unit tests for scoring logic + one smoke test) |
-| Deployment | Vercel |
+| UI | React + Tailwind CSS |
+| State | `localStorage`, no store library |
+| Data | Static TypeScript modules |
+| Tests | Vitest (scoring functions only) |
+| Deploy | Vercel |
 
-## 9. Why This Stack
+**No game engine.** The room is a fixed arrangement of tiles with no per-frame
+redraw. A CSS grid of `<div>`s cropping a sprite sheet via `background-position`
+reproduces it exactly and is far faster to build and debug than canvas.
 
-| Decision | Reasoning |
-|---|---|
-| **Next.js** over plain Vite/React SPA | File-based routing gives us two clean, independently ownable routes (`/` login, `/apartment` main view) for free — directly supports the 2-person parallel split in Section 15. Zero-config Vercel deploy. If/when a real backend is needed (Phase 3), API routes slot in without a framework migration. |
-| **React + TypeScript** | Team familiarity, huge ecosystem, and Claude Code works exceptionally well with typed React — types double as the shared contract between the two developers (Section 15). |
-| **Tailwind CSS** | Fastest way to build a HUD-style dashboard without hand-writing a stylesheet; utility classes reduce the chance two developers edit the same CSS file and conflict. |
-| **No backend (rejected for now)** | Nothing in the MVP requires persistence beyond a client-side flag. Standing up any backend (even a trivial one) is pure overhead against the deadline with zero MVP payoff. Revisit in Phase 3 when real IoT/meter data exists. |
-| **No database (rejected for now)** | Same reasoning — mock data lives in a TypeScript module. A database has nothing to store yet (no real users, no real readings). |
-| **No game engine / Phaser (rejected)** | Confirmed by asset inspection (Section 10): the room is a static composition of tiles and furniture with no movement, physics, or per-frame redraw in the MVP. Phaser would add a canvas lifecycle, asset-loader boilerplate, and a real learning curve for zero functional benefit right now. If Phase 2 introduces draggable appliances, plain React drag handling (or a small library like `dnd-kit`) is still very likely sufficient — canvas/engine is revisited only if that turns out to be false. |
-| **No state management library (Redux/Zustand/Jotai) (rejected)** | Total MVP state is: is-logged-in, room-number, and a static mock-data object. This fits in one `useState`/`useContext` plus `localStorage`. A library here is pure ceremony. |
-| **No auth library (NextAuth/Clerk/etc.) (rejected)** | Login is intentionally fake. Real auth is explicitly a Phase 3+ concern tied to a real user/database backend, which doesn't exist yet. |
-| **No animation library (Framer Motion) for MVP (deferred, not rejected)** | CSS transitions cover any score reveal/hover polish needed now. Framer Motion is cheap to add later in Phase 2 for HUD polish without touching the architecture — not worth the dependency today. |
-| **Vitest + RTL, no E2E framework** | Playwright/Cypress setup cost isn't justified for an MVP this small; a short manual QA checklist (Section 20) covers navigation/visual concerns. The only logic worth automated-testing is the scoring function, which is a pure function — perfect for a couple of unit tests. Revisit E2E once there's a real backend and more flows to regress. |
-| **Vercel for deployment** | Zero-config for Next.js, generous free tier, automatic preview URLs per branch/PR (valuable for a 2-person team reviewing each other's work), no environment variables required since there's no real backend/secret to configure. |
+**Note:** Node was not installed on Josh's machine as of this revision — installed
+via `brew install node` (v26.7.0). Anyone else hitting `command not found: node`
+needs the same.
 
-## 10. Asset Strategy
+---
 
-### 10.1 What's actually in `Assets/`
+## 9. Asset strategy
 
-| File | Dimensions | Contents |
+### 9.1 Verified contents
+
+Every file measured with `sips`. All ten confirmed:
+
+| File | Dimensions | Tile grid |
 |---|---|---|
-| `Characters/Adam_idle_16x16.png`, `Alex_...`, `Amelia_...`, `Bob_...` | 64×32 px each | 4 columns × 2 rows of 16×16 frames — a small idle-animation sheet per character (likely 4 facing directions × 2-frame idle bob, or similar). |
-| `InteriorElements/16x16/Room_Builder_free_16x16.png` | 272×368 px | Wall/floor/border tiles: room corners, ceiling edges, and multiple flooring/wall material variants (wood, tile, carpet) laid out in a column grid. |
-| `InteriorElements/16x16/Interiors_free_16x16.png` | 256×1424 px | A large furniture/object sheet: beds, wardrobes, sofas, tables, chairs, kitchen counters, fridges, TVs, bookshelves, rugs, plants, lamps, mirrors, curtains, desks, and more — dozens of individually-cropped objects on a shared grid. |
-| `InteriorElements/32x32/...` and `48x48/...` | 2×/3× of the above | **Pre-rendered upscaled versions of the exact same art**, not separate content. |
+| `Room_Builder_free_16x16.png` | 272 × 368 | 17 × 23 |
+| `Room_Builder_free_32x32.png` | 544 × 736 | 17 × 23 |
+| `Room_Builder_free_48x48.png` | 816 × 1104 | 17 × 23 |
+| `Interiors_free_16x16.png` | 256 × 1424 | 16 × 89 |
+| `Interiors_free_32x32.png` | 512 × 2848 | 16 × 89 |
+| `Interiors_free_48x48.png` | 768 × 4272 | 16 × 89 |
+| `Adam / Alex / Amelia / Bob _idle_16x16.png` | 64 × 32 each | 4 × 2 frames of 16×16 |
 
-This is a standard 16×16-grid top-down interior/furniture tileset (the kind used for Stardew-Valley-style apartment/room scenes), paired with small idle character sheets. Nothing here implies movement, physics, or animation is required — it's furniture-and-walls content, dropped onto a grid.
+**The three tiers are pre-rendered upscales of identical art, not different
+content.** Room Builder is always 17×23 tiles; Interiors is always 16×89.
 
-**Open item:** confirm the license/source of this pack before shipping publicly (see Section 22 and Section 26) — it wasn't specified where it was sourced from, and typical itch.io interior packs range from CC0 to "credit required" to "no redistribution."
+### 9.2 Use the 32×32 tier natively
 
-### 10.2 Rendering approach: DOM + CSS, not canvas
+Take the 32×32 sheets as shipped. Do **not** take the 16×16 sheet and scale it in
+CSS — the pack already ships pixel-perfect nearest-neighbour upscales, so using the
+matching tier avoids runtime scaling entirely and guarantees crisp source pixels.
 
-- **No canvas/game engine is necessary.** The room is a fixed arrangement of a limited number of tiles/furniture pieces with no per-frame redraw. A CSS grid of `<div>` cells, each cropped from a sprite sheet via `background-image` + `background-position`, fully reproduces the room and is far faster to build and debug than a canvas renderer.
-- Define a small TypeScript map of `{ spriteName: { x, y } }` pixel coordinates for only the specific tiles/furniture actually used in the MVP room (floor tile, wall/border tile, bed, sofa, table, one or two decorative objects). This map is trivial to extend — adding a new piece of furniture is a one-line coordinate addition, not a rendering-code change.
-- Render the room as a fixed-size CSS grid; each grid cell is a `div` styled with the sheet as its background image and the correct `background-position` offset, sized exactly to one tile.
+16×16 makes a room feel cramped beside a HUD on a laptop. 48×48 eats too much
+vertical space. 32×32 is the practical default, and it is one constant to change.
 
-### 10.3 Which resolution tier to use
+### 9.3 Characters need exactly 2×
 
-Use the **32×32 tier directly** as shipped — do not take the 16×16 sheet and scale it in CSS.
-- The pack already ships pixel-perfect nearest-neighbor upscales at 32×32 and 48×48; using the tier that matches our target on-screen tile size avoids any runtime scaling math and guarantees crisp source pixels.
-- 16×16 makes a full room feel cramped next to a HUD on a normal laptop screen; 48×48 eats too much vertical space to fit a full room comfortably. 32×32 is the practical default. This is trivially revisited once a real layout is on screen — it's a single constant, not an architectural decision.
+Characters ship **only at 16×16** — there is no 32px or 48px variant. A character
+placed in a 32px room must be scaled by exactly **2×** (or 3× against 48px).
+Integer multiples only; a fractional scale reintroduces blur regardless of
+`image-rendering`.
 
-### 10.4 Preventing blurry pixel art
+A single static idle frame, standing in the room, costs nothing and makes the space
+feel inhabited. No animation loop. Decorative only.
 
-- Apply `image-rendering: pixelated;` (with `image-rendering: -webkit-crisp-edges;` / `image-rendering: crisp-edges;` as fallbacks) to every element that renders a cropped sprite.
-- If any further on-screen scaling is applied (e.g., for responsive resizing), scale only by **integer multiples** (1×, 2×, 3×) via CSS `transform: scale()` — never a fractional/arbitrary scale factor, which reintroduces blur regardless of the rendering hint.
-- Never run these PNGs through Next.js's built-in `<Image>` automatic resizing/optimization pipeline (it re-encodes and can blur pixel art) — serve them as plain static assets from `public/`.
+### 9.4 Keeping pixel art crisp
 
-### 10.5 Characters (optional, effectively free)
+- `image-rendering: pixelated` on every element rendering a crop
+- Scale only by integer multiples, via `transform: scale()`
+- **Never** run these PNGs through Next.js `<Image>` optimisation — it re-encodes
+  and blurs pixel art. Serve as plain static files from `public/`.
 
-Movement is out of MVP scope, but a single static crop of one idle character frame, placed standing in the room, costs nothing (the asset and the same CSS-cropping technique already exist) and makes the room feel inhabited. Treat this as an optional decorative addition, not a feature — no animation loop or input handling should be built around it for the MVP.
+### 9.5 Organisation
 
-### 10.6 Asset organization in the project
-
-Copy `Assets/` into `public/assets/`, preserving the existing subfolder structure so both source and in-app assets stay easy to cross-reference:
+Copy `Assets/` into `public/assets/`, preserving structure:
 
 ```
 public/assets/
   characters/
-  interior/16x16/
-  interior/32x32/
-  interior/48x48/
+  interior/16x16/  interior/32x32/  interior/48x48/
 ```
 
-## 11. Energy Data Model
+### 9.6 The sprite map is the long pole
 
-A single, small, typed model is sufficient for the MVP. All values below are **mock**, hand-authored or derived, and deterministic (same room number → same numbers every time — no `Math.random()` in the render path).
+Picking coordinates out of a 16 × 89 furniture sheet means *looking* at it. This is
+the single task most likely to consume an afternoon.
 
-```ts
-interface ApartmentEnergyData {
-  roomNumber: string;          // from login input, mock/real: real (user-entered)
-  totalConsumptionKwh: number; // mock: static value for the period (e.g. "this month")
-  referenceConsumptionKwh: number; // mock: the complex-wide average/reference apartment
-  costPerKwh: number;          // mock: a plausible local utility rate, hardcoded
-}
+**Method:** render the sheet once with an indexed grid overlay (row/column numbers
+burned on), screenshot it, and read coordinates off the image. Minutes instead of
+hours of trial-and-error. Do this before writing any of `ApartmentRoom.tsx`.
 
-interface ApartmentScoreResult {
-  score: number;                // 0–100, derived (see Section 12)
-  comparisonPercent: number;    // derived: (total - reference) / reference * 100
-  estimatedCost: number;        // derived: totalConsumptionKwh * costPerKwh
-  status: "Energy Saver" | "Good" | "Average" | "Needs Improvement"; // derived from score
-}
-```
+Only map what the room actually uses: one floor tile, one wall tile, and 5–7
+furniture pieces. Adding a piece later is a one-line coordinate addition.
 
-| Field | Meaning | Mock or Real (MVP) | Path to real data (later) |
-|---|---|---|---|
-| `roomNumber` | Identifies the apartment | Real (user-typed, unvalidated) | Becomes the real login identity once real auth exists (Phase 3). |
-| `totalConsumptionKwh` | Energy used by the apartment in the period | Mock, hardcoded | Sum of real smart-plug/meter readings for that apartment (Phase 3). |
-| `referenceConsumptionKwh` | Average/benchmark consumption for a comparable apartment | Mock, hardcoded | Computed from real aggregate data across the complex (Phase 3+). |
-| `costPerKwh` | Local utility rate used to estimate cost | Mock, hardcoded constant | Configurable per building/utility contract (Phase 3). |
-| `estimatedCost` | `totalConsumptionKwh * costPerKwh` | Derived from mock inputs | Same formula, real inputs. |
-| `comparisonPercent` | How far above/below reference the apartment is | Derived from mock inputs | Same formula, real inputs. |
-| `score` / `status` | Gamified summary of performance | Derived from mock inputs | Same formula initially; formula sophistication grows in Phase 4 (see Section 12). |
+### 9.7 Licence — resolved
 
-For the MVP, **one static mock dataset is sufficient** (the resident's room number doesn't need to change the numbers). A near-zero-cost enhancement, if time allows, is deterministically selecting from 3–4 predefined mock profiles via a hash of the room number string — same determinism guarantee, slightly more variety. This is explicitly optional and should not delay the core build.
+These are **LimeZu — Modern Interiors**, free version.
 
-## 12. Scoring System
-
-**Goal:** a score that's instantly understandable, cheap to compute, and credible enough to explain in one sentence.
-
-**Formula:**
-
-```
-comparisonPercent = (totalConsumptionKwh - referenceConsumptionKwh) / referenceConsumptionKwh * 100
-
-score = clamp( round( 100 - comparisonPercent ), 0, 100 )
-```
-
-- **Inputs:** `totalConsumptionKwh`, `referenceConsumptionKwh` (both from the mock data model).
-- **Calculation:** the score starts at a baseline of 100 (meaning "exactly average"). Every percentage point of consumption *above* the reference apartment subtracts one point; consuming *below* the reference apartment would push the raw value above 100, which is clamped back down to a max of 100 (a resident can't score "more than perfect," but is clearly rewarded by landing at the top of the range).
-- **Output:** an integer 0–100.
-- **Range meaning:**
-
-| Score range | Status label | Meaning |
-|---|---|---|
-| 90–100 | "Energy Saver" 🌱 | At or well below the reference apartment's usage. |
-| 75–89 | "Good" | Slightly above reference but clearly efficient. |
-| 50–74 | "Average" | Noticeably above reference. |
-| 0–49 | "Needs Improvement" | Far above reference usage. |
-
-- **Why this is defensible, not arbitrary:** it's a direct, linear normalization against a stated reference value — the same shape of comparison used in real utility "home energy reports" (e.g., "you used X% more than similar homes"), just re-expressed as a 0–100 score for gamification. It is explicitly simple by design; it is not meant to model real tariffs, weather-normalization, or occupancy — that sophistication is deliberately deferred.
-- **How it grows later (Phase 3–4, no MVP rework required):** the same `score()` function's *inputs* can be swapped from mock constants to real aggregated smart-plug data without changing its signature; later, the formula itself can add weighting (e.g., per-appliance sub-scores rolling up into the apartment score, time-of-day/peak-usage weighting, household-size normalization) behind the same `ApartmentScoreResult` interface, so nothing that consumes the score (the HUD, a future leaderboard) needs to change.
-
-## 13. Architecture
-
-Client-only Next.js app. No servers, no databases, no external APIs for the MVP.
-
-```
-Browser
-  └── Next.js app (static/CSR)
-        ├── / (login route)          — writes roomNumber + "loggedIn" flag to localStorage
-        └── /apartment (main route)  — reads localStorage; renders Room + Dashboard
-                ├── Room component        — pure presentational, reads sprite-map + a fixed layout
-                └── Dashboard component   — reads mock data module → scoring lib → renders HUD
-```
-
-- **Session/state:** `localStorage` holds `{ roomNumber, loggedIn: boolean }`. The `/apartment` route checks this on mount; if absent, client-side redirect to `/`. This is also what satisfies "refresh should not break the experience" in the Definition of Done (Section 24) — a refresh on `/apartment` stays logged in.
-- **Data flow:** the mock data module → a pure scoring function → the Dashboard component. The scoring function has no side effects and is the only piece of logic worth unit-testing (Section 20).
-- **Rendering:** DOM/CSS sprite cropping, no canvas (Section 10).
-
-## 14. Recommended File Structure
-
-```
-app/
-  page.tsx                 # Login screen ("/")
-  apartment/
-    page.tsx               # Main apartment + dashboard screen ("/apartment")
-  layout.tsx                # Root layout, global font/meta
-  globals.css                # Tailwind entry + pixelated-rendering utility class
-
-components/
-  LoginForm.tsx             # Room number / password inputs + submit
-  ApartmentRoom.tsx          # Renders the pixel-art room grid
-  EnergyDashboard.tsx        # HUD container
-  ScoreBadge.tsx             # The big score + status pill
-  StatCard.tsx               # Reusable small stat tile (consumption, cost, comparison)
-
-data/
-  mockApartment.ts           # ApartmentEnergyData mock value(s), typed
-  spriteMap.ts                # {name: {x, y, w, h}} coordinates into the tile sheets
-
-lib/
-  scoring.ts                  # Pure scoring/derivation functions + types
-  session.ts                    # localStorage get/set/clear helpers
-
-public/
-  assets/
-    characters/
-    interior/16x16/
-    interior/32x32/
-    interior/48x48/
-
-tests/ (or colocated *.test.ts)
-  scoring.test.ts
-```
-
-| Directory | Responsibility |
-|---|---|
-| `app/` | Routing and page composition only — pages import components/data, minimal logic of their own. |
-| `components/` | Presentational UI, one concern per file. `ApartmentRoom` and `EnergyDashboard` are the two heaviest components and are the two developers' primary parallel workstreams. |
-| `data/` | All mock/static values and the sprite coordinate map — the only place hardcoded numbers should live. |
-| `lib/` | Pure, framework-independent logic — scoring math and session helpers. Easiest code to unit test, easiest code to hand to Claude Code in isolation. |
-| `public/assets/` | Static pixel-art files, untouched/uncompressed, served as-is. |
-
-## 15. Team Responsibilities
-
-Two parallel workstreams, split so the two developers rarely touch the same file.
-
-| | **Person A — Foundation & Logic** | **Person B — Visual & Interaction** |
-|---|---|---|
-| Owns | `app/page.tsx` (login), `lib/`, `data/mockApartment.ts`, project setup, tests, deployment | `components/ApartmentRoom.tsx`, `data/spriteMap.ts`, `components/EnergyDashboard.tsx` + `ScoreBadge`/`StatCard`, `public/assets/`, Tailwind theme/pixelated CSS |
-| Builds | Fake login flow, `localStorage` session helpers, `ApartmentEnergyData` type + mock values, `scoring.ts` pure functions, Vitest unit tests, Vercel deploy | The pixel-art room (sprite cropping + layout), the HUD UI/styling, visual polish and responsiveness |
-| Depends on B for | The `/apartment` route eventually needing `ApartmentRoom` and `EnergyDashboard` to compose against | Nothing blocking — B can build the room and dashboard against a hand-typed stub `ApartmentScoreResult` object before A's real `scoring.ts` lands |
-| Depends on A for | Nothing blocking — A can build login/session/scoring fully in isolation with unit tests, no UI needed | The final typed shape of `ApartmentEnergyData`/`ApartmentScoreResult` (agree on this **before** coding — see below) |
-
-**Agree before coding (the shared contract):** the exact shape of `ApartmentEnergyData` and `ApartmentScoreResult` (Section 11) and the sprite coordinate map format in `spriteMap.ts` (Section 10.2). Once these two TypeScript interfaces are agreed, both people can work fully in parallel against stub data.
-
-**Integration point:** `app/apartment/page.tsx` — a short "shell" file that imports `ApartmentRoom` and `EnergyDashboard` and wires real data through. Keep this file intentionally tiny and touch it together (pair for 15 minutes) rather than having either person iterate on it solo, since it's the one file both branches will want to edit.
-
-**Likely merge-conflict hotspots to avoid editing simultaneously:** `app/apartment/page.tsx`, `tailwind.config.ts`/`globals.css` (agree on the pixelated-rendering utility class name up front so both aren't adding it independently), and `package.json` (coordinate before either person adds a dependency).
-
-**Branch strategy:** see Section 19.
-
-## 16. Development Phases
-
-| Phase | Name | Goal |
-|---|---|---|
-| 0 | Project setup | Next.js + TS + Tailwind scaffold, deployed "hello world" on Vercel |
-| 1 | Data & scoring foundation | Types, mock data, pure scoring functions, unit tests |
-| 2 | Login screen | Fake login UI + session write |
-| 3 | Apartment room rendering | Sprite map + CSS-cropped static room |
-| 4 | Energy dashboard (HUD) | Stat cards, score badge, status pill, styled as a game HUD |
-| 5 | Integration | Wire login → session guard → room + dashboard on `/apartment`, room number visible |
-| 6 | Polish | Visual coherence, responsive layout, pixel-rendering QA |
-| 7 | Testing | Unit tests pass, manual QA checklist (Section 20) run end-to-end |
-| 8 | Deployment | Production build verified, deployed to Vercel |
-
-Phases 1–4 are parallelizable per Section 15; Phases 5–8 require both developers.
-
-## 17. Detailed Task Breakdown
-
-Each task below is scoped to be handed to Claude Code as one focused implementation prompt.
-
-| # | Phase | Objective | Files | Depends on | Definition of Done | Owner |
-|---|---|---|---|---|---|---|
-| 1 | 0 | Scaffold the app | `package.json`, `app/layout.tsx`, `app/page.tsx`, `tailwind.config.ts` | — | `npm run dev` shows a blank Next.js + Tailwind page; `npm run build` succeeds | A |
-| 2 | 0 | Deploy skeleton to Vercel | Vercel project link | Task 1 | A public preview URL loads the blank scaffold | A |
-| 3 | 1 | Define data model types | `lib/scoring.ts` (types), `data/mockApartment.ts` | Task 1 | `ApartmentEnergyData` and `ApartmentScoreResult` types exist and are agreed with Person B | A |
-| 4 | 1 | Implement scoring logic | `lib/scoring.ts` | Task 3 | Pure `computeScore(data): ApartmentScoreResult` implemented per Section 12 formula | A |
-| 5 | 1 | Unit test scoring logic | `lib/scoring.test.ts` | Task 4 | Vitest covers: at-reference (score 100), above-reference, below-reference clamp, each status boundary | A |
-| 6 | 1 | Session helpers | `lib/session.ts` | Task 1 | `setSession`, `getSession`, `clearSession` wrapping `localStorage`, typed | A |
-| 7 | 2 | Login screen UI | `components/LoginForm.tsx`, `app/page.tsx` | Task 1 | Room number + password inputs, submit calls `setSession` and navigates to `/apartment`; empty room number blocked client-side | A |
-| 8 | 3 | Copy & organize assets | `public/assets/**` | — | Assets copied from `Assets/` into `public/assets/` preserving subfolders | B |
-| 9 | 3 | Define sprite coordinate map | `data/spriteMap.ts` | Task 8 | Coordinates recorded for: 1 floor tile, 1 wall/border tile, bed, sofa, table, 1–2 decorative items, from the 32×32 sheets | B |
-| 10 | 3 | Render the room | `components/ApartmentRoom.tsx` | Task 9 | A fixed-size CSS grid renders a coherent small room using only `background-position` crops; `image-rendering: pixelated` applied; no blur at any integer zoom | B |
-| 11 | 4 | Build HUD stat components | `components/StatCard.tsx`, `components/ScoreBadge.tsx` | Task 3 (types only, can stub) | Presentational components accept typed props and render consumption/cost/comparison/status visually as a HUD, not a business dashboard | B |
-| 12 | 4 | Assemble the dashboard | `components/EnergyDashboard.tsx` | Task 11 | Composes `StatCard`s + `ScoreBadge` from an `ApartmentScoreResult` + `ApartmentEnergyData` prop | B |
-| 13 | 5 | Build the apartment route shell | `app/apartment/page.tsx` | Tasks 6, 7, 10, 12 | Route reads session (redirects to `/` if absent), renders room number, `ApartmentRoom`, and `EnergyDashboard` fed by `mockApartment.ts` → `computeScore` | A + B (paired) |
-| 14 | 5 | Logout | `app/apartment/page.tsx` or a small `LogoutButton` | Task 13 | Clears session, navigates to `/` | Either |
-| 15 | 6 | Responsive + visual polish pass | `components/*`, `globals.css` | Task 13 | Room + HUD read coherently on both desktop width and a common mobile width; no layout breakage | B |
-| 16 | 7 | Manual QA pass | — | Task 15 | Full checklist in Section 20 executed and passing | A + B |
-| 17 | 8 | Production build + deploy | Vercel | Task 16 | `npm run build` clean, deployed URL matches Definition of Done (Section 24) | A |
-
-## 18. Claude Code Workflow
-
-**General principles for this project specifically:**
-- Treat each row in Section 17 as one Claude Code task. Don't batch multiple rows into a single prompt — smaller diffs are easier for the other teammate to review and reduce the chance Claude "helpfully" touches unrelated files.
-- **Use Plan Mode** before any task that creates new files or establishes a new pattern (Tasks 1, 3, 9, 10, 13). Skip plan mode for small, mechanical follow-ups (Task 14, small copy/style tweaks).
-- **Use `/clear` between unrelated tasks**, especially when switching between Person A's logic-side work and Person B's visual-side work in the same terminal session — stale context about the room grid isn't useful (and burns tokens) while writing scoring unit tests, and vice versa.
-- **Ask Claude to inspect before modifying** whenever picking up a task that touches a file the other person already wrote (e.g., before Task 13's integration, ask Claude to read `ApartmentRoom.tsx` and `EnergyDashboard.tsx` and summarize their prop contracts before wiring them up — don't let it rewrite either component to "fit better" without being asked).
-- **Explicitly tell Claude "do not refactor working code"** when a task is additive (e.g., "add a logout button" should not turn into a restyle of the whole apartment page). This project's tight deadline makes unrequested rewrites especially costly.
-- **Verify after every task:** run `npx tsc --noEmit` and `npm run build` after any non-trivial change, and re-run `npm test` after any change to `lib/scoring.ts`. Do this before moving to the next task, not in a batch at the end.
-- **Minimize context usage:** for logic-only tasks (scoring, session helpers), there's no need to have the whole `components/` tree in context — point Claude specifically at `lib/` and `data/`.
-
-**Recommended prompt sequence** (mirrors Section 17; do not execute yet):
-
-1. "Scaffold a Next.js (App Router) + TypeScript + Tailwind project. No extra dependencies. Verify `npm run dev` and `npm run build` both work." *(Task 1)*
-2. "Read Section 11/12 of README.md. Create `lib/scoring.ts` with the `ApartmentEnergyData`/`ApartmentScoreResult` types and a pure `computeScore` function implementing the exact formula described. Add `data/mockApartment.ts` with one static mock value. No UI." *(Tasks 3–4)*
-3. "Add Vitest, then write unit tests for `computeScore` covering the score-100 at-reference case, an above-reference case, a below-reference clamp-to-100 case, and one test per status boundary in the table in Section 12." *(Task 5)*
-4. "Create `lib/session.ts` with typed `setSession`/`getSession`/`clearSession` wrapping `localStorage` for `{ roomNumber: string, loggedIn: boolean }`. Then build `components/LoginForm.tsx` and wire it into `app/page.tsx`: on submit, reject empty room number, otherwise call `setSession` and navigate to `/apartment`." *(Tasks 6–7)*
-5. "Inspect `public/assets/interior/32x32/*.png` (do not modify). Report tile grid size and propose pixel coordinates for a floor tile, a wall/border tile, a bed, a sofa, and a table, to go into `data/spriteMap.ts`." *(Task 9, inspect-first)*
-
-Continue this pattern through Tasks 10–17, always ending a task with a build/test verification step before starting the next.
-
-## 19. Git Workflow
-
-Kept intentionally simple for a 2-person team on a deadline.
-
-- **Branch naming:** `feature/<short-task-name>`, e.g. `feature/login`, `feature/room-render`, `feature/scoring`, `feature/dashboard`.
-- **Commit strategy:** small, frequent commits per logical change; no requirement to squash. Commit messages describe *why* when non-obvious, not a restatement of the diff.
-- **Merge cadence:** merge to `main` as soon as a task from Section 17 is done and builds cleanly — don't let branches live more than a day given the timeline. Frequent small merges beat one large end-of-project merge.
-- **Before opening a PR:** pull latest `main` and resolve conflicts locally.
-- **Files not to edit simultaneously on two branches:** `app/apartment/page.tsx`, `tailwind.config.ts`/`globals.css`, `package.json` (see Section 15's merge-conflict hotspots). If both need a change there in the same window, do it paired/live instead of on separate branches.
-- **Shared components** (`StatCard`, `ScoreBadge`): once a component's prop interface is agreed, only its owner (Person B) should change its external API; the other person consumes it as-is or requests a change rather than editing it directly.
-
-## 20. Testing Strategy
-
-| Area | How | Why this level |
-|---|---|---|
-| Scoring calculation | Vitest unit tests on `computeScore` (Section 12 boundary cases) | Pure function, high bug risk if wrong, cheap to test — the one thing worth automating |
-| Login flow | Manual QA (enter any room number/password → lands on `/apartment`; empty room number blocked) | Trivial flow, not worth E2E tooling setup for MVP |
-| Room rendering | Manual visual QA at multiple zoom levels / browser widths, checking for blurring | Visual correctness isn't meaningfully unit-testable; a checklist is more effective than brittle pixel-diff tests |
-| Dashboard values | Manual QA cross-check against `mockApartment.ts` values by hand | Small, fixed dataset — easy to eyeball-verify |
-| Navigation | Manual QA: login → apartment → logout → back to login; refresh on `/apartment` stays logged in | Session logic is simple enough that a scripted test isn't worth the setup time yet |
-| Responsive behavior | Manual QA at a common desktop width and a common mobile width | No responsive framework complexity to justify automated viewport testing |
-| Asset rendering | Manual QA: zoom in/out, confirm no blur, confirm `image-rendering: pixelated` is applied everywhere sprites render | Visual, checklist-appropriate |
-| Production build | `npm run build` + serve locally, or the Vercel preview URL | Confirms nothing environment-specific (e.g., a dev-only import) breaks the real build |
-
-No E2E framework (Playwright/Cypress) for the MVP — see Section 9 for reasoning. Revisit once a real backend/auth exists and there are more flows worth regression-protecting.
-
-## 21. Deployment
-
-- **Platform:** Vercel.
-- **Build command:** default Next.js build (`next build`); no custom build steps needed.
-- **Environment variables:** none required for the MVP — there is no backend, API key, or database connection string to configure.
-- **Backend requirement:** none. The entire MVP is static/client-rendered against bundled mock data.
-- **How mock data behaves after deployment:** `data/mockApartment.ts` is bundled into the client build like any other module — it behaves identically in production and in local dev, since it's not read from a database or file system at runtime.
-- **Process:** push to `main` → Vercel auto-builds and deploys → verify the live URL against the Definition of Done checklist (Section 24). Feature branches get automatic preview URLs, useful for the two developers to review each other's work before merging.
-
-## 22. Risks and Mitigations
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Deadline risk | Miss the ship date | MVP is deliberately scoped to 5 features (Section 4); anything not in that list is out, no exceptions, until the MVP is done and deployed. |
-| Scope creep (esp. from the long-term vision) | MVP never ships because "just one more feature" | Section 5's out-of-scope list is explicit; Claude Code prompts should quote it when a task risks drifting into Phase 2+ territory. |
-| Pixel-art rendering complexity | Blurry/misaligned sprites undermine the whole visual identity | Use the pre-scaled 32×32 tier directly, `image-rendering: pixelated` everywhere, integer-only scaling (Section 10.4) — verified visually in Task 15/Section 20. |
-| Asset licensing | Can't legally ship/demo with these assets | **Unresolved — flagged in Section 26.** Confirm the source/license of the `Assets/` pack before any public deployment or demo distribution. |
-| Responsive layout | Room + HUD don't fit together on smaller screens | Design the HUD as a side panel on desktop that collapses to a stacked/bottom layout on mobile widths; verified in manual QA (Section 20). |
-| Fake vs. real energy data confusion | Users or judges/stakeholders think the numbers are real when they're mocked | Consider a small, honest UI label (e.g., "Simulated data") if this is presented externally — a one-line decision to make together (Section 26). |
-| Scoring credibility | Score feels arbitrary or unfair to a technical reviewer | Formula is a direct, explainable percentage-vs-reference normalization (Section 12), not a black box — document it in-app if time allows. |
-| Future backend migration | Rework needed when real IoT data arrives | Mock data and scoring are already isolated behind typed interfaces (`ApartmentEnergyData`, `ApartmentScoreResult`) — swapping the data source later doesn't require touching the UI layer (Section 25). |
-| Claude Code introducing unnecessary complexity | Wasted time, harder-to-review diffs, drift from the plan | Grant Claude Code focused, single-task prompts (Section 17/18); explicitly instruct "do not refactor working code" on additive tasks; run `tsc`/`build` after each task to catch drift immediately. |
-
-## 23. Future Roadmap
-
-| Phase | Scope |
-|---|---|
-| **Phase 1 (this document)** | MVP: fake login, static pixel-art room, mocked dashboard, one apartment score. |
-| **Phase 2** | Interactive appliances/sockets: hover states, socket selection, appliance placement/drag-and-drop, appliance appearing in the room, per-appliance mocked or lightly-modeled energy data. |
-| **Phase 3** | Real energy data: introduce a real backend and database, real authentication, and integration with real smart plugs/meters or a telemetry ingestion pipeline; replace mock modules with real data sources behind the same typed interfaces. |
-| **Phase 4** | Complex gamification: daily/weekly challenges, achievements, streaks, rewards, personalized energy-saving recommendations, historical usage graphs. |
-| **Phase 5** | Building-wide competition: real-time leaderboard across the housing complex, building-level statistics, resident profiles, notifications. |
-
-| Future feature | How the MVP architecture already allows it without building it now |
-|---|---|
-| Socket/appliance selection | `ApartmentRoom` already renders from a coordinate/data map (`spriteMap.ts`); appliances become additional entries with click handlers, no rendering-approach change. |
-| Appliance-level energy data | `ApartmentEnergyData` can grow an `appliances: ApplianceEnergyData[]` field without breaking existing consumers of the top-level fields. |
-| Appliance comparisons | Same `computeScore`-style pure-function pattern applies per-appliance; no architectural change, just more functions in `lib/`. |
-| Personalized recommendations | A new derived field/function reading from the same data model; additive. |
-| Challenges/achievements/streaks/rewards | New data entities and UI, layered on top of the existing session/data pattern; doesn't require touching the room-rendering or scoring core. |
-| Leaderboard | Requires Phase 3's real backend/database (comparing across real apartments); the `ApartmentScoreResult` shape is already what a leaderboard row would sort by. |
-| Building statistics | Aggregation over the same per-apartment data model, once real/Phase-3 data exists. |
-| IoT/smart plug integration, real-time telemetry | Swaps the *source* feeding `ApartmentEnergyData` from a static module to a real API/DB call — the type stays the same, so the UI layer needs no changes. |
-| Resident profiles | New data entity alongside `ApartmentEnergyData`, tied to real auth from Phase 3. |
-| Historical energy graphs | New data field (`history: { date, kwh }[]`) plus a new chart component; additive, doesn't touch the MVP's existing components. |
-| Notifications | A cross-cutting Phase 4/5 feature layered on top of a real backend; irrelevant to MVP's client-only architecture. |
-
-## 24. MVP Definition of Done
-
-The MVP is complete only when a new user can:
-
-1. Open the web application.
-2. Enter any room number/password.
-3. Successfully enter the application.
-4. See their room/apartment in 2D pixel art.
-5. See a gamified energy dashboard.
-6. See total energy consumption.
-7. See an apartment energy score.
-8. See comparison/reference energy data.
-9. See an understandable energy status (e.g., "Energy Saver").
-10. Navigate/use the application without obvious bugs.
-11. Refresh/reopen the application without the core experience breaking (session persists via `localStorage`; pixel art renders crisply).
-12. Build and deploy the application successfully (`npm run build` clean, live on a Vercel URL).
-
-## 25. Future Technical Architecture
-
-Once Phase 3 begins, the architecture grows outward from the MVP rather than being replaced:
-
-```
-Browser (Next.js, same app shell)
-  ├── Real auth (NextAuth or similar) replaces fake login
-  ├── API routes / dedicated backend service
-  │      └── Database (apartments, residents, appliances, readings)
-  │      └── Ingestion layer for smart-plug/meter telemetry
-  ├── Scoring logic (same computeScore-style pure functions, real inputs)
-  └── Leaderboard/aggregation queries across apartments in a building
-```
-
-The load-bearing decision made now that enables this: **keep all energy data and scoring behind typed interfaces (`ApartmentEnergyData`, `ApartmentScoreResult`) and pure functions, never inline mock numbers directly into components.** This is the seam where "mock" becomes "real" later without a UI rewrite.
-
-## 26. Open Questions / Decisions To Make
-
-These need a decision from the team (not Claude Code) before or shortly after MVP work starts:
-
-1. **Asset license/source** — where does the `Assets/` pack come from, and does its license permit our intended use (including any public demo/deployment)? Needs confirmation before external sharing.
-2. **Product name** — "WattWise" is a placeholder working title used throughout this document; confirm or replace.
-3. **Should the MVP visually label data as "simulated"?** — relevant if this will be shown to non-technical stakeholders who might otherwise assume it's live/real.
-4. **Mock data variety** — ship with a single static mock apartment, or the near-zero-cost room-number-hash variant described in Section 11? Not blocking, but worth a quick team decision.
-5. **Target device priority** — is desktop the primary target with mobile as a "shouldn't break" concern, or is mobile equally primary? This affects how much responsive-design time to budget in Phase 6/Task 15.
+- **Credit LimeZu visibly in the app.** A line in the footer or login screen.
+- The free-version licence is more restrictive than the paid one. Committing the
+  raw sheets to a public repo may exceed it — they are already committed here, so
+  either confirm the licence permits it or make the repo private before judging.
 
 ---
 
-## Executive Summary
+## 10. Energy data model
 
-**A. Recommended MVP architecture:** A single Next.js (App Router) client-rendered app, no backend, no database. Two routes (`/` login, `/apartment` main view). State is a `localStorage` session flag plus a static typed mock-data module, run through a pure scoring function. The room is rendered as a CSS grid of `background-position`-cropped sprites from the existing pixel-art sheets — no canvas, no game engine.
+```ts
+interface ApartmentEnergyData {
+  roomNumber: string;              // from login, user-entered
+  totalConsumptionKwh: number;     // mock, static for the period
+  referenceConsumptionKwh: number; // mock, the complex-wide average
+  costPerKwh: number;              // mock, plausible local tariff
+}
 
-**B. Recommended tech stack:** Next.js + React + TypeScript + Tailwind CSS, deployed on Vercel. No database, no backend, no game engine, no state-management library, no auth library, no animation library, no E2E test framework — all deliberately deferred as unnecessary for MVP scope (Section 9).
+interface ApartmentScoreResult {
+  score: number;             // 0–100, derived (§11)
+  comparisonPercent: number; // (total - reference) / reference * 100
+  estimatedCost: number;     // totalConsumptionKwh * costPerKwh
+  status: "Energy Saver" | "Good" | "Average" | "Needs Improvement";
+}
+```
 
-**C. Exact MVP feature list:** (1) fake login, (2) static 2D pixel-art apartment room, (3) gamified energy dashboard/HUD, (4) one apartment-level energy score with a documented formula, (5) login → apartment navigation with visible room number and logout. Nothing else (Section 5).
+Use **S$0.2994/kWh** for `costPerKwh` — the Singapore regulated tariff. A real
+local figure is free credibility on stage.
 
-**D. Team responsibilities:** Person A owns login, session, data types, mock data, and the scoring logic (plus tests and deployment). Person B owns the pixel-art room rendering, the sprite coordinate map, and the dashboard/HUD UI and styling. They integrate briefly, paired, at `app/apartment/page.tsx` (Section 15).
+One static mock dataset is sufficient. Optionally, deterministically select from
+3–4 profiles by hashing the room number — same determinism guarantee, more variety.
+Explicitly optional; must not delay the core build.
 
-**E. Ordered implementation sequence:** Phase 0 (setup) → Phase 1 (data/scoring, A) parallel with Phase 3 prep (asset copy/sprite map, B) → Phase 2 (login, A) parallel with Phase 3–4 (room + HUD, B) → Phase 5 (integration, paired) → Phase 6 (polish) → Phase 7 (testing) → Phase 8 (deploy). Full task-level detail in Section 17.
+---
 
-**F. Future roadmap:** Phase 2 interactive appliances/sockets → Phase 3 real backend/database/IoT data → Phase 4 challenges/achievements/recommendations → Phase 5 building-wide leaderboard. The MVP's typed data model and pure-function scoring are the seam that lets each phase build outward without rewriting the MVP (Section 23/25).
+## 11. Scoring system
 
-**G. First 5 Claude Code implementation prompts (do not run yet):**
-1. Scaffold Next.js + TypeScript + Tailwind, verify dev/build both work.
-2. Implement `lib/scoring.ts` types + `computeScore` per Section 12, plus `data/mockApartment.ts` — no UI.
-3. Add Vitest and unit-test `computeScore`'s boundary cases.
-4. Implement `lib/session.ts` and the login screen (`LoginForm.tsx` + `app/page.tsx`).
-5. Inspect (read-only) the 32×32 asset sheets and propose sprite coordinates for `data/spriteMap.ts` before any room-rendering code is written.
+```
+comparisonPercent = (total - reference) / reference * 100
+score             = clamp(round(100 - comparisonPercent), 0, 100)
+```
+
+| Score | Status | Meaning |
+|---|---|---|
+| 90–100 | Energy Saver 🌱 | At or below the reference apartment |
+| 75–89 | Good | Slightly above reference |
+| 50–74 | Average | Noticeably above |
+| 0–49 | Needs Improvement | Far above |
+
+**Why it is defensible:** a direct linear normalisation against a stated reference —
+the same comparison real utility "home energy reports" use ("you used X% more than
+similar homes"), re-expressed 0–100. Deliberately simple. It does not model
+tariffs, weather or occupancy, and we should say so rather than be caught claiming
+otherwise.
+
+Set the mock numbers so the demo apartment lands around **72–78** — visibly
+imperfect, with obvious room to improve. A demo that opens on 94/100 has nowhere
+to go and nothing to talk about.
+
+---
+
+## 12. Measurability — baseline, metric, target
+
+The rubric asks whether you could tell **with evidence** that it worked. State this
+explicitly in the rationale and on a slide:
+
+| | |
+|---|---|
+| **Audience** | Residents of a multi-unit housing complex |
+| **Behaviour** | Reducing household electricity consumption against a peer benchmark |
+| **Metric** | Monthly kWh per apartment, and the derived 0–100 score |
+| **Baseline** | The complex-wide reference consumption (`referenceConsumptionKwh`) |
+| **Target** | A pilot cohort moves +10 score points (≈10% consumption reduction) over 8 weeks |
+| **How measured** | Per-apartment meter reads, pre- and post-rollout, against the non-participating remainder of the complex as a control |
+
+**Be honest about the limitation.** We are not measuring one specific behaviour;
+we are measuring total consumption. Saying so plainly is stronger than being caught
+overclaiming — the rubric rewards a credible case, and judges recognise the
+difference between a clear-eyed limitation and hand-waving.
+
+---
+
+## 13. Architecture
+
+```
+Browser
+└── Next.js app (client-rendered)
+      ├── /            login → writes { roomNumber } to localStorage
+      └── /apartment   reads session; renders Room + Dashboard
+            ├── ApartmentRoom      presentational; spriteMap + fixed layout
+            └── EnergyDashboard    mock data → scoring → HUD
+```
+
+`/apartment` checks session on mount; redirects to `/` if absent. This is also what
+makes refresh survive.
+
+**Hydration discipline:** `localStorage` does not exist during SSR. Read it in
+`useEffect`, never during render, and render the same empty state on server and
+first client pass. Reading storage during render hydrate-mismatches.
+
+---
+
+## 14. File structure
+
+```
+app/
+  layout.tsx  page.tsx           ← login
+  apartment/page.tsx             ← integration shell (keep tiny)
+  globals.css
+components/
+  LoginForm.tsx
+  ApartmentRoom.tsx
+  EnergyDashboard.tsx  StatCard.tsx  ScoreBadge.tsx
+lib/
+  scoring.ts  scoring.test.ts  session.ts
+data/
+  mockApartment.ts  spriteMap.ts
+public/assets/
+docs/
+  rationale.md  demo-script.md
+```
+
+---
+
+## 15. Four-person team split
+
+Four lanes, split so two people rarely touch the same file.
+
+### Lane A — Foundation & Logic
+**Owns:** `app/page.tsx`, `lib/`, `data/mockApartment.ts`, project setup, tests, deploy
+**Builds:** scaffold · fake login · session helpers · data model · `computeScore` · Vitest · Vercel
+**Blocked by:** nobody. Can work fully in isolation from hour zero.
+
+### Lane B — Room & Assets
+**Owns:** `components/ApartmentRoom.tsx`, `data/spriteMap.ts`, `public/assets/`
+**Builds:** asset pipeline · indexed sheet overlay (§9.6) · sprite map · the room · pixel QA
+**Blocked by:** nobody. **This lane owns the long pole — start it first.**
+
+### Lane C — HUD & Visual System
+**Owns:** `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx`, `globals.css`, Tailwind theme
+**Builds:** stat cards · score badge · status pill · the visual system · responsive + polish
+**Blocked by:** nobody — build against a hand-typed stub `ApartmentScoreResult` until A lands.
+
+### Lane D — Narrative & Submission
+**Owns:** `docs/`, the video, the pitch, **the upload**
+**Builds:** rationale doc (§6.3) · demo script · screen recordings · edit · QA checklist · submits
+**Blocked by:** needs *something* on screen by ~20:00 to start filming. Until then:
+writes the rationale, the script, and the QA checklist — all doable at hour zero.
+
+> **Lane D is not a consolation lane.** Two of three required deliverables live
+> there, and it is the only lane that can lose marks the other three cannot
+> recover. It also protects against the classic failure: a working app nobody
+> filmed.
+
+### Assigning people
+
+Write names against lanes before anyone writes code. Based on what has already
+been done: Ayushman has the deepest context on the assets and the plan (Lane B or
+A); Josh set up the repo and tooling (Lane A). Lanes C and D need the other two.
+
+**Whoever takes Lane D must not also be on the critical path for the app** — they
+will be filming and editing while the others are still committing.
+
+### The shared contract — agree before coding
+
+1. The exact shape of `ApartmentEnergyData` and `ApartmentScoreResult` (§10)
+2. The `spriteMap.ts` coordinate format (§9)
+3. The name of the pixelated-rendering utility class (so C and B don't both add one)
+
+Once those three are agreed, all four lanes run in parallel.
+
+**Integration point:** `app/apartment/page.tsx`. Keep it tiny. Pair on it for
+fifteen minutes rather than having two people iterate on it alone.
+
+**Merge-conflict hotspots:** `app/apartment/page.tsx`, `globals.css`,
+`package.json`. Coordinate before adding any dependency.
+
+---
+
+## 16. Timeline
+
+Working deadline: **Sunday 30 August, 11:00**. ⚠️ See §21 decision 3 — the brief
+header says the event was 22–23 August, which needs resolving.
+
+| Time | What | Who |
+|---|---|---|
+| **13:00–14:00** | Agree the contract (§15). Assign lanes. Scaffold pushed. | All |
+| 14:00–18:00 | Parallel build. B does the sheet overlay first. D writes rationale + script. | All |
+| 18:00–19:00 | **Integration 1** — room and HUD on screen together, ugly is fine | A + B + C |
+| 19:00–22:00 | Build continues. D films whatever exists as a safety take. | All |
+| **22:00** | 🚩 **Feature freeze.** Nothing new after this. Polish only. | All |
+| 22:00–00:00 | Polish, responsive pass, deploy to Vercel | A + C |
+| 00:00–01:00 | D films the real demo against the deployed URL | D |
+| — | Sleep. Seriously. | |
+| 07:00–09:00 | QA checklist end-to-end. D edits video. | All |
+| **09:00** | 🚩 **Cut-line** — anything broken gets cut from the demo, not fixed | All |
+| 09:00–10:00 | Final production build, deploy, verify the live URL | A |
+| 10:00–10:30 | **Submit.** Screenshot the confirmation. | D |
+| 10:30–11:00 | Buffer | |
+
+**The two flags are the whole point of this table.** Feature freeze at 22:00 and
+the 09:00 cut-line are what stop a good demo becoming a broken one at 10:55.
+
+### What gets cut, in order
+
+If time runs short, drop in this order — the earlier items cost the fewest marks:
+
+1. Character sprite in the room (decorative)
+2. Responsive/mobile layout (demo on a laptop)
+3. Unit tests (keep the scoring function correct by inspection)
+4. Multiple mock profiles (one apartment is enough)
+5. Vercel deploy (demo from `localhost` — say so, it costs almost nothing)
+
+**Never cut:** the video, the rationale, or a working login → apartment flow.
+
+---
+
+## 17. Task breakdown
+
+| # | Objective | Files | Depends on | Done when | Lane |
+|---|---|---|---|---|---|
+| 1 | Scaffold + Tailwind | `package.json`, `app/layout.tsx` | — | `npm run dev` serves a blank page; `build` clean | A |
+| 2 | Data model types | `lib/scoring.ts` | 1 | Both interfaces exist, agreed with B and C | A |
+| 3 | Scoring logic | `lib/scoring.ts` | 2 | Pure `computeScore(data)` per §11 | A |
+| 4 | Session helpers | `lib/session.ts` | 1 | `set/get/clearSession`, typed, try/caught | A |
+| 5 | Login screen | `components/LoginForm.tsx`, `app/page.tsx` | 4 | Submits, writes session, navigates | A |
+| 6 | Copy assets | `public/assets/**` | — | Structure preserved | B |
+| 7 | **Indexed sheet overlay** | throwaway script | 6 | Screenshot of both sheets with row/col numbers | B |
+| 8 | Sprite map | `data/spriteMap.ts` | 7 | Floor, wall, 5–7 furniture coords from the 32×32 sheets | B |
+| 9 | Render the room | `components/ApartmentRoom.tsx` | 8 | CSS grid, `background-position` crops, zero blur | B |
+| 10 | HUD components | `StatCard.tsx`, `ScoreBadge.tsx` | 2 (stub ok) | Reads as a game HUD, not a business dashboard | C |
+| 11 | Assemble dashboard | `EnergyDashboard.tsx` | 10 | Composes from the two typed props | C |
+| 12 | Visual system | `globals.css`, Tailwind theme | — | Palette, type scale, `.pixelated` agreed with B | C |
+| 13 | **Rationale doc** | `docs/rationale.md` | — | Audience · behaviour · mechanic · measurement (§12) | D |
+| 14 | **Demo script** | `docs/demo-script.md` | — | Beat-by-beat, under 3:00 read aloud | D |
+| 15 | QA checklist | `docs/qa.md` | — | Every flow in §7 listed as a checkbox | D |
+| 16 | Integration shell | `app/apartment/page.tsx` | 5, 9, 11 | Session guard, room + HUD, room number visible | A+B+C paired |
+| 17 | Logout | small button | 16 | Clears session, returns to `/` | any |
+| 18 | Polish pass | `components/*` | 16 | Coherent at laptop width, no breakage | C |
+| 19 | Deploy | Vercel | 16 | Public URL loads | A |
+| 20 | **Film + edit** | video | 19 | 2–3 min, end-to-end, audible | D |
+| 21 | **Submit** | — | 20 | Uploaded, confirmation screenshotted | D |
+
+---
+
+## 18. Git workflow
+
+- `main` stays deployable
+- One branch per lane: `feat/foundation`, `feat/room`, `feat/hud`, `feat/docs`
+- Small commits, PR into `main`, no force-push to `main`
+- Pull before you start and before you push — four people, twenty hours
+
+---
+
+## 19. Risks
+
+| Risk | Likelihood | Mitigation |
+|---|---|---|
+| Sprite map eats the afternoon | **High** | Indexed overlay first (§9.6). Timebox to 90 min, then use fewer furniture pieces. |
+| Blurry pixel art | Medium | 32×32 tier natively, integer scale, no `<Image>` |
+| Nobody films anything | **High** | Lane D owns it; safety take at 19:00 before the app is finished |
+| Merge conflicts in the shell | Medium | Pair on `app/apartment/page.tsx`; nobody edits it solo |
+| Hydration mismatch flicker | Medium | No `Math.random()` in render; `localStorage` in `useEffect` only |
+| Scope creep into §5 | Medium | The out-of-scope list is binding. Point at it. |
+| Deadline is wrong (§21.3) | Unknown | Resolve today |
+
+---
+
+## 20. Definition of done
+
+- [ ] `npm run build` clean, no type errors
+- [ ] Login accepts a room number and navigates
+- [ ] Apartment renders the pixel room with no blur at 100% zoom
+- [ ] HUD shows consumption, score, comparison, cost, rank
+- [ ] Room number visible; logout returns to login
+- [ ] Refresh on `/apartment` stays logged in
+- [ ] LimeZu credited in the UI
+- [ ] Demo video under 3:00, audible on laptop speakers
+- [ ] `docs/rationale.md` answers all four questions
+- [ ] Submitted, confirmation screenshotted, posted to the group chat
+
+---
+
+## 21. Open decisions
+
+1. **Hover-to-inspect appliances?** One tooltip component, no new state. Materially
+   serves the 40% criterion; a fully static room is thin against "would you use it
+   regularly." **Recommend: yes, if the room lands by 18:00.** — *decide by 18:00*
+2. **Repo public or private?** The LimeZu sheets are committed. Confirm the free
+   licence permits redistribution, or go private before judging. — *decide today*
+3. **⚠️ What is the actual deadline?** The brief header reads *22–23 August 2026*,
+   which has passed. We are working to Sunday 30 August, 11:00 on Josh's word.
+   Somebody confirm against the submission portal. — *decide today, before anything else*
+4. **Who is Lane D?** Must not be on the app's critical path. — *decide at 13:00*
