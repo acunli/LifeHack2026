@@ -1166,6 +1166,27 @@ const css = `
 .wl-ghost:hover{color:var(--ink);border-color:var(--line-hi)}
 .wl-ghost.on{color:#2b1d05;background:var(--lime);border-color:#1e3a10}
 
+/*
+ * Hover lift for the header controls. They sit in a row of near-identical
+ * pixel chips, so growing the one under the cursor is the quickest way to
+ * say which is about to be clicked.
+ *
+ * Stepped rather than eased: a smooth tween scales a pixel typeface through
+ * every fractional size on the way and reads as blur. Two steps snaps to the
+ * end state instead. The hovered chip is raised above its neighbours so the
+ * growth overlaps them rather than being clipped by them.
+ */
+.wl-btn,.wl-ghost,.wl-rewards{transform-origin:center;position:relative}
+.wl-btn:hover,.wl-ghost:hover,.wl-rewards:hover{transform:scale(1.06);z-index:3}
+.wl-ghost,.wl-rewards{transition:transform 90ms steps(2),color .12s,border-color .3s}
+.wl-btn:hover{box-shadow:0 6px 0 0 var(--amber-deep)}
+.wl-rewards.unlocked:hover{border-color:var(--amber)}
+/* Press still wins over hover, so the button goes down rather than staying up. */
+.wl-btn:active{transform:translateY(5px) scale(1.02)}
+@media(prefers-reduced-motion:reduce){
+  .wl-btn:hover,.wl-ghost:hover,.wl-rewards:hover{transform:none}
+}
+
 /* Top bar: WattLah logo + electricity symbol */
 .wl-topbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 6px}
 @keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
