@@ -422,12 +422,6 @@ export default function HomePage() {
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
             </button>
-            <button className="wl-ghost" onClick={() => router.push('/interactive-apartment')}>
-              Walk around
-            </button>
-            <button className="wl-ghost" onClick={() => animateTo(score, 0)}>
-              Replay reveal
-            </button>
             <button
               className={'wl-ghost' + (whatIf ? ' on' : '')}
               onClick={() => setWhatIf((v) => !v)}
