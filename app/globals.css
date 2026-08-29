@@ -71,6 +71,7 @@ body {
 }
 
 .pixel-input {
+  font-family: var(--font-pixel), monospace;
   background: var(--bg-deep);
   border: 3px solid var(--line);
   color: var(--ink);
@@ -85,6 +86,8 @@ body {
 
 /* Button that physically depresses — the cheapest way to feel like a game. */
 .pixel-btn {
+  font-family: var(--font-pixel), monospace;
+  letter-spacing: 0.08em;
   background: var(--amber);
   color: var(--bg-deep);
   border: 3px solid var(--amber-deep);
@@ -100,6 +103,8 @@ body {
 }
 
 .pixel-btn-ghost {
+  font-family: var(--font-pixel), monospace;
+  letter-spacing: 0.08em;
   background: var(--panel);
   color: var(--ink-dim);
   border: 3px solid var(--line);

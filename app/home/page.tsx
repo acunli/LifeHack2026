@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/useSession'
 import ApartmentRoom from '@/components/ApartmentRoom'
-import { logout, saveScore, userIdFromRoom } from '@/lib/session'
+import Mascot from '@/components/Mascot'
+import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
 import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
 
@@ -216,8 +217,17 @@ export default function HomePage() {
   const router = useRouter()
   const { session, needsUsername, isAuthenticated } = useSession()
 
+  /**
+   * Read storage directly rather than trusting isAuthenticated.
+   *
+   * useSession is backed by useSyncExternalStore, whose server snapshot is
+   * empty — so on a fresh load of this route isAuthenticated is false for the
+   * first committed render, even with a valid session. Redirecting on that
+   * bounced a signed-in resident to the login screen on every refresh.
+   * Effects only run on the client, so localStorage is authoritative here.
+   */
   useEffect(() => {
-    if (isAuthenticated === false) router.replace('/')
+    if (!isLoggedIn()) router.replace('/')
   }, [isAuthenticated, router])
 
   // Get the user's rank from the leaderboard
@@ -375,7 +385,7 @@ export default function HomePage() {
         {/* Header */}
         <header className="wl-panel wl-header">
           <div className="wl-who">
-            <div className="wl-sprite" aria-hidden="true" />
+            <Mascot scale={2} character="Alex" props_={false} />
             <div>
               <div className="wl-eyebrow wl-px">Welcome home</div>
               <div className="wl-roomno wl-px">Room {session.roomNumber}</div>
@@ -433,7 +443,7 @@ export default function HomePage() {
               {APPLIANCES.map((a) => {
                 const load = maxCur > 0 ? cur[a.id] / maxCur : 0
                 const c = heat(load)
-                const opacity = (whatIf ? 0.18 : 0.3) + load * (whatIf ? 0.3 : 0.45)
+                const opacity = (whatIf ? 0.28 : 0.4) + load * (whatIf ? 0.32 : 0.45)
                 return (
                   <div key={a.id}>
                     <div
@@ -745,12 +755,15 @@ const css = `
 @media (max-width:820px){ .wl-stage{ zoom:0.75 } }
 @media (max-width:620px){ .wl-stage{ zoom:0.55 } }
 .wl-stage img{width:100%;height:auto;image-rendering:pixelated;display:block}
-.wl-zone{position:absolute;transform:translate(-50%,-50%);border-radius:50%;
-  cursor:pointer;transition:opacity .18s ease, filter .18s ease;mix-blend-mode:screen}
+/* Above the room. Ayushman's layout objects carry z-index up to 315, so
+   without this the glows paint underneath the floor and furniture — they were
+   rendering correctly and were simply buried. */
+.wl-zone{position:absolute;transform:translate(-50%,-50%);border-radius:50%;z-index:500;
+  cursor:pointer;transition:opacity .18s ease, filter .18s ease;mix-blend-mode:hard-light}
 .wl-zone:hover{filter:brightness(1.35)}
 .wl-zone.sel{animation:wl-pulse 1.1s steps(6) infinite}
 @keyframes wl-pulse{0%,100%{filter:brightness(1.1)}50%{filter:brightness(1.7)}}
-.wl-pin{position:absolute;transform:translate(-50%,-50%);font-size:19px;pointer-events:none;
+.wl-pin{position:absolute;transform:translate(-50%,-50%);font-size:19px;pointer-events:none;z-index:501;
   filter:drop-shadow(0 2px 0 rgba(0,0,0,.6))}
 .wl-legend{display:flex;align-items:center;gap:10px;font-size:8px;color:var(--ink-dim);
   font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.14em;

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/useSession";
+import { isLoggedIn } from "@/lib/session";
 import LeaderboardBoard from "@/components/LeaderboardBoard";
 import Footer from "@/components/Footer";
 import UsernameSetup from "@/components/UsernameSetup";
@@ -17,8 +18,11 @@ export default function LeaderboardPage() {
   const router = useRouter();
   const { session, needsUsername, isAuthenticated } = useSession();
 
+  // Read storage directly: useSession's server snapshot is empty, so
+  // isAuthenticated is false on the first committed render even when signed
+  // in, and redirecting on it bounces the resident to login on every refresh.
   useEffect(() => {
-    if (isAuthenticated === false) router.replace("/");
+    if (!isLoggedIn()) router.replace("/");
   }, [isAuthenticated, router]);
 
   // Order matters: useSession returns session === null whenever a handle is
