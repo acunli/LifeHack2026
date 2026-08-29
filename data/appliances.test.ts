@@ -20,12 +20,15 @@ describe("appliance data consistency", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("places every appliance inside the room", () => {
+  it("places every appliance inside the room image", () => {
+    // Positions are percentages over room.png. A blob outside 0-100 would
+    // hang off the artwork, which is immediately visible on screen.
     for (const a of APPLIANCES) {
-      expect(a.col).toBeGreaterThanOrEqual(0);
-      expect(a.col).toBeLessThan(13); // ROOM_COLS
-      expect(a.row).toBeGreaterThanOrEqual(0);
-      expect(a.row).toBeLessThan(9); // ROOM_ROWS
+      expect(a.x).toBeGreaterThan(0);
+      expect(a.x).toBeLessThan(100);
+      expect(a.y).toBeGreaterThan(0);
+      expect(a.y).toBeLessThan(100);
+      expect(a.r).toBeGreaterThan(0);
     }
   });
 });
