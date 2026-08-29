@@ -1,8 +1,22 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/useSession'
+import ApartmentRoom from '@/components/ApartmentRoom'
+import Mascot from '@/components/Mascot'
+import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
+import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
+
+/**
+ * The standalone appliance dashboard, taken verbatim from the
+ * watt-lah-dashboard zip. Self-contained: one React import, its own inline
+ * <style>, and it already uses our token names.
+ *
+ * Only the session guard and the back link were added.
+ */
 
 const REFERENCE = 320
 const TARIFF = 0.2994
@@ -17,7 +31,6 @@ type Appliance = {
   y: number
   r: number
   tip: string
-  room: string
 }
 
 const APPLIANCES: Appliance[] = [
@@ -27,11 +40,10 @@ const APPLIANCES: Appliance[] = [
     icon: '❄️',
     kwh: 180,
     ref: 118,
-    x: 23,
-    y: 17,
-    r: 15,
+    x: 30.0,
+    y: 40.0,
+    r: 13,
     tip: 'Every degree below 25°C adds roughly 8% to your cooling bill.',
-    room: 'Bedroom',
   },
   {
     id: 'fridge',
@@ -39,11 +51,10 @@ const APPLIANCES: Appliance[] = [
     icon: '🧊',
     kwh: 95,
     ref: 98,
-    x: 55,
-    y: 25,
-    r: 10,
+    x: 84.8,
+    y: 72.0,
+    r: 9,
     tip: 'Running well. Keep the coils clear and the door shut.',
-    room: 'Kitchen',
   },
   {
     id: 'washer',
@@ -51,11 +62,10 @@ const APPLIANCES: Appliance[] = [
     icon: '🧺',
     kwh: 58,
     ref: 46,
-    x: 64,
-    y: 14,
+    x: 54.3,
+    y: 30.6,
     r: 9,
     tip: 'Cold washes use up to 80% less energy. Run full loads only.',
-    room: 'Utility',
   },
   {
     id: 'tv',
@@ -63,11 +73,10 @@ const APPLIANCES: Appliance[] = [
     icon: '📺',
     kwh: 40,
     ref: 33,
-    x: 87,
-    y: 11,
+    x: 37.0,
+    y: 63.9,
     r: 9,
     tip: 'Standby draw is real — a switched-off TV still sips power.',
-    room: 'Living room',
   },
   {
     id: 'lights',
@@ -75,11 +84,10 @@ const APPLIANCES: Appliance[] = [
     icon: '💡',
     kwh: 30,
     ref: 25,
-    x: 52,
-    y: 49,
+    x: 45.0,
+    y: 50.0,
     r: 11,
     tip: 'Swapping the last halogens for LED cuts lighting load by ~80%.',
-    room: 'Throughout',
   },
 ]
 
@@ -183,15 +191,6 @@ const RECS: Rec[] = [
   },
 ]
 
-/** MOCK — replace with real history from the API. */
-const HISTORY = {
-  saved: [2.1, 5.0, 8.2, 11.6, 15.0, 18.4], // cumulative S$ saved, per week
-  spent: [4.6, 3.9, 4.2, 3.4, 3.8, 3.6, 3.6], // S$ per day, last 7 days
-  rank: [7, 6, 6, 5, 5, 3], // position in block; LOWER is better
-  rankOf: 48,
-  since: '12 Aug',
-}
-
 const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n))
 const scoreOf = (t: number) =>
   clamp(Math.round(100 - ((t - REFERENCE) / REFERENCE) * 100), 0, 100)
@@ -212,40 +211,26 @@ function heat(load: number) {
   return `rgb(255,${Math.round(200 - k * 90)},${Math.round(102 - k * 12)})`
 }
 
-/** Returns [x,y] pairs across a 120x26 viewBox for a 12-point-style sparkline. */
-function sparkPath(data: number[], invertY = false): [number, number][] {
-  const w = 120
-  const h = 26
-  const pad = 3
-  const n = data.length
-  const vals = invertY ? data.map((v) => -v) : data
-  const min = Math.min(...vals)
-  const max = Math.max(...vals)
-  const range = max - min || 1
-  return vals.map((v, i) => {
-    const x = n === 1 ? 0 : (i / (n - 1)) * w
-    const norm = (v - min) / range
-    const y = pad + (1 - norm) * (h - pad * 2)
-    return [x, y]
-  })
-}
-
 const BASE_SCORE = scoreOf(APPLIANCES.reduce((x, a) => x + a.kwh, 0))
-const BASE_TOTAL_KWH = APPLIANCES.reduce((x, a) => x + a.kwh, 0)
 
 export default function HomePage() {
-  const { session } = useSession()
-  const [cur, setCur] = useState<Record<string, number>>(() =>
-    Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
-  )
-  const [selected, setSelected] = useState<string | null>(null)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [whatIf, setWhatIf] = useState(false)
-  const [applied, setApplied] = useState<Set<string>>(() => new Set())
-  const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [displayScore, setDisplayScore] = useState(0)
+  const router = useRouter()
+  const { session, needsUsername, isAuthenticated } = useSession()
 
+  /**
+   * Read storage directly rather than trusting isAuthenticated.
+   *
+   * useSession is backed by useSyncExternalStore, whose server snapshot is
+   * empty — so on a fresh load of this route isAuthenticated is false for the
+   * first committed render, even with a valid session. Redirecting on that
+   * bounced a signed-in resident to the login screen on every refresh.
+   * Effects only run on the client, so localStorage is authoritative here.
+   */
+  useEffect(() => {
+    if (!isLoggedIn()) router.replace('/')
+  }, [isAuthenticated, router])
+
+  // Get the user's rank from the leaderboard
   const leaderboardRank = useMemo(() => {
     if (!session) return 0
     const current = { username: session.username, roomNumber: session.roomNumber }
@@ -253,6 +238,16 @@ export default function HomePage() {
     const me = leaderboard.find((e) => e.isCurrentUser)
     return me?.rank ?? 0
   }, [session])
+
+  const [cur, setCur] = useState<Record<string, number>>(() =>
+    Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
+  )
+  const [selected, setSelected] = useState<string | null>(null)
+  const [whatIf, setWhatIf] = useState(false)
+  const [applied, setApplied] = useState<Set<string>>(() => new Set())
+  const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [displayScore, setDisplayScore] = useState(0)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -285,14 +280,32 @@ export default function HomePage() {
     rafRef.current = requestAnimationFrame(step)
   }, [])
 
-  // Reveal on load
+  // Reveal on load. Deferred into a frame callback rather than called
+  // synchronously in the effect body, which would set state before the first
+  // paint and cascade a render.
   useEffect(() => {
-    animateTo(score, 0)
+    const id = requestAnimationFrame(() => animateTo(score, 0))
     return () => {
+      cancelAnimationFrame(id)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /**
+   * Persist the score so the league reflects what the resident actually did.
+   *
+   * The writer for this lived in the apartment route, which is gone — the
+   * leaderboard still reads getSavedScore, so without this the feature was
+   * half-wired and the league silently fell back to the seeded score.
+   *
+   * Writing to localStorage is what effects are for: pushing React state out
+   * to an external system.
+   */
+  useEffect(() => {
+    if (!session) return
+    saveScore(userIdFromRoom(session.roomNumber), score)
+  }, [score, session])
 
   // Esc closes drawer
   useEffect(() => {
@@ -342,20 +355,6 @@ export default function HomePage() {
     ? APPLIANCES.find((a) => a.id === selected) ?? null
     : null
 
-  const hovered = hoveredId ? APPLIANCES.find((a) => a.id === hoveredId) ?? null : null
-  const hoveredScore = hovered ? applianceScore(cur[hovered.id], hovered.ref) : 0
-  const hoveredColour =
-    hoveredScore >= 85 ? 'var(--lime)' : hoveredScore >= 60 ? 'var(--amber)' : 'var(--red)'
-  const hoveredOver = hovered
-    ? Math.round(((cur[hovered.id] - hovered.ref) / hovered.ref) * 100)
-    : 0
-  const vsLabel =
-    hoveredOver > 0
-      ? `${hoveredOver}% over typical`
-      : hoveredOver < 0
-        ? `${Math.abs(hoveredOver)}% under typical`
-        : 'At typical'
-
   const drawerLabel =
     tab === 'appliance'
       ? selectedAppliance
@@ -374,24 +373,10 @@ export default function HomePage() {
 
   const delta = displayScore > BASE_SCORE ? score - BASE_SCORE : 0
 
-  // Stat tiles
-  const extraSaved = Math.max(0, (BASE_TOTAL_KWH - total) * TARIFF)
-  const savedValue = HISTORY.saved.at(-1)! + extraSaved
-  const spentValue = HISTORY.spent.reduce((s, v) => s + v, 0)
-  const moved = HISTORY.rank.at(-2)! - HISTORY.rank.at(-1)!
-  const rankDelta =
-    moved > 0
-      ? { text: `▲ up ${moved} place${moved === 1 ? '' : 's'}`, cls: 'good' }
-      : moved < 0
-        ? { text: `▼ down ${Math.abs(moved)} place${Math.abs(moved) === 1 ? '' : 's'}`, cls: 'bad' }
-        : { text: '– holding steady', cls: '' }
-
-  const savedPts = sparkPath(HISTORY.saved)
-  const spentPts = sparkPath(HISTORY.spent)
-  const rankPts = sparkPath(HISTORY.rank, true)
-
-  const toPointsAttr = (pts: [number, number][]) =>
-    pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+  // After every hook, and needsUsername first: useSession reports a null
+  // session for a signed-in resident who has not picked a handle yet.
+  if (needsUsername) return <UsernameSetup />
+  if (!session) return null
 
   return (
     <div style={styles.page}>
@@ -400,10 +385,10 @@ export default function HomePage() {
         {/* Header */}
         <header className="wl-panel wl-header">
           <div className="wl-who">
-            <div className="wl-sprite" aria-hidden="true" />
+            <Mascot scale={2} character="Alex" props_={false} />
             <div>
               <div className="wl-eyebrow wl-px">Welcome home</div>
-              <div className="wl-roomno wl-px">Room 04-12</div>
+              <div className="wl-roomno wl-px">Room {session.roomNumber}</div>
             </div>
           </div>
           <div className="wl-controls">
@@ -419,8 +404,31 @@ export default function HomePage() {
             >
               {whatIf ? 'What-if: ON' : 'What-if mode'}
             </button>
-            <button className="wl-ghost" style={{ color: 'var(--gold)' }}>#{leaderboardRank} Rank</button>
-            <button className="wl-ghost">Log out</button>
+            {/* Their rank chip — shows standing and links to the league,
+                which replaces the separate League button. */}
+            <Link
+              href="/leaderboard"
+              className="wl-ghost"
+              style={{
+                color: 'var(--amber)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              #{leaderboardRank} Rank
+            </Link>
+            {/* Log out shipped dead on both sides; ours is wired. */}
+            <button
+              className="wl-ghost"
+              onClick={() => {
+                logout()
+                router.replace('/')
+              }}
+            >
+              Log out
+            </button>
           </div>
         </header>
 
@@ -428,18 +436,20 @@ export default function HomePage() {
           {/* Room */}
           <section className="wl-panel wl-roomwrap">
             <div className="wl-stage">
-              <img src="/room.png" alt="Top-down pixel-art view of your apartment" />
+              {/* Ayushman's tile renderer, replacing the flat room.png. Its
+                  sprite coordinates come from the room-builder tool, so they
+                  are verified rather than estimated. */}
+              <ApartmentRoom />
               {APPLIANCES.map((a) => {
                 const load = maxCur > 0 ? cur[a.id] / maxCur : 0
                 const c = heat(load)
-                const opacity = (whatIf ? 0.18 : 0.3) + load * (whatIf ? 0.3 : 0.45)
+                const opacity = (whatIf ? 0.28 : 0.4) + load * (whatIf ? 0.32 : 0.45)
                 return (
                   <div key={a.id}>
                     <div
                       className={'wl-zone' + (selected === a.id ? ' sel' : '')}
                       onClick={() => select(a.id)}
-                      onMouseEnter={() => setHoveredId(a.id)}
-                      onMouseLeave={() => setHoveredId(null)}
+                      title={a.name}
                       style={{
                         left: a.x + '%',
                         top: a.y + '%',
@@ -456,101 +466,12 @@ export default function HomePage() {
                   </div>
                 )
               })}
-              {hovered && (
-                <div
-                  className="wl-hovercard"
-                  style={{ left: hovered.x + '%', top: hovered.y - hovered.r * 0.55 + '%' }}
-                >
-                  <div className="wl-hc-name">
-                    <span>{hovered.icon}</span>
-                    <span>{hovered.name}</span>
-                  </div>
-                  <div className="wl-hc-meta">
-                    <span>{cur[hovered.id]} kWh</span>
-                    <span>{hovered.room}</span>
-                  </div>
-                  <div className="wl-hc-track">
-                    <i style={{ width: hoveredScore + '%', background: hoveredColour }} />
-                  </div>
-                  <div className="wl-hc-vs" style={{ color: hoveredColour }}>
-                    {vsLabel}
-                  </div>
-                </div>
-              )}
             </div>
             <div className="wl-legend">
               <span>Low draw</span>
               <span className="wl-ramp" />
               <span>High draw</span>
               <span className="wl-legend-note">— hover a glow, click to inspect</span>
-            </div>
-
-            <div className="wl-stats">
-              <div className="wl-stat lead">
-                <div className="wl-stat-l">Saved since {HISTORY.since}</div>
-                <div className="wl-stat-v">S${savedValue.toFixed(2)}</div>
-                <div className="wl-stat-d good">
-                  {extraSaved > 0
-                    ? `▲ S$${extraSaved.toFixed(2)} from your changes`
-                    : '▲ growing every week'}
-                </div>
-                <svg
-                  className="wl-spark"
-                  viewBox="0 0 120 26"
-                  preserveAspectRatio="none"
-                  role="img"
-                  aria-label={`Savings trend rising to S$${savedValue.toFixed(2)} over ${HISTORY.saved.length} weeks`}
-                >
-                  <polyline
-                    points={toPointsAttr(savedPts)}
-                    style={{ stroke: 'var(--line-hi)', strokeWidth: 2, fill: 'none', opacity: 0.75 }}
-                  />
-                  <circle cx={savedPts.at(-1)![0]} cy={savedPts.at(-1)![1]} r={3} fill="var(--lime)" />
-                </svg>
-              </div>
-
-              <div className="wl-stat">
-                <div className="wl-stat-l">Spent this week</div>
-                <div className="wl-stat-v">S${spentValue.toFixed(2)}</div>
-                <div className="wl-stat-d good">▼ 8% vs last week</div>
-                <svg
-                  className="wl-spark"
-                  viewBox="0 0 120 26"
-                  preserveAspectRatio="none"
-                  role="img"
-                  aria-label={`Daily spend over the last ${HISTORY.spent.length} days, totalling S$${spentValue.toFixed(2)} this week`}
-                >
-                  <polyline
-                    points={toPointsAttr(spentPts)}
-                    style={{ stroke: 'var(--line-hi)', strokeWidth: 2, fill: 'none', opacity: 0.75 }}
-                  />
-                  <circle cx={spentPts.at(-1)![0]} cy={spentPts.at(-1)![1]} r={3} fill="var(--amber)" />
-                </svg>
-              </div>
-
-              <div className="wl-stat">
-                <div className="wl-stat-l">Rank in block</div>
-                <div className="wl-stat-v">
-                  #{HISTORY.rank.at(-1)}
-                  <small>of {HISTORY.rankOf}</small>
-                </div>
-                <div className={'wl-stat-d' + (rankDelta.cls ? ' ' + rankDelta.cls : '')}>
-                  {rankDelta.text}
-                </div>
-                <svg
-                  className="wl-spark"
-                  viewBox="0 0 120 26"
-                  preserveAspectRatio="none"
-                  role="img"
-                  aria-label={`Block rank over the last ${HISTORY.rank.length} weeks, improving to #${HISTORY.rank.at(-1)} of ${HISTORY.rankOf}`}
-                >
-                  <polyline
-                    points={toPointsAttr(rankPts)}
-                    style={{ stroke: 'var(--line-hi)', strokeWidth: 2, fill: 'none', opacity: 0.75 }}
-                  />
-                  <circle cx={rankPts.at(-1)![0]} cy={rankPts.at(-1)![1]} r={3} fill="var(--lime)" />
-                </svg>
-              </div>
             </div>
           </section>
 
@@ -655,8 +576,6 @@ export default function HomePage() {
                         'wl-row' + (selected === a.id ? ' sel' : '') + (off ? ' off' : '')
                       }
                       onClick={() => select(a.id)}
-                      onMouseEnter={() => setHoveredId(a.id)}
-                      onMouseLeave={() => setHoveredId(null)}
                     >
                       <span className="wl-ic">{a.icon}</span>
                       <span className="wl-nm">{a.name}</span>
@@ -814,10 +733,12 @@ const css = `
 .wl-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .wl-app button,.wl-drawer button{font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.14em;cursor:pointer}
 .wl-btn{background:var(--amber);color:#2b1d05;border:3px solid #2b1d05;
+  font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.12em;
   box-shadow:0 5px 0 0 var(--amber-deep);padding:11px 15px;font-size:10px;
   transition:transform 60ms steps(2),box-shadow 60ms steps(2)}
 .wl-btn:active{transform:translateY(5px);box-shadow:0 0 0 0 var(--amber-deep)}
-.wl-ghost{background:transparent;color:var(--ink-dim);border:3px solid var(--line);padding:11px 15px;font-size:10px}
+.wl-ghost{background:transparent;color:var(--ink-dim);border:3px solid var(--line);padding:11px 15px;font-size:10px;
+  font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.12em}
 .wl-ghost:hover{color:var(--ink);border-color:var(--line-hi)}
 .wl-ghost.on{color:#2b1d05;background:var(--lime);border-color:#1e3a10}
 
@@ -825,14 +746,29 @@ const css = `
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
 
 .wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
-.wl-stage{position:relative;line-height:0;max-width:100%}
+/* The renderer draws at a fixed 736x576 (23x18 tiles at 32px). The stage is
+   sized to match so the percentage-positioned pins resolve against the same
+   box as the room. Scaled with zoom rather than transform, because transform
+   would leave the pins measuring against the unscaled parent. */
+.wl-stage{position:relative;line-height:0;width:736px;height:576px;
+  margin:0 auto;image-rendering:pixelated;
+  /* Contain the room's z-indexes. Its layout objects go up to 315 and the heat
+     zones to 500, which outranked the drawer (50) and scrim (40) — the
+     apartment painted straight over the open drawer. isolation:isolate makes
+     the stage its own stacking context so those numbers stay inside it. */
+  isolation:isolate;z-index:0}
+@media (max-width:820px){ .wl-stage{ zoom:0.75 } }
+@media (max-width:620px){ .wl-stage{ zoom:0.55 } }
 .wl-stage img{width:100%;height:auto;image-rendering:pixelated;display:block}
-.wl-zone{position:absolute;transform:translate(-50%,-50%);border-radius:50%;
-  cursor:pointer;transition:opacity .18s ease, filter .18s ease;mix-blend-mode:screen}
+/* Above the room. Ayushman's layout objects carry z-index up to 315, so
+   without this the glows paint underneath the floor and furniture — they were
+   rendering correctly and were simply buried. */
+.wl-zone{position:absolute;transform:translate(-50%,-50%);border-radius:50%;z-index:500;
+  cursor:pointer;transition:opacity .18s ease, filter .18s ease;mix-blend-mode:hard-light}
 .wl-zone:hover{filter:brightness(1.35)}
 .wl-zone.sel{animation:wl-pulse 1.1s steps(6) infinite}
 @keyframes wl-pulse{0%,100%{filter:brightness(1.1)}50%{filter:brightness(1.7)}}
-.wl-pin{position:absolute;transform:translate(-50%,-50%);font-size:19px;pointer-events:none;
+.wl-pin{position:absolute;transform:translate(-50%,-50%);font-size:19px;pointer-events:none;z-index:501;
   filter:drop-shadow(0 2px 0 rgba(0,0,0,.6))}
 .wl-legend{display:flex;align-items:center;gap:10px;font-size:8px;color:var(--ink-dim);
   font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.14em;
@@ -840,37 +776,6 @@ const css = `
 .wl-ramp{width:150px;height:10px;background:linear-gradient(90deg,var(--lime),var(--amber),var(--red));
   border:2px solid var(--line)}
 .wl-legend-note{text-transform:none;letter-spacing:0;font-family:var(--font-geist-sans),sans-serif;font-size:12px;margin-left:6px}
-
-.wl-hovercard{position:absolute;z-index:20;pointer-events:none;min-width:190px;
-  background:var(--panel);border:3px solid var(--line-hi);
-  box-shadow:0 0 0 3px var(--bg-deep),5px 5px 0 0 rgba(0,0,0,.5);
-  padding:10px 11px;transform:translate(-50%,-100%);
-  animation:wl-hc-in .12s ease-out both}
-@keyframes wl-hc-in{from{opacity:0;transform:translate(-50%,-108%) scale(.97)}
-  to{opacity:1;transform:translate(-50%,-100%) scale(1)}}
-.wl-hc-name{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink)}
-.wl-hc-meta{font-size:11px;color:var(--ink-dim);margin-top:6px;
-  display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
-.wl-hc-track{height:7px;background:var(--bg-deep);margin-top:8px;position:relative}
-.wl-hc-track i{position:absolute;inset:0 auto 0 0}
-.wl-hc-vs{font-size:10px;margin-top:7px;font-family:var(--font-pixel),monospace;letter-spacing:.08em}
-.wl-hovercard::after{content:'';position:absolute;left:50%;bottom:-11px;
-  transform:translateX(-50%);width:0;height:0;border:5px solid transparent;
-  border-top-color:var(--line-hi)}
-@media(prefers-reduced-motion:reduce){.wl-hovercard{animation:none}}
-
-.wl-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-top:2px}
-@media(max-width:620px){.wl-stats{grid-template-columns:1fr}}
-.wl-stat{background:var(--bg-deep);border:3px solid var(--line);padding:11px 12px;
-  display:flex;flex-direction:column;min-width:0}
-.wl-stat.lead{border-color:var(--lime)}
-.wl-stat-l{font-family:var(--font-pixel),monospace;font-size:7px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--ink-dim);line-height:1.5}
-.wl-stat-v{font-size:22px;font-weight:600;margin-top:7px;line-height:1;color:var(--ink)}
-.wl-stat-v small{font-size:12px;color:var(--ink-dim);font-weight:400;margin-left:3px}
-.wl-stat-d{font-size:11px;margin-top:6px;color:var(--ink-dim)}
-.wl-stat-d.good{color:var(--lime)} .wl-stat-d.bad{color:var(--red)}
-.wl-spark{margin-top:9px;height:26px;width:100%;display:block}
 
 .wl-hud{padding:18px;display:flex;flex-direction:column;gap:16px}
 .wl-scorewrap{text-align:center}
