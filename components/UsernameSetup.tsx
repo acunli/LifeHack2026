@@ -1,89 +1,80 @@
-"use client";
-
-import { useState, type FormEvent } from "react";
-import { setUsername } from "@/lib/session";
-import Mascot from "@/components/Mascot";
+'use client'
 
 /**
- * Shown once, after login, when a session has no handle yet.
- *
- * Ported from the leaderboard mock. The point it makes is a good one: the
- * league shows public handles, so the resident should choose theirs rather
- * than appearing as "You" while everyone else has a name.
- *
- * ⚠️ COPY IS PLACEHOLDER — Lane D owns these strings.
+ * Shown when a legacy session exists (logged in, but no username yet). Lets the
+ * user attach a username without re-entering their room number.
  */
-export default function UsernameSetup() {
-  const [value, setValue] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const handle = value.trim();
-    if (handle.length < 2) {
-      setError("Pick a handle with at least 2 characters");
-      return;
+import { useState } from 'react'
+import { WattLahLogo } from '@/components/WattLahLogo'
+import { logout, setUsername } from '@/lib/session'
+
+export function UsernameSetup() {
+  const [username, setUsernameInput] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const u = username.trim()
+    if (u.length < 2) {
+      setError('Pick a username with at least 2 characters.')
+      return
     }
-    setError(null);
-    // Writing the session fires the same-tab event, so useSession re-reads and
-    // this screen unmounts on its own.
-    setUsername(handle);
+    setError(null)
+    setUsername(u)
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div className="relative w-full max-w-md">
-        <div className="absolute left-1/2 z-10 -translate-x-1/2" style={{ top: -116 }}>
-          <Mascot scale={4} glow props_={false} />
+    <div className="mx-auto w-full max-w-sm">
+      <div className="pixel-panel pixel-panel-gold p-6">
+        <div className="mb-6 flex justify-center">
+          <WattLahLogo size={30} />
         </div>
+        <h1 className="pixel mb-2 text-center text-[12px] text-foreground">
+          Choose a username
+        </h1>
+        <p className="pixel mb-6 text-center text-[9px] leading-relaxed text-muted-w">
+          Welcome back! We updated WattLah with public usernames. Pick one to
+          appear on the leaderboard.
+        </p>
 
-        <div className="pixel-panel px-7 pb-7 pt-12">
-          <h1 className="pixel text-center text-[13px] text-amber">
-            Pick your handle
-          </h1>
-          <p className="pixel mt-3 text-center text-[9px] leading-relaxed text-ink-dim">
-            This is what your block sees on the league. Your unit number stays
-            private.
-          </p>
-
-          <form onSubmit={onSubmit} noValidate className="mt-7">
-            <label
-              htmlFor="handle"
-              className="pixel mb-2 block text-[8px] uppercase tracking-[0.22em] text-ink-dim"
-            >
-              Handle
-            </label>
+        <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+          <label className="flex flex-col gap-2">
+            <span className="pixel text-[10px] uppercase tracking-wide text-muted-w">
+              Username
+            </span>
             <input
-              id="handle"
-              value={value}
-              onChange={(e) => {
-                setValue(e.target.value);
-                if (error) setError(null);
-              }}
-              maxLength={16}
+              value={username}
+              onChange={(e) => setUsernameInput(e.target.value)}
               autoComplete="nickname"
+              maxLength={16}
               placeholder="WattWarden"
-              aria-invalid={error ? true : undefined}
-              className="pixel pixel-input w-full px-3.5 py-3 text-xs"
+              className="pixel bg-deep px-3 py-2 text-[12px] text-foreground outline-none focus-visible:border-gold"
+              style={{ borderWidth: 3, borderStyle: 'solid', borderColor: 'var(--border-w)' }}
             />
+          </label>
 
-            <p
-              role="alert"
-              className="pixel my-3.5 flex min-h-5 items-center justify-center text-[8px] uppercase tracking-widest"
-              style={{ color: "var(--red)" }}
-            >
+          {error && (
+            <p role="alert" className="pixel text-[10px]" style={{ color: 'var(--neg)' }}>
               {error}
             </p>
+          )}
 
-            <button
-              type="submit"
-              className="pixel pixel-btn w-full px-4 py-3.5 text-xs uppercase tracking-[0.16em]"
-            >
-              Join the league
-            </button>
-          </form>
-        </div>
+          <button type="submit" className="pixel-btn mt-2 px-4 py-3 text-[11px]">
+            Save Username
+          </button>
+        </form>
+
+        <button
+          type="button"
+          onClick={logout}
+          className="pixel mt-4 w-full text-center text-[9px] text-muted-w underline underline-offset-4 hover:text-foreground"
+        >
+          Sign out instead
+        </button>
       </div>
-    </main>
-  );
+    </div>
+  )
 }
+
+export default UsernameSetup

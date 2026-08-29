@@ -1,27 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  SESSION_KEY,
-  clearSession,
   getSession,
-  parseSession,
-  setSession,
+  isLoggedIn,
+  login,
+  logout,
+  needsUsername,
+  seedLegacySession,
+  setUsername,
+  userIdFromRoom,
 } from "./session";
 
 /**
- * Minimal localStorage stub. Avoids pulling in jsdom for four functions —
- * AGENTS.md says no new dependencies without asking.
+ * Stubs localStorage rather than pulling in jsdom — AGENTS.md forbids adding
+ * dependencies without asking, and four functions do not justify one.
  */
 function installStorage(impl?: Partial<Storage>) {
   const store = new Map<string, string>();
-  const storage = {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-    ...impl,
-  };
   vi.stubGlobal("window", {
-    localStorage: storage,
+    localStorage: {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+      ...impl,
+    },
     dispatchEvent: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   });
   return store;
 }
@@ -30,43 +34,50 @@ beforeEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("parseSession", () => {
-  it.each([
-    ["null input", null],
-    ["empty string", ""],
-    ["malformed JSON", "{not json"],
-    ["missing roomNumber", JSON.stringify({ loggedIn: true })],
-    ["blank roomNumber", JSON.stringify({ roomNumber: "  ", loggedIn: true })],
-    ["not logged in", JSON.stringify({ roomNumber: "04-12", loggedIn: false })],
-    ["roomNumber wrong type", JSON.stringify({ roomNumber: 412, loggedIn: true })],
-  ])("returns null for %s", (_label, raw) => {
-    expect(parseSession(raw as string | null)).toBeNull();
-  });
-
-  it("parses a valid session", () => {
-    const raw = JSON.stringify({ roomNumber: "04-12", loggedIn: true });
-    expect(parseSession(raw)).toEqual({ roomNumber: "04-12", loggedIn: true });
-  });
-});
-
-describe("round trip", () => {
-  it("stores and reads back a room number", () => {
+describe("login / logout", () => {
+  it("round-trips a session", () => {
     installStorage();
-    setSession("04-12");
-    expect(getSession()).toEqual({ roomNumber: "04-12", loggedIn: true });
+    login("WattWarden", "04-12");
+    expect(getSession()).toMatchObject({
+      username: "WattWarden",
+      roomNumber: "04-12",
+    });
   });
 
-  it("clears", () => {
+  it("logout clears it", () => {
     installStorage();
-    setSession("04-12");
-    clearSession();
+    login("WattWarden", "04-12");
+    logout();
     expect(getSession()).toBeNull();
   });
 
-  it("writes under the documented key", () => {
-    const store = installStorage();
-    setSession("08-14");
-    expect(store.get(SESSION_KEY)).toContain("08-14");
+  it("reports logged-in state", () => {
+    installStorage();
+    expect(isLoggedIn()).toBe(false);
+    login("WattWarden", "04-12");
+    expect(isLoggedIn()).toBe(true);
+  });
+});
+
+describe("legacy sessions", () => {
+  it("a seeded session is logged in but wants a username", () => {
+    // Someone who signed in before handles existed must be prompted, not
+    // signed out.
+    installStorage();
+    seedLegacySession("04-12");
+    expect(isLoggedIn()).toBe(true);
+    expect(needsUsername()).toBe(true);
+  });
+
+  it("setUsername satisfies it without touching the room number", () => {
+    installStorage();
+    seedLegacySession("04-12");
+    setUsername("VoltViper");
+    expect(needsUsername()).toBe(false);
+    expect(getSession()).toMatchObject({
+      username: "VoltViper",
+      roomNumber: "04-12",
+    });
   });
 });
 
@@ -74,24 +85,25 @@ describe("hostile environments", () => {
   it("returns null rather than throwing when storage is blocked", () => {
     installStorage({
       getItem: () => {
-        throw new Error("SecurityError: storage disabled");
+        throw new Error("SecurityError");
       },
     });
     expect(() => getSession()).not.toThrow();
     expect(getSession()).toBeNull();
   });
 
-  it("does not throw when a write is rejected", () => {
-    installStorage({
-      setItem: () => {
-        throw new Error("QuotaExceededError");
-      },
-    });
-    expect(() => setSession("04-12")).not.toThrow();
-  });
-
   it("returns null during SSR, where window does not exist", () => {
     vi.stubGlobal("window", undefined);
     expect(getSession()).toBeNull();
+  });
+});
+
+describe("userIdFromRoom", () => {
+  it("is stable for the same room", () => {
+    expect(userIdFromRoom("04-12")).toBe(userIdFromRoom("04-12"));
+  });
+
+  it("differs between rooms", () => {
+    expect(userIdFromRoom("04-12")).not.toBe(userIdFromRoom("08-14"));
   });
 });

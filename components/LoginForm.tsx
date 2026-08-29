@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { setSession } from "@/lib/session";
+import { seedLegacySession } from "@/lib/session";
 import Mascot from "@/components/Mascot";
 import WattLahLogo from "@/components/WattLahLogo";
 
@@ -72,7 +72,8 @@ export default function LoginForm() {
       return;
     }
     setError("");
-    setSession(room.trim());
+    // Handle is chosen on the next screen, so seed a session without one.
+    seedLegacySession(room.trim());
     router.push("/apartment");
   }
 

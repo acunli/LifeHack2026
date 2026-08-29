@@ -10,20 +10,20 @@ export function zonedParts(
   date: Date,
   timeZone: string,
 ): { hour: number; minute: number; second: number } {
-  const fmt = new Intl.DateTimeFormat("en-US", {
+  const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   })
   const parts = fmt.formatToParts(date)
   const get = (type: string) =>
-    Number(parts.find((p) => p.type === type)?.value ?? "0")
-  let hour = get("hour")
+    Number(parts.find((p) => p.type === type)?.value ?? '0')
+  let hour = get('hour')
   // Intl can emit "24" for midnight in some environments; normalize.
   if (hour === 24) hour = 0
-  return { hour, minute: get("minute"), second: get("second") }
+  return { hour, minute: get('minute'), second: get('second') }
 }
 
 /** Whole seconds remaining until the next local midnight in `timeZone`. */
@@ -38,8 +38,8 @@ export function secondsUntilMidnight(now: Date, timeZone: string): number {
 /** Format seconds as HH:MM:SS. */
 export function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds))
-  const hh = String(Math.floor(s / 3600)).padStart(2, "0")
-  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0")
-  const ss = String(s % 60).padStart(2, "0")
+  const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+  const ss = String(s % 60).padStart(2, '0')
   return `${hh}:${mm}:${ss}`
 }

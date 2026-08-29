@@ -1,33 +1,32 @@
-"use client";
-
-import ChangeIndicator from "@/components/ChangeIndicator";
-import Mascot from "@/components/Mascot";
-import PixelMedal, { type Place } from "@/components/PixelMedal";
-import ScoreMeter from "@/components/ScoreMeter";
-import type { LeaderboardRow as Row } from "@/data/leaderboard";
+'use client'
 
 /**
- * One league row. Ported from the leaderboard mock.
- *
- * The resident's own row gets a gold frame AND a "You" tag — never colour
- * alone. Rows deal in with a stagger, capped at ten so a long list does not
- * take a second to appear.
+ * A single leaderboard row. The current user's row is highlighted with a gold
+ * frame and a "You" tag (not color alone). Rank, username, tier, score meter
+ * and daily change are all shown.
  */
 
+import { ChangeIndicator } from '@/components/ChangeIndicator'
+import { Mascot } from '@/components/PixelMascot'
+import { PixelMedal } from '@/components/PixelMedal'
+import { ScoreMeter } from '@/components/ScoreMeter'
+import type { LeaderboardEntry } from '@/data/leaderboard'
+
 function ordinal(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-export default function LeaderboardRow({
-  row,
+export function LeaderboardRow({
+  entry,
   index,
 }: {
-  row: Row;
-  index: number;
+  entry: LeaderboardEntry
+  index: number
 }) {
-  const isTop3 = row.rank <= 3;
+  const isTop3 = entry.rank <= 3
+  const highlight = entry.isCurrentUser
 
   return (
     <li
@@ -35,50 +34,52 @@ export default function LeaderboardRow({
       style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
     >
       <div
-        className={`pixel-panel ${row.isYou ? "pixel-panel-gold" : ""} flex items-center gap-3 p-3`}
-        aria-current={row.isYou ? "true" : undefined}
+        className={`pixel-panel ${highlight ? 'pixel-panel-gold' : ''} flex items-center gap-3 p-3`}
+        aria-current={highlight ? 'true' : undefined}
       >
+        {/* Rank / medal */}
         <div className="flex w-12 shrink-0 flex-col items-center gap-1">
           {isTop3 ? (
-            <PixelMedal place={row.rank as Place} size={22} />
+            <PixelMedal place={entry.rank as 1 | 2 | 3} size={22} />
           ) : (
-            <span className="pixel text-[9px] text-ink-dim">#</span>
+            <span className="pixel text-[9px] text-muted-w">#</span>
           )}
-          <span className="pixel text-[11px] tabular-nums text-ink">
-            {ordinal(row.rank)}
+          <span className="pixel text-[11px] text-foreground tabular-nums">
+            {ordinal(entry.rank)}
           </span>
         </div>
 
-        <Mascot
-          scale={2}
-          character={row.mascot}
-          animate={isTop3 || row.isYou}
-          props_={false}
-          className="shrink-0"
-        />
+        {/* Mascot */}
+        <div className="shrink-0">
+          <Mascot name={entry.mascot} scale={2} animated={isTop3 || highlight} />
+        </div>
 
+        {/* Name + tier */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="pixel truncate text-[12px] text-ink">
-              {row.handle}
+            <span className="pixel truncate text-[12px] text-foreground">
+              {entry.username}
             </span>
-            {row.isYou && (
+            {highlight && (
               <span
                 className="pixel shrink-0 px-1 py-[2px] text-[8px] uppercase"
-                style={{ background: "var(--amber)", color: "var(--bg-deep)" }}
+                style={{ background: 'var(--gold)', color: 'var(--deep)' }}
               >
                 You
               </span>
             )}
           </div>
-          <span className="pixel text-[9px] text-ink-dim">{row.tier}</span>
+          <span className="pixel text-[9px] text-muted-w">{entry.tier}</span>
         </div>
 
+        {/* Score + change */}
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <ScoreMeter score={row.score} />
-          <ChangeIndicator delta={row.change.value} />
+          <ScoreMeter score={entry.score} />
+          <ChangeIndicator change={entry.change} />
         </div>
       </div>
     </li>
-  );
+  )
 }
+
+export default LeaderboardRow

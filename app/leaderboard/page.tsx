@@ -7,8 +7,6 @@ import { useSession } from "@/lib/useSession";
 import LeaderboardBoard from "@/components/LeaderboardBoard";
 import Footer from "@/components/Footer";
 import UsernameSetup from "@/components/UsernameSetup";
-import { MOCK_APARTMENT } from "@/data/mockApartment";
-import { computeScore } from "@/lib/scoring";
 
 /**
  * League route. Thin — LeaderboardBoard owns the data states and the layout.
@@ -17,16 +15,14 @@ import { computeScore } from "@/lib/scoring";
  */
 export default function LeaderboardPage() {
   const router = useRouter();
-  const session = useSession();
+  const { session, needsUsername, isAuthenticated } = useSession();
 
   useEffect(() => {
-    if (session === null) router.replace("/");
-  }, [session, router]);
+    if (isAuthenticated === false) router.replace("/");
+  }, [isAuthenticated, router]);
 
   if (!session) return null;
-  if (!session.username) return <UsernameSetup />;
-
-  const score = computeScore(MOCK_APARTMENT).score;
+  if (needsUsername) return <UsernameSetup />;
 
   return (
     <main className="float-in mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-5 sm:p-7">
@@ -46,9 +42,8 @@ export default function LeaderboardPage() {
       </header>
 
       <LeaderboardBoard
+        username={session.username}
         roomNumber={session.roomNumber}
-        score={score}
-        handle={session.username}
       />
 
       <Footer />

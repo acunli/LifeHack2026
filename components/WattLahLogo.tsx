@@ -1,78 +1,63 @@
-interface WattLahLogoProps {
-  className?: string;
-}
-
 /**
- * Single-line arcade wordmark. The blocky 8-bit lightning mark trails the
- * word as the stroke of an exclamation, with a pixel dot beneath it.
+ * WattLah wordmark with an amber-green pixel lightning bolt.
+ * Rendered as crisp SVG (shape-rendering: crispEdges). The bolt gives a short
+ * stepped spark animation unless reduced motion is preferred.
  */
-export default function WattLahLogo({
-  className = "",
-}: WattLahLogoProps) {
-  return (
-    <span
-      role="img"
-      aria-label="WattLah!"
-      className={`relative inline-flex -rotate-1 items-center pb-1 ${className}`}
-      style={{ fontFamily: "var(--font-pixel)" }}
-    >
-      <span
-        aria-hidden
-        className="relative z-10 whitespace-nowrap tracking-[0.045em] text-amber"
-        style={{
-          WebkitTextStroke: "1px var(--bg-deep)",
-          textShadow:
-            "3px 3px 0 var(--amber-deep), 5px 5px 0 var(--bg-deep)",
-        }}
-      >
-        WATTLAH
-      </span>
 
-      <span
-        aria-hidden
-        className="wattlah-bolt relative ml-[0.35em] h-[1.89em] w-[1.05em] shrink-0"
-      >
-        <svg
-          viewBox="0 0 43 78"
-          className="h-full w-full overflow-visible"
-          shapeRendering="crispEdges"
-        >
-          <path
-            d="M24 2H40L29 24H41L10 58L17 34H2Z"
-            fill="var(--green)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-            strokeLinejoin="miter"
-            transform="translate(3 3)"
-          />
-          <path
-            d="M24 2H40L29 24H41L10 58L17 34H2Z"
-            fill="var(--amber)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-            strokeLinejoin="miter"
-          />
-          <rect
-            x="16"
-            y="64"
-            width="11"
-            height="11"
-            fill="var(--green)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-            transform="translate(3 3)"
-          />
-          <rect
-            x="16"
-            y="64"
-            width="11"
-            height="11"
-            fill="var(--amber)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-          />
-        </svg>
-      </span>
-    </span>
-  );
+type Props = {
+  /** Height of the bolt icon in px; wordmark scales relative to this. */
+  size?: number
+  showWordmark?: boolean
+  animated?: boolean
+  className?: string
 }
+
+export function WattLahLogo({
+  size = 28,
+  showWordmark = true,
+  animated = true,
+  className,
+}: Props) {
+  return (
+    <div className={`flex items-center gap-3 ${className ?? ''}`}>
+      <svg
+        className={`pixelated ${animated ? 'anim-spark' : ''}`}
+        width={size}
+        height={size}
+        viewBox="0 0 8 8"
+        role="img"
+        aria-label="WattLah lightning bolt"
+        fill="none"
+      >
+        {/* Pixel lightning bolt: gold body with a green edge */}
+        <g shapeRendering="crispEdges">
+          {/* green outline */}
+          <rect x="4" y="0" width="2" height="1" fill="#5fa072" />
+          <rect x="3" y="1" width="2" height="1" fill="#5fa072" />
+          <rect x="2" y="2" width="2" height="1" fill="#5fa072" />
+          <rect x="2" y="3" width="4" height="1" fill="#9be564" />
+          {/* gold core */}
+          <rect x="4" y="1" width="1" height="1" fill="#ffc866" />
+          <rect x="3" y="2" width="2" height="1" fill="#ffc866" />
+          <rect x="3" y="4" width="2" height="1" fill="#ffc866" />
+          <rect x="2" y="4" width="3" height="1" fill="#d99a2b" />
+          <rect x="3" y="5" width="2" height="1" fill="#ffc866" />
+          <rect x="2" y="6" width="2" height="1" fill="#d99a2b" />
+          <rect x="2" y="5" width="1" height="1" fill="#9be564" />
+          <rect x="3" y="7" width="1" height="1" fill="#ffc866" />
+        </g>
+      </svg>
+      {showWordmark && (
+        <span
+          className="pixel text-foreground"
+          style={{ fontSize: Math.round(size * 0.62), lineHeight: 1 }}
+        >
+          <span>Watt</span>
+          <span style={{ color: 'var(--gold)' }}>Lah</span>
+        </span>
+      )}
+    </div>
+  )
+}
+
+export default WattLahLogo

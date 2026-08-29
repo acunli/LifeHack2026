@@ -1,45 +1,44 @@
 /**
- * Segmented energy meter for a 0–100 score. Ten blocks light in proportion.
- * The number is always shown alongside, so the meter is a redundant indicator
- * rather than the only one.
- *
- * Ported from the leaderboard mock onto our tokens.
+ * Segmented pixel energy meter for a 0–100 score. Ten blocks light up in
+ * proportion to the score; the numeric value is always shown alongside so the
+ * meter is a redundant, not sole, indicator.
  */
 
-const BLOCKS = 10;
+const BLOCKS = 10
 
-export default function ScoreMeter({
+export function ScoreMeter({
   score,
-  className = "",
+  className,
 }: {
-  score: number;
-  className?: string;
+  score: number
+  className?: string
 }) {
-  const clamped = Math.min(100, Math.max(0, score));
-  const filled = Math.round((clamped / 100) * BLOCKS);
+  const filled = Math.round((Math.min(100, Math.max(0, score)) / 100) * BLOCKS)
 
   return (
     <div
-      className={`flex items-center gap-2 ${className}`}
+      className={`flex items-center gap-2 ${className ?? ''}`}
       role="img"
       aria-label={`Energy score ${score} out of 100`}
     >
       <div className="flex gap-[2px]" aria-hidden>
-        {Array.from({ length: BLOCKS }, (_, i) => (
+        {Array.from({ length: BLOCKS }).map((_, i) => (
           <span
             key={i}
             className="h-3 w-[6px]"
             style={{
-              background: i < filled ? "var(--amber)" : "var(--bg-deep)",
+              background: i < filled ? 'var(--gold)' : 'var(--deep)',
               boxShadow:
-                i < filled
-                  ? "inset 0 0 0 1px var(--amber-deep)"
-                  : "inset 0 0 0 1px var(--line)",
+                i < filled ? 'inset 0 0 0 1px var(--gold-deep)' : 'inset 0 0 0 1px var(--border-w)',
             }}
           />
         ))}
       </div>
-      <span className="pixel text-[11px] tabular-nums text-ink">{score}</span>
+      <span className="pixel text-[11px] text-foreground tabular-nums">
+        {score}
+      </span>
     </div>
-  );
+  )
 }
+
+export default ScoreMeter

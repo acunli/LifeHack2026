@@ -1,11 +1,9 @@
-"use client";
+'use client'
 
 /**
- * Loading, empty and error presentations for the league.
- *
- * Ported from the leaderboard mock. Worth having even in a demo: an app that
- * only ever renders its happy path looks unfinished the moment anything is
- * slow or missing, and the rubric scores craft.
+ * Loading / empty / error presentations for the leaderboard, all in the pixel
+ * style. Loading uses stepped skeleton blocks; empty and error are friendly and
+ * give the user a clear next action.
  */
 
 export function LoadingState() {
@@ -16,7 +14,7 @@ export function LoadingState() {
       aria-live="polite"
       aria-label="Loading leaderboard"
     >
-      {Array.from({ length: 6 }, (_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="pixel-panel flex items-center gap-3 p-3">
           <div className="anim-skeleton h-8 w-8 bg-panel-hi" />
           <div className="anim-skeleton h-6 w-6 bg-panel-hi" />
@@ -29,22 +27,22 @@ export function LoadingState() {
       ))}
       <span className="sr-only">Loading the latest standings…</span>
     </div>
-  );
+  )
 }
 
 export function EmptyState() {
   return (
     <div className="pixel-panel flex flex-col items-center gap-3 p-8 text-center">
-      <span className="anim-hop pixel inline-block text-2xl text-amber" aria-hidden>
-        ?
+      <span className="anim-hop inline-block text-2xl" aria-hidden>
+        <span className="pixel text-gold">?</span>
       </span>
-      <h2 className="pixel text-[12px] text-ink">No scores yet</h2>
-      <p className="pixel max-w-xs text-[9px] leading-relaxed text-ink-dim">
+      <h2 className="pixel text-[12px] text-foreground">No scores yet</h2>
+      <p className="pixel max-w-xs text-[9px] leading-relaxed text-muted-w">
         The board resets each day. Be the first to save some energy and your
         name will appear here.
       </p>
     </div>
-  );
+  )
 }
 
 export function ErrorState({ onRetry }: { onRetry: () => void }) {
@@ -53,16 +51,16 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
       className="pixel-panel flex flex-col items-center gap-4 p-8 text-center"
       role="alert"
     >
-      <h2 className="pixel text-[12px]" style={{ color: "var(--red)" }}>
+      <h2 className="pixel text-[12px]" style={{ color: 'var(--neg)' }}>
         Connection lost
       </h2>
-      <p className="pixel max-w-xs text-[9px] leading-relaxed text-ink-dim">
+      <p className="pixel max-w-xs text-[9px] leading-relaxed text-muted-w">
         We couldn&apos;t load the leaderboard. Check your connection and try
         again.
       </p>
-      <button onClick={onRetry} className="pixel-btn px-4 py-3 text-[10px]">
+      <button type="button" onClick={onRetry} className="pixel-btn px-4 py-3 text-[10px]">
         Retry
       </button>
     </div>
-  );
+  )
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { clearSession } from "@/lib/session";
+import { logout } from "@/lib/session";
 import { useSession } from "@/lib/useSession";
 import ApartmentRoom from "@/components/ApartmentRoom";
 import EnergyDashboard from "@/components/EnergyDashboard";
@@ -19,7 +19,7 @@ import { useEnergyState } from "@/lib/useEnergyState";
  */
 export default function ApartmentPage() {
   const router = useRouter();
-  const session = useSession();
+  const { session, needsUsername, isAuthenticated } = useSession();
   const [hovered, setHovered] = useState<Appliance | null>(null);
   const energy = useEnergyState();
 
@@ -31,20 +31,20 @@ export default function ApartmentPage() {
   const showDashboard = Boolean(session) && !dismissed;
 
   useEffect(() => {
-    if (session === null) router.replace("/");
-  }, [session, router]);
+    if (isAuthenticated === false) router.replace("/");
+  }, [isAuthenticated, router]);
 
   if (!session) return null;
 
   // Everyone on the league has a handle; the resident should too, rather than
   // showing up as "You" beside PixelPanda and GridGoblin.
-  if (!session.username) return <UsernameSetup />;
+  if (needsUsername) return <UsernameSetup />;
 
   const result = energy.result;
   const hoveredAppliance = hovered;
 
   function handleLogout() {
-    clearSession();
+    logout();
     router.replace("/");
   }
 
