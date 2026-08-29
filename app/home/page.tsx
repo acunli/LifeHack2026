@@ -446,11 +446,15 @@ export default function HomePage() {
     setApplied(nextApplied)
     writeWhatIf({ cur: next, applied: [...nextApplied] })
 
-    // Earn a reward when applying a new recommendation (not undoing)
-    if (!done && rec.save > 0) {
-      setRewards((r) => r + 1)
-      setRewardNotify(true)
-      setTimeout(() => setRewardNotify(false), 2500)
+    // Earn a reward when applying, lose it when undoing
+    if (rec.save > 0) {
+      if (!done) {
+        setRewards((r) => r + 1)
+        setRewardNotify(true)
+        setTimeout(() => setRewardNotify(false), 2500)
+      } else {
+        setRewards((r) => Math.max(0, r - 1))
+      }
     }
 
     animateTo(
