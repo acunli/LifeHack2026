@@ -147,10 +147,22 @@ Four lanes (README §15). Stay in your lane's files; ask before editing another'
 
 | Lane | Owns |
 |---|---|
-| A — Foundation | `app/page.tsx`, `lib/`, `data/mockApartment.ts`, tests, deploy |
+| A — Foundation | `app/page.tsx`, `lib/`, tests, deploy |
 | B — Room | `components/ApartmentRoom.tsx`, `data/spriteMap.ts`, `public/assets/` |
 | C — HUD | `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx`, `globals.css` |
-| D — Submission | `docs/`, the video, the upload |
+| D — Experience & Story | `docs/`, `data/mockApartment.ts`, all on-screen copy, the video, the upload |
+
+Two of Lane D's files are easy to trample by accident:
+
+**`data/mockApartment.ts` is Lane D's, not Lane A's.** Those numbers are the story
+the demo tells, and each is sourced. Do not invent, round, or "improve" them to
+make a component look better — change the component. If a value looks wrong,
+raise it; never silently edit it.
+
+**On-screen copy comes from `docs/copy.md`.** Every button label, empty state and
+explanatory line is written deliberately. Do not substitute your own wording
+because it reads better in code, and do not leave placeholder copy in a component
+and call it done — take the string from `copy.md` or ask for it.
 
 **Conflict hotspots — never edit these solo:** `app/apartment/page.tsx`,
 `globals.css`, `package.json`.

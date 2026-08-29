@@ -388,48 +388,215 @@ docs/
 
 ## 15. Four-person team split
 
-Four lanes, split so two people rarely touch the same file.
+Four lanes, split so two people rarely touch the same file. Each lane below lists
+what it owns, what it must never touch, its hour-by-hour work, and its handoffs.
+
+**The three rules that make this work:**
+
+1. **Own your files.** If a change lands outside your lane's file list, ask first.
+2. **Handoffs are scheduled, not ad hoc.** Every arrow in §15.5 has a clock time.
+3. **Three checkpoints — 14:00, 18:00, 22:00.** Five minutes standing up. What
+   landed, what slipped, what you need from whom.
+
+---
 
 ### Lane A — Foundation & Logic
-**Owns:** `app/page.tsx`, `lib/`, `data/mockApartment.ts`, project setup, tests, deploy
-**Builds:** scaffold · fake login · session helpers · data model · `computeScore` · Vitest · Vercel
-**Blocked by:** nobody. Can work fully in isolation from hour zero.
+
+**Exists because:** everyone else is blocked until the repo builds. A's first hour
+is the whole team's first hour.
+
+**Owns:** `app/layout.tsx` · `app/page.tsx` · `lib/scoring.ts` · `lib/session.ts` ·
+`lib/scoring.test.ts` · `package.json` · Vercel
+(`data/mockApartment.ts` is authored by D and consumed here)
+
+**Never touches:** `components/*` · `globals.css` · `data/spriteMap.ts`
+
+**Blocked by:** nobody. Starts first, at 13:00.
+
+| Window | Work | Output |
+|---|---|---|
+| **13:00–14:00** | 🚩 **Scaffold and push.** `create-next-app` + TS + Tailwind, builds clean, on `main`. **Three people are idle until this lands — it is the highest-priority hour on the team.** | repo |
+| 14:00–15:00 | 🚩 **The two interfaces** (§10). Publish the moment they compile — B and C code against them. Shape matters more than correctness here; get it agreed, then refine. | `lib/scoring.ts` |
+| 15:00–16:00 | `computeScore` per §11, plus typed session helpers. Pure functions, no UI. | `lib/scoring.ts`, `lib/session.ts` |
+| 16:00–17:00 | Login screen, using D's copy. Rejects an empty room number, writes session, navigates. | `app/page.tsx` |
+| 17:00–17:30 | Vitest on the scoring boundaries: at-reference, above, below-clamp, each status edge. | `lib/scoring.test.ts` |
+| 17:30–19:00 | **Integration 1** — paired on `app/apartment/page.tsx` | the shell |
+| 19:00–22:00 | Vercel project, first deploy, session-guard and refresh behaviour | live URL |
+| 22:00–00:00 | Deploy the frozen build. Verify the live URL, not localhost. | live URL |
+| 07:00–09:00 | QA checklist with the team | — |
+| 09:00–10:00 | 🚩 **Final production build and deploy.** Verify in a fresh incognito window. | live URL |
+
+**Hands out:** working repo → all (14:00) · types → B, C (15:00) · live URL → D (22:00)
+**Needs in:** copy → from D (16:00) · `mockApartment.ts` → from D (16:00)
+
+---
 
 ### Lane B — Room & Assets
-**Owns:** `components/ApartmentRoom.tsx`, `data/spriteMap.ts`, `public/assets/`
-**Builds:** asset pipeline · indexed sheet overlay (§9.6) · sprite map · the room · pixel QA
-**Blocked by:** nobody. **This lane owns the long pole — start it first.**
+
+**Exists because:** the pixel room is the product. It is also the longest task on
+the board and the one most likely to overrun.
+
+**Owns:** `components/ApartmentRoom.tsx` · `data/spriteMap.ts` · `public/assets/`
+
+**Never touches:** `lib/*` · `globals.css` · HUD components
+
+**Blocked by:** A's scaffold at 14:00 — but the overlay work (the risky part) needs
+no scaffold and starts at 13:00.
+
+| Window | Work | Output |
+|---|---|---|
+| 13:00–13:30 | Copy `Assets/` → `public/assets/`, structure preserved (§9.5) | assets in place |
+| **13:30–15:00** | 🚩 **Indexed sheet overlay** (§9.6) — render both sheets with row/column numbers burned on, screenshot them. **This is the long pole. Timebox to 90 minutes.** If it overruns, cut furniture variety, not this step — guessing coordinates by trial and error costs far more. | two reference images |
+| 15:00–16:30 | `spriteMap.ts` — one floor tile, one wall tile, 5–7 furniture pieces from the **32×32** sheets. Nothing speculative; map only what the room uses. | `data/spriteMap.ts` |
+| 16:30–18:00 | 🚩 **Render the room.** CSS grid, `background-position` crops, `.pixelated`. Ugly layout is fine; *rendering at all* is the milestone. | `ApartmentRoom.tsx` |
+| 18:00–19:00 | Lay the room out properly. Optional: one static character frame at exactly 2× (§9.3). | `ApartmentRoom.tsx` |
+| 19:00–22:00 | Pixel QA — every integer zoom, no blur, no seams, no half-pixel offsets | — |
+| 22:00–00:00 | Frozen. Support C on layout only. | — |
+| 07:00–09:00 | QA checklist with the team | — |
+
+**Hands out:** a rendering room → C and D (18:00) — D cannot film without it
+**Needs in:** repo → from A (14:00) · `.pixelated` class name → agreed with C (14:00)
+
+> **If B slips, the demo slips.** The 18:00 milestone is the one to protect. A room
+> with three pieces of furniture that renders beats a beautiful one that does not.
+
+---
 
 ### Lane C — HUD & Visual System
-**Owns:** `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx`, `globals.css`, Tailwind theme
-**Builds:** stat cards · score badge · status pill · the visual system · responsive + polish
-**Blocked by:** nobody — build against a hand-typed stub `ApartmentScoreResult` until A lands.
 
-### Lane D — Narrative & Submission
-**Owns:** `docs/`, the video, the pitch, **the upload**
-**Builds:** rationale doc (§6.3) · demo script · screen recordings · edit · QA checklist · submits
-**Blocked by:** needs *something* on screen by ~20:00 to start filming. Until then:
-writes the rationale, the script, and the QA checklist — all doable at hour zero.
+**Exists because:** the room and the numbers have to read as one product rather
+than a game with a spreadsheet stapled to it. C owns the 20% craft score.
 
-> **Lane D is not a consolation lane.** Two of three required deliverables live
-> there, and it is the only lane that can lose marks the other three cannot
-> recover. It also protects against the classic failure: a working app nobody
-> filmed.
+**Owns:** `components/EnergyDashboard.tsx` · `StatCard.tsx` · `ScoreBadge.tsx` ·
+`app/globals.css` · the Tailwind theme
 
-### Assigning people
+**Never touches:** `lib/*` · `data/spriteMap.ts` · `ApartmentRoom.tsx`
 
-Write names against lanes before anyone writes code. Based on what has already
-been done: Ayushman has the deepest context on the assets and the plan (Lane B or
-A); Josh set up the repo and tooling (Lane A). Lanes C and D need the other two.
+**Blocked by:** A's scaffold at 14:00 — the first hour is design, not code.
 
-**Whoever takes Lane D must not also be on the critical path for the app** — they
-will be filming and editing while the others are still committing.
+| Window | Work | Output |
+|---|---|---|
+| 13:00–14:00 | **Pull the palette out of the tileset** so the HUD and the room share colours, and sketch the HUD on paper. No code — the repo does not exist yet. Agree the `.pixelated` class name with B. | a palette |
+| 14:00–15:30 | Design tokens, type scale, `globals.css`, Tailwind theme | `globals.css` |
+| 15:30–17:00 | `StatCard` + `ScoreBadge` against a hand-typed stub. **Build against the stub — do not wait for A.** | components |
+| 17:00–17:30 | `EnergyDashboard` composes them from the two typed props | `EnergyDashboard.tsx` |
+| **17:30–19:00** | 🚩 **The score reveal, paired with D.** The five seconds carrying the heaviest criterion. | `ScoreBadge.tsx` |
+| 19:00–22:00 | Polish: spacing, hierarchy, the room and HUD reading as one surface. Laptop width first. | — |
+| 22:00–00:00 | Final polish pass. Nothing new — tighten what exists. | — |
+| 07:00–09:00 | Fix what D's cold user test found | — |
 
-### The shared contract — agree before coding
+**Hands out:** HUD → integration (17:30)
+**Needs in:** types → from A (15:00) · copy → from D (16:00) · room → from B (18:00)
+
+> **C is the lane most able to absorb a slip elsewhere.** Building against a stub
+> means C is never truly blocked, so if A or B overruns, C is where the spare hands
+> come from.
+
+---
+
+### Lane D — Experience & Story
+
+**Owns:** the demo narrative · **all on-screen copy** · the score-reveal moment ·
+`data/mockApartment.ts` · `docs/` · the video · **the upload**
+
+**Lane D owns the 40%.**
+
+Fun & engagement is the heaviest criterion on the rubric and, without this lane,
+nobody owns it. B owns rendering the room; C owns the HUD, which is *craft* —
+worth 20%. Neither of those answers the question the judges are actually asking:
+*would you use this regularly, and would you tell your friends?* That question
+needs an owner, and the person who is not deep in a component tree is the one who
+can still hear it.
+
+Three things make this a build lane, not a documentation lane:
+
+**1. The demo story is written first, and it is the spec.**
+Not a write-up of whatever got built by 22:00 — a 90-second story written at
+13:00 that tells A, B and C what must exist. If the story is "watch the score
+land on 74 and the room react," then the score reveal is a requirement, not a
+nice-to-have. A demo script written at 19:00 can only document; one written at
+13:00 directs. Hand it to the other three lanes before they open an editor.
+
+**2. Every word on screen.**
+Button labels, the empty state, the score's one-line explanation, the status
+pills, the login prompt. Nobody else will do this well — developers write
+placeholder copy and ship it. Bad microcopy is the single most reliable tell of
+an unfinished hackathon app, and fixing it costs nothing but attention.
+
+**3. The score reveal.**
+The five seconds where the number lands is the moment the demo lives or dies, and
+it is the one piece of the app aimed squarely at the 40%. D designs it and pairs
+with C to build it.
+
+**Blocked by:** nobody. Everything before 22:00 can start at hour zero.
+
+| Window | Work | Output |
+|---|---|---|
+| **13:00–14:00** | **Write the 90-second demo story.** Before any code. What does the judge see, in order, and what is the one line they repeat afterwards? Hand to A/B/C — it is their spec. | `docs/demo-script.md` |
+| 14:00–15:00 | **All on-screen copy.** Every label, empty state, and the plain-English sentence that explains the score. Hand to C. | `docs/copy.md` |
+| 15:00–16:00 | **The numbers.** Real Singapore figures — HDB consumption, the S$0.2994 tariff, Ecovolt's "up to 20%" schools result — sourced inline, then written as the mock dataset. Demo apartment lands 72–78 (§11). Hand to A. | `data/mockApartment.ts` |
+| 16:00–17:30 | **The rationale.** Audience · behaviour · mechanic · measurement (§12). Required deliverable, graded. | `docs/rationale.md` |
+| 17:30–19:00 | **Design the score reveal** and pair with C to build it. The five seconds that carry the heaviest criterion. | in the app |
+| 19:00–20:00 | **Shoot problem B-roll** — bill, standby light, plug wall. Singapore sunset is ~19:10; this is the last usable light. | footage |
+| 20:00–21:00 | **Record the problem-segment voiceover.** Needs no app footage. Quiet room, phone mic close. You will not get a second pass at this. | audio |
+| 21:00–22:00 | **Cold user test.** Use the app having not built it; narrate every hesitation. You are the only unbiased tester on the team. Findings to C while there is still time to act. | `docs/qa.md` |
+| **22:00** | 🚩 **Safety take.** Film whatever exists, however rough. | footage |
+| 00:00–01:00 | Film the real demo against the deployed URL | footage |
+| 07:00–09:00 | Edit, captions, audio check | video |
+| 10:00 | **Submit.** Screenshot the confirmation. | ✅ |
+
+**The 22:00 safety take is the most important row in this table.** It converts
+every hour after it from risk into upside — the same logic that makes the running
+order in `plan-29aug.md` work: *"bank the easy win first, so everything after it
+is upside, not risk."* A rough demo of a working app beats a polished demo of
+nothing, and teams learn this at 10:40 or never.
+
+> **Lane D is the hardest lane to do well, not the lightest.** A, B and C each
+> own a component tree with a clear finish line. D owns a question — *is this
+> worth telling someone about?* — that has no obvious done state, carries the
+> largest single share of the rubric, and cannot be recovered by the other three
+> at 09:00. Give it to whoever argues best, not whoever codes least.
+
+### 15.5 Handoff schedule
+
+Every dependency between lanes, with a time. If a handoff slips, the receiving
+lane says so at the next checkpoint rather than waiting quietly.
+
+| Time | From | To | What | If it slips |
+|---|---|---|---|---|
+| 14:00 | A | all | Working repo on `main` | **Everything stops.** All hands to A. |
+| 14:00 | B ↔ C | — | `.pixelated` class name agreed | Two conflicting classes in `globals.css` |
+| 15:00 | A | B, C | The two interfaces (§10) | C keeps using its stub; costs a small refactor |
+| 16:00 | D | A | `data/mockApartment.ts` | A hardcodes placeholders, swaps later |
+| 16:00 | D | C | `docs/copy.md` | C ships placeholder copy — visible to judges |
+| 17:30 | C | integration | HUD components | Integration 1 slips to 19:00 |
+| 18:00 | B | C, D | A room that renders | **D cannot film. Protect this one.** |
+| 22:00 | A | D | Deployed URL | D films localhost and says so |
+
+### 15.6 Assigning people
+
+Write names against lanes before anyone writes code.
+
+Based on what has already been done: **Ayushman** has the deepest context on the
+assets and wrote the original plan — Lane B, or Lane A if he would rather own the
+foundation. **Josh** set up the repo and tooling — Lane A. The other two take C
+and D.
+
+**Choosing who takes D:** give it to whoever argues best, not whoever codes least.
+It owns the largest share of the rubric and the submission itself.
+
+**Whoever takes D must not also sit on the app's critical path** — they will be
+filming and editing while the other three are still committing.
+
+**If you are only three people:** drop Lane C. B takes the room *and* the visual
+system; D keeps the copy and the score reveal. Do not drop D — you would lose two
+required deliverables and 40% of the rubric.
+
+### 15.7 The shared contract — agree before coding
 
 1. The exact shape of `ApartmentEnergyData` and `ApartmentScoreResult` (§10)
 2. The `spriteMap.ts` coordinate format (§9)
-3. The name of the pixelated-rendering utility class (so C and B don't both add one)
+3. The name of the pixelated-rendering utility class (so B and C don't both add one)
 
 Once those three are agreed, all four lanes run in parallel.
 
@@ -448,15 +615,19 @@ header says the event was 22–23 August, which needs resolving.
 
 | Time | What | Who |
 |---|---|---|
-| **13:00–14:00** | Agree the contract (§15). Assign lanes. Scaffold pushed. | All |
-| 14:00–18:00 | Parallel build. B does the sheet overlay first. D writes rationale + script. | All |
-| 18:00–19:00 | **Integration 1** — room and HUD on screen together, ugly is fine | A + B + C |
-| 19:00–22:00 | Build continues. D films whatever exists as a safety take. | All |
-| **22:00** | 🚩 **Feature freeze.** Nothing new after this. Polish only. | All |
+| **13:00–14:00** | Agree the contract (§15). Assign lanes. Scaffold pushed. **D writes the demo story — it is the spec.** | All |
+| **14:00** | 🚩 D hands the demo story to A/B/C. Nobody opens an editor before this. | D → all |
+| 14:00–16:00 | Parallel build. B does the sheet overlay first. D writes the on-screen copy, then the numbers. | All |
+| **16:00** | D hands `mockApartment.ts` to A and `docs/copy.md` to C | D → A, C |
+| 16:00–17:30 | Build continues. D writes the rationale. | All |
+| 17:30–19:00 | **Integration 1** — room and HUD together, ugly is fine. **C + D build the score reveal.** | A + B + C + D |
+| 19:00–21:00 | Build continues. D shoots B-roll while there is light, then records voiceover. | All |
+| 21:00–22:00 | D user-tests the app cold and hands findings to C | D |
+| **22:00** | 🚩 **Feature freeze** — nothing new after this. **D films the safety take.** | All |
 | 22:00–00:00 | Polish, responsive pass, deploy to Vercel | A + C |
 | 00:00–01:00 | D films the real demo against the deployed URL | D |
 | — | Sleep. Seriously. | |
-| 07:00–09:00 | QA checklist end-to-end. D edits video. | All |
+| 07:00–09:00 | QA checklist end-to-end. D edits, captions, audio check. | All |
 | **09:00** | 🚩 **Cut-line** — anything broken gets cut from the demo, not fixed | All |
 | 09:00–10:00 | Final production build, deploy, verify the live URL | A |
 | 10:00–10:30 | **Submit.** Screenshot the confirmation. | D |
@@ -495,9 +666,16 @@ If time runs short, drop in this order — the earlier items cost the fewest mar
 | 10 | HUD components | `StatCard.tsx`, `ScoreBadge.tsx` | 2 (stub ok) | Reads as a game HUD, not a business dashboard | C |
 | 11 | Assemble dashboard | `EnergyDashboard.tsx` | 10 | Composes from the two typed props | C |
 | 12 | Visual system | `globals.css`, Tailwind theme | — | Palette, type scale, `.pixelated` agreed with B | C |
-| 13 | **Rationale doc** | `docs/rationale.md` | — | Audience · behaviour · mechanic · measurement (§12) | D |
-| 14 | **Demo script** | `docs/demo-script.md` | — | Beat-by-beat, under 3:00 read aloud | D |
-| 15 | QA checklist | `docs/qa.md` | — | Every flow in §7 listed as a checkbox | D |
+| **0** | 🚩 **Demo story — the spec** | `docs/demo-script.md` | — | 90 seconds, beat by beat. **Blocks tasks 1–12.** Handed to A/B/C by 14:00 | D |
+| 13a | **On-screen copy** | `docs/copy.md` | 0 | Every label, empty state, and the score's plain-English line. Handed to C | D |
+| 13b | **The numbers** | `data/mockApartment.ts` | 0 | Sourced inline, demo lands 72–78 (§11), handed to A | D |
+| 13c | **Rationale doc** | `docs/rationale.md` | 13b | Audience · behaviour · mechanic · measurement (§12) | D |
+| 13d | **Score reveal** | `ScoreBadge.tsx` | 10, 13a | The five seconds carrying the 40%. Designed by D, built with C | D + C |
+| 14a | **Problem B-roll** | footage | — | Bill, standby light, plug wall. Before ~19:10 sunset. | D |
+| 14b | **Problem-segment VO** | audio | 0 | Recorded before app footage exists | D |
+| 15a | QA checklist | `docs/qa.md` | 0 | Every flow in §7 as a checkbox | D |
+| 15b | **Cold user test** | `docs/qa.md` | 16 | D uses the app having not built it; findings to C | D |
+| 15c | 🚩 **Safety take** | footage | 16 | Whatever exists at 22:00, filmed. Non-negotiable. | D |
 | 16 | Integration shell | `app/apartment/page.tsx` | 5, 9, 11 | Session guard, room + HUD, room number visible | A+B+C paired |
 | 17 | Logout | small button | 16 | Clears session, returns to `/` | any |
 | 18 | Polish pass | `components/*` | 16 | Coherent at laptop width, no breakage | C |
