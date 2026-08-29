@@ -67,3 +67,20 @@ describe("buildStanding", () => {
     if (s.ahead) expect(s.ahead.score).toBeGreaterThanOrEqual(74);
   });
 });
+
+describe("handles", () => {
+  it("uses the resident's chosen handle when they have one", () => {
+    const s = buildStanding("04-12", 74, 3, "VoltViper9");
+    expect(s.rows.find((r) => r.isYou)?.handle).toBe("VoltViper9");
+  });
+
+  it('falls back to "You" when no handle has been chosen', () => {
+    const s = buildStanding("04-12", 74);
+    expect(s.rows.find((r) => r.isYou)?.handle).toBe("You");
+  });
+
+  it("ignores a blank handle rather than rendering an empty row", () => {
+    const s = buildStanding("04-12", 74, 3, "   ");
+    expect(s.rows.find((r) => r.isYou)?.handle).toBe("You");
+  });
+});

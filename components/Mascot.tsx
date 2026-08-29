@@ -29,8 +29,14 @@ const FRAME_H = 32;
 const SHEET_W = 64;
 const SHEET_H = 32;
 
-/** Column index of each facing. `back` is unused — a mascot facing away is odd. */
-const FACING = { left: 0, back: 1, right: 2, front: 3 } as const;
+/**
+ * Column index of each facing. `back` is unused — a mascot facing away is odd.
+ *
+ * Frame 0 faces RIGHT and frame 2 faces LEFT, not the other way round. Verified
+ * on screen: the first mapping turned him away from whatever he was meant to be
+ * looking at. If he ever turns the wrong way again, this is the line.
+ */
+const FACING = { right: 0, back: 1, left: 2, front: 3 } as const;
 type Facing = "front" | "left" | "right";
 type PropKind = "lamp" | "tv" | "switch";
 type Side = "left" | "right";
@@ -49,10 +55,9 @@ interface Beat {
 /** Standing about, glancing around. Deterministic — this is the first render. */
 function idleBeats(): Beat[] {
   return [
-    { facing: "front", hold: 2600 },
-    { facing: "left", hold: 800 },
-    { facing: "front", hold: 3100 },
-    { facing: "right", hold: 750 },
+    { facing: "front", hold: 1100 },
+    { facing: "left", hold: 550 },
+    { facing: "front", hold: 900 },
   ];
 }
 
@@ -60,11 +65,12 @@ function idleBeats(): Beat[] {
 function vignette(kind: PropKind, side: Side): Beat[] {
   const look: Facing = side;
   return [
-    { facing: "front", prop: { kind, side, on: true }, hold: 700 },
-    { facing: look, prop: { kind, side, on: true }, hold: 800 },
-    { facing: look, prop: { kind, side, on: false }, hold: 900 },
-    { facing: "front", prop: { kind, side, on: false }, hold: 600 },
-    { facing: "front", hold: 900 },
+    // It switches itself on while he is still facing forward — the beat that
+    // makes him look like he noticed rather than like he was waiting for it.
+    { facing: "front", prop: { kind, side, on: true }, hold: 450 },
+    { facing: look, prop: { kind, side, on: true }, hold: 550 },
+    { facing: look, prop: { kind, side, on: false }, hold: 650 },
+    { facing: "front", prop: { kind, side, on: false }, hold: 400 },
   ];
 }
 
@@ -75,9 +81,15 @@ const KINDS: PropKind[] = ["lamp", "tv", "switch"];
  * reach the server pass or cause a hydration mismatch.
  */
 function nextScript(): Beat[] {
-  const kind = KINDS[Math.floor(Math.random() * KINDS.length)];
-  const side: Side = Math.random() < 0.5 ? "left" : "right";
-  return [...idleBeats(), ...vignette(kind, side)];
+  const pick = (): Beat[] => {
+    const kind = KINDS[Math.floor(Math.random() * KINDS.length)];
+    const side: Side = Math.random() < 0.5 ? "left" : "right";
+    return vignette(kind, side);
+  };
+  // Usually one appliance per cycle, sometimes two back to back, so the idle
+  // never settles into an obvious loop.
+  const second = Math.random() < 0.45 ? pick() : [];
+  return [...idleBeats(), ...pick(), ...second];
 }
 
 /** Small pixel props, drawn rather than cropped — we have no verified sprite

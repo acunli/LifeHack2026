@@ -8,6 +8,8 @@ import { useSession } from "@/lib/useSession";
 import ApartmentRoom from "@/components/ApartmentRoom";
 import EnergyDashboard from "@/components/EnergyDashboard";
 import Mascot from "@/components/Mascot";
+import UsernameSetup from "@/components/UsernameSetup";
+import Footer from "@/components/Footer";
 import { applianceScore, type Appliance } from "@/data/appliances";
 import { useEnergyState } from "@/lib/useEnergyState";
 
@@ -33,6 +35,10 @@ export default function ApartmentPage() {
   }, [session, router]);
 
   if (!session) return null;
+
+  // Everyone on the league has a handle; the resident should too, rather than
+  // showing up as "You" beside PixelPanda and GridGoblin.
+  if (!session.username) return <UsernameSetup />;
 
   const result = energy.result;
   const hoveredAppliance = hovered;
@@ -134,6 +140,8 @@ export default function ApartmentPage() {
           )}
         </div>
       </section>
+
+      <Footer />
 
       {showDashboard && (
         <EnergyDashboard

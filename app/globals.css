@@ -123,10 +123,57 @@ body {
   animation: float-in 320ms ease-out both;
 }
 
+
+/* ── Ported from the leaderboard mock, on our tokens ──────────────── */
+
+/* Stepped, not eased — smooth easing on pixel UI reads as a web page. */
+@keyframes anim-medal {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+.anim-medal { animation: anim-medal 1.4s steps(2) infinite; }
+
+@keyframes anim-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.anim-pulse { animation: anim-pulse 1.1s steps(2) infinite; }
+
+@keyframes anim-skeleton {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.7; }
+}
+.anim-skeleton { animation: anim-skeleton 1.2s steps(3) infinite; }
+
+@keyframes anim-hop {
+  0%, 70%, 100% { transform: translateY(0); }
+  80%           { transform: translateY(-5px); }
+  90%           { transform: translateY(-2px); }
+}
+.anim-hop { animation: anim-hop 2.4s steps(1) infinite; }
+
+/* Champion plinth, faintly charged. */
+@keyframes anim-energy {
+  0%, 100% { box-shadow: inset 0 2px 0 0 var(--amber-deep); }
+  50%      { box-shadow: inset 0 2px 0 0 var(--amber); }
+}
+.anim-energy { animation: anim-energy 1.6s steps(2) infinite; }
+
+/* Pixel type, so ported components need no inline fontFamily. */
+.pixel {
+  font-family: var(--font-pixel), monospace;
+  letter-spacing: 0.04em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* The mascot's own motion is JS-driven and checks matchMedia itself. */
   .wattlah-bolt,
-  .float-in {
+  .float-in,
+  .anim-medal,
+  .anim-pulse,
+  .anim-skeleton,
+  .anim-hop,
+  .anim-energy {
     animation: none;
   }
 }

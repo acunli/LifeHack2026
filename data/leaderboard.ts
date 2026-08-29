@@ -76,6 +76,7 @@ export function buildStanding(
   roomNumber: string,
   score: number,
   dailyDelta = 3,
+  handle?: string,
 ): Standing {
   const rows: LeaderboardRow[] = neighbours().map((r) => ({
     ...r,
@@ -83,7 +84,7 @@ export function buildStanding(
   }));
 
   rows.push({
-    handle: "You",
+    handle: handle?.trim() || "You",
     mascot: mascotFor(roomNumber),
     score,
     delta: dailyDelta,
