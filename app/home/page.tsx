@@ -6,7 +6,36 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useSession } from '@/lib/useSession'
 import Mascot from '@/components/Mascot'
+import WattLahLogo from '@/components/WattLahLogo'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
+
+/**
+ * What-if changes persist across navigation.
+ *
+ * Without this the dashboard rebuilt from the authored baseline on every
+ * visit, while the leaderboard read the saved score — so applying a fix, going
+ * to the league and coming back showed 80 there and 74 here.
+ */
+const WHATIF_KEY = 'wattlah.whatif'
+
+type WhatIfState = { cur: Record<string, number>; applied: string[] }
+
+function readWhatIf(): WhatIfState | null {
+  try {
+    const raw = window.localStorage.getItem(WHATIF_KEY)
+    return raw ? (JSON.parse(raw) as WhatIfState) : null
+  } catch {
+    return null
+  }
+}
+
+function writeWhatIf(state: WhatIfState) {
+  try {
+    window.localStorage.setItem(WHATIF_KEY, JSON.stringify(state))
+  } catch {
+    /* storage can be blocked; persistence is a convenience here */
+  }
+}
 import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
 
@@ -248,6 +277,7 @@ export default function HomePage() {
     if (!isLoggedIn()) router.replace('/')
   }, [isAuthenticated, router])
 
+
   // Get the user's rank from the leaderboard
   const leaderboardRank = useMemo(() => {
     if (!session) return 0
@@ -261,11 +291,12 @@ export default function HomePage() {
     Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
   )
   const [selected, setSelected] = useState<string | null>(null)
-  const [whatIf, setWhatIf] = useState(false)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [applied, setApplied] = useState<Set<string>>(() => new Set())
   const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [displayScore, setDisplayScore] = useState(0)
+  const [rewards, setRewards] = useState(0)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -310,6 +341,32 @@ export default function HomePage() {
   }, [])
 
   /**
+   * Restore what-if changes made before navigating away.
+   *
+   * Without this the dashboard rebuilt from the authored baseline on every
+   * visit while the leaderboard read the saved score, so applying a fix,
+   * checking the league and coming back showed 80 there and 74 here.
+   *
+   * animateTo is called too: the reveal has already run to the baseline by
+   * this point, and the number on screen comes from displayScore rather than
+   * `score`, so restoring the state alone leaves the dial reading 74.
+   */
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const saved = readWhatIf()
+      if (!saved || !saved.applied?.length) return
+      setCur(saved.cur)
+      setApplied(new Set(saved.applied))
+      animateTo(
+        scoreOf(APPLIANCES.reduce((sum, a) => sum + (saved.cur[a.id] ?? a.kwh), 0)),
+        0,
+      )
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /**
    * Persist the score so the league reflects what the resident actually did.
    *
    * The writer for this lived in the apartment route, which is gone — the
@@ -342,6 +399,23 @@ export default function HomePage() {
     setDrawerOpen(true)
   }
 
+  // Hover card. The zip anchored this to the room's heat glows; those went
+  // with the static room, so it hangs off the appliance rows instead — same
+  // card, attached to something that still exists.
+  const hovered = hoveredId ? APPLIANCES.find((a) => a.id === hoveredId) ?? null : null
+  const hoveredScore = hovered ? applianceScore(cur[hovered.id], hovered.ref) : 0
+  const hoveredColour =
+    hoveredScore >= 85 ? 'var(--lime)' : hoveredScore >= 60 ? 'var(--amber)' : 'var(--red)'
+  const hoveredOver = hovered
+    ? Math.round(((cur[hovered.id] - hovered.ref) / hovered.ref) * 100)
+    : 0
+  const vsLabel =
+    hoveredOver > 0
+      ? `${hoveredOver}% over typical`
+      : hoveredOver < 0
+        ? `${Math.abs(hoveredOver)}% under typical`
+        : 'exactly typical'
+
   function applyRec(rec: Rec) {
     const done = applied.has(rec.id)
 
@@ -364,6 +438,7 @@ export default function HomePage() {
     if (done) nextApplied.delete(rec.id)
     else nextApplied.add(rec.id)
     setApplied(nextApplied)
+    writeWhatIf({ cur: next, applied: [...nextApplied] })
 
     animateTo(
       scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
@@ -372,8 +447,10 @@ export default function HomePage() {
   }
 
   function reset() {
-    setCur(Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])))
+    const base = Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh]))
+    setCur(base)
     setApplied(new Set())
+    writeWhatIf({ cur: base, applied: [] })
     animateTo(BASE_SCORE, shownRef.current)
   }
 
@@ -408,6 +485,11 @@ export default function HomePage() {
     <div style={styles.page}>
       <style>{css}</style>
       <div className="wl-app">
+        {/* Top bar. The wordmark already carries a bolt as its exclamation,
+            so the separate emoji beside it was a second, mismatched one. */}
+        <div className="wl-topbar">
+          <WattLahLogo className="text-[18px]" />
+        </div>
         {/* Header */}
         <header className="wl-panel wl-header">
           <div className="wl-who">
@@ -418,15 +500,32 @@ export default function HomePage() {
             </div>
           </div>
           <div className="wl-controls">
+            {/* Rewards earned with notification badge */}
+            <div className="wl-rewards" title="Rewards earned">
+              <span className="wl-rewards-icon" aria-hidden>🔔</span>
+              <span className="wl-rewards-count wl-px">{rewards}</span>
+              <span className="wl-rewards-label wl-px">Rewards</span>
+            </div>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
             </button>
-            <button
-              className={'wl-ghost' + (whatIf ? ' on' : '')}
-              onClick={() => setWhatIf((v) => !v)}
-            >
-              {whatIf ? 'What-if: ON' : 'What-if mode'}
-            </button>
+            {/*
+              Was a "What-if mode" toggle that did nothing. It used to change
+              the heat-zone opacity, and the zones went when the game replaced
+              the static room — so it highlighted itself and had no other
+              effect. The what-if mechanic is Apply/Undo in the drawer, so this
+              now reports what those did and undoes them.
+            */}
+            {applied.size > 0 && (
+              <button
+                className="wl-ghost on"
+                onClick={reset}
+                title="Undo every applied change"
+              >
+                {score > BASE_SCORE ? `+${score - BASE_SCORE} · ` : ''}
+                {applied.size} applied — reset
+              </button>
+            )}
             {/* Their rank chip — shows standing and links to the league,
                 which replaces the separate League button. */}
             <Link
@@ -581,7 +680,28 @@ export default function HomePage() {
                         'wl-row' + (selected === a.id ? ' sel' : '') + (off ? ' off' : '')
                       }
                       onClick={() => select(a.id)}
+                      onMouseEnter={() => setHoveredId(a.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      style={{ position: 'relative' }}
                     >
+                      {hovered?.id === a.id && (
+                        <div className="wl-hovercard">
+                          <div className="wl-hc-name">
+                            <span>{hovered.icon}</span>
+                            <span>{hovered.name}</span>
+                          </div>
+                          <div className="wl-hc-meta">
+                            <span>{cur[hovered.id]} kWh</span>
+                            <span>typical {hovered.ref} kWh</span>
+                          </div>
+                          <div className="wl-hc-track">
+                            <i style={{ width: hoveredScore + '%', background: hoveredColour }} />
+                          </div>
+                          <div className="wl-hc-vs" style={{ color: hoveredColour }}>
+                            {vsLabel}
+                          </div>
+                        </div>
+                      )}
                       <span className="wl-ic">{a.icon}</span>
                       <span className="wl-nm">{a.name}</span>
                       <span className="wl-mini">
@@ -697,7 +817,7 @@ export default function HomePage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: '100%',
+    minHeight: '100dvh',
     background: 'var(--bg)',
     backgroundImage:
       'radial-gradient(ellipse 80% 60% at 50% 35%,#2f4d38 0%,var(--bg) 55%,var(--bg-deep) 100%)',
@@ -747,10 +867,21 @@ const css = `
 .wl-ghost:hover{color:var(--ink);border-color:var(--line-hi)}
 .wl-ghost.on{color:#2b1d05;background:var(--lime);border-color:#1e3a10}
 
+/* Top bar: WattLah logo + electricity symbol */
+.wl-topbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 6px}
+@keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+/* Rewards earned badge */
+.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px}
+.wl-rewards-icon{font-size:14px;animation:wl-notif-bounce 2s ease-in-out infinite}
+@keyframes wl-notif-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.wl-rewards-count{font-size:12px;color:var(--amber);font-weight:700}
+.wl-rewards-label{font-size:8px;color:var(--ink-dim)}
+
 .wl-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
 
-.wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:hidden}
 /* Sized to match the Phaser game's fixed 768x576 canvas, so the
    percentage-positioned pins resolve against the same box as the room.
    Scaled with zoom rather than transform, because transform would leave the
@@ -801,6 +932,25 @@ const css = `
 .wl-row{display:flex;align-items:center;gap:9px;padding:9px 6px;border-top:1px solid rgba(95,160,114,.28);
   cursor:pointer;transition:background .15s}
 .wl-row:hover{background:var(--panel-hi)}
+
+/* Hover card, ported from watt-lah-hover. Repositioned: the original sat above
+   a heat glow in the room, which no longer exists, so it now sits to the left
+   of the appliance row it describes. */
+.wl-hovercard{position:absolute;z-index:600;pointer-events:none;min-width:200px;
+  right:calc(100% + 14px);top:50%;transform:translateY(-50%);
+  background:var(--panel);border:3px solid var(--line-hi);
+  box-shadow:0 0 0 3px var(--bg-deep),5px 5px 0 0 rgba(0,0,0,.5);
+  padding:10px 11px;animation:wl-hc-in .12s ease-out both}
+@keyframes wl-hc-in{from{opacity:0;transform:translateY(-46%) scale(.97)}
+  to{opacity:1;transform:translateY(-50%) scale(1)}}
+.wl-hc-name{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink)}
+.wl-hc-meta{font-size:11px;color:var(--ink-dim);margin-top:6px;
+  display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.wl-hc-track{height:7px;background:var(--bg-deep);margin-top:8px;position:relative}
+.wl-hc-track i{position:absolute;inset:0 auto 0 0}
+.wl-hc-vs{font-size:10px;margin-top:7px;font-family:var(--font-pixel),monospace;letter-spacing:.08em}
+@media(prefers-reduced-motion:reduce){.wl-hovercard{animation:none}}
+
 .wl-row.sel{background:var(--panel-hi);box-shadow:inset 3px 0 0 var(--amber)}
 .wl-ic{width:19px;text-align:center;font-size:14px}
 .wl-nm{flex:1;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

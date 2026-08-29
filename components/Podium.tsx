@@ -13,6 +13,13 @@ import type { LeaderboardEntry } from '@/data/leaderboard'
 const HEIGHTS: Record<number, string> = { 1: 'h-20', 2: 'h-14', 3: 'h-10' }
 const ORDER = [2, 1, 3]
 
+/** Plinth metal per place. Gold reads brightest and sweeps fastest. */
+const METAL: Record<number, string> = {
+  1: 'podium-place podium-gold',
+  2: 'podium-place podium-silver',
+  3: 'podium-place podium-bronze',
+}
+
 export function Podium({ entries }: { entries: LeaderboardEntry[] }) {
   const byRank = new Map(entries.map((e) => [e.rank, e]))
   const top = ORDER.map((r) => byRank.get(r)).filter(Boolean) as LeaderboardEntry[]
@@ -42,7 +49,7 @@ export function Podium({ entries }: { entries: LeaderboardEntry[] }) {
                 {entry.score}
               </span>
               <div
-                className={`pixel-panel mt-2 w-full ${HEIGHTS[place]} ${isChampion ? 'anim-energy' : ''} flex items-start justify-center pt-1`}
+                className={`pixel-panel mt-2 w-full ${HEIGHTS[place]} ${METAL[place]} flex items-start justify-center pt-1`}
                 style={
                   isChampion
                     ? { borderColor: 'var(--gold-deep)' }
