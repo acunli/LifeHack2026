@@ -1,4 +1,4 @@
-# WattWise — Gamified Energy Saving for Housing Complexes
+# WattLah! — Gamified Energy Saving for Housing Complexes
 
 **LifeHack 2026 · Ecovolt track: "Small Green Habits"**
 
