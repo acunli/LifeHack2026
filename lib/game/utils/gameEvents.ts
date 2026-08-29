@@ -76,48 +76,6 @@ export interface PlayerMoveRequestPayload {
   y: number;
 }
 
-type EventHandler = (...args: never[]) => void;
-type Listener = { handler: EventHandler; context?: unknown };
-
-/** A tiny framework-neutral bus that is safe to import during Next.js SSR. */
-class GameEventBus {
-  private listeners = new Map<string, Listener[]>();
-
-  on(event: string, handler: EventHandler, context?: unknown): this {
-    const listeners = this.listeners.get(event) ?? [];
-    listeners.push({ handler, context });
-    this.listeners.set(event, listeners);
-    return this;
-  }
-
-  off(event: string, handler?: EventHandler, context?: unknown): this {
-    if (!handler) {
-      this.listeners.delete(event);
-      return this;
-    }
-
-    const listeners = this.listeners.get(event)?.filter(listener => (
-      listener.handler !== handler ||
-      (context !== undefined && listener.context !== context)
-    ));
-    if (listeners?.length) this.listeners.set(event, listeners);
-    else this.listeners.delete(event);
-    return this;
-  }
-
-  emit(event: string, ...args: unknown[]): boolean {
-    const listeners = this.listeners.get(event);
-    if (!listeners?.length) return false;
-    listeners.slice().forEach(listener => {
-      const handler = listener.handler as (...values: unknown[]) => void;
-      handler.apply(listener.context, args);
-    });
-    return true;
-  }
-}
-
-export const gameEvents = new GameEventBus();
-
 export const GAME_EVENTS = {
   SOCKET_NEAR: 'socket:near',
   SOCKET_FAR: 'socket:far',
@@ -133,3 +91,70 @@ export const GAME_EVENTS = {
   PLAYER_MOVE_REQUEST: 'player:move-request',
   PLAYER_INTERACT_REQUEST: 'player:interact-request',
 } as const;
+
+type GameEventMap = {
+  [GAME_EVENTS.SOCKET_NEAR]: [SocketNearPayload];
+  [GAME_EVENTS.SOCKET_FAR]: [];
+  [GAME_EVENTS.APPLIANCE_INTERACT]: [ApplianceInteractPayload];
+  [GAME_EVENTS.APPLIANCE_INSTALL_REQUEST]: [ApplianceInstallRequestPayload];
+  [GAME_EVENTS.APPLIANCE_INSTALLED]: [ApplianceInstalledPayload];
+  [GAME_EVENTS.APPLIANCE_CLICKED]: [ApplianceClickedPayload];
+  [GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST]: [ApplianceTogglePowerRequestPayload];
+  [GAME_EVENTS.APPLIANCE_POWER_CHANGED]: [AppliancePowerChangedPayload];
+  [GAME_EVENTS.APPLIANCE_REMOVE_REQUEST]: [ApplianceRemoveRequestPayload];
+  [GAME_EVENTS.APPLIANCE_REMOVED]: [ApplianceRemovedPayload];
+  [GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST]: [PlaceCustomAppliancePayload];
+  [GAME_EVENTS.PLAYER_MOVE_REQUEST]: [PlayerMoveRequestPayload];
+  [GAME_EVENTS.PLAYER_INTERACT_REQUEST]: [];
+};
+
+type GameEventName = keyof GameEventMap;
+type EventHandler = (...args: never[]) => void;
+type Listener = { handler: EventHandler; context?: unknown };
+
+/** A tiny framework-neutral bus that is safe to import during Next.js SSR. */
+class GameEventBus {
+  private listeners = new Map<string, Listener[]>();
+
+  on<K extends GameEventName>(
+    event: K,
+    handler: (...args: GameEventMap[K]) => void,
+    context?: unknown,
+  ): this {
+    const listeners = this.listeners.get(event) ?? [];
+    listeners.push({ handler: handler as EventHandler, context });
+    this.listeners.set(event, listeners);
+    return this;
+  }
+
+  off<K extends GameEventName>(
+    event: K,
+    handler?: (...args: GameEventMap[K]) => void,
+    context?: unknown,
+  ): this {
+    if (!handler) {
+      this.listeners.delete(event);
+      return this;
+    }
+
+    const listeners = this.listeners.get(event)?.filter(listener => (
+      listener.handler !== handler as EventHandler ||
+      (context !== undefined && listener.context !== context)
+    ));
+    if (listeners?.length) this.listeners.set(event, listeners);
+    else this.listeners.delete(event);
+    return this;
+  }
+
+  emit<K extends GameEventName>(event: K, ...args: GameEventMap[K]): boolean {
+    const listeners = this.listeners.get(event);
+    if (!listeners?.length) return false;
+    listeners.slice().forEach(listener => {
+      const handler = listener.handler as (...values: unknown[]) => void;
+      handler.apply(listener.context, args);
+    });
+    return true;
+  }
+}
+
+export const gameEvents = new GameEventBus();

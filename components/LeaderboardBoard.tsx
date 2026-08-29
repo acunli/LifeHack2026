@@ -96,7 +96,11 @@ export function LeaderboardBoard({
           </div>
           <div className="flex flex-col items-end gap-2">
             <ScoreMeter score={me.score} />
-            <ChangeIndicator change={me.change} />
+            {me.isProjected ? (
+              <span className="pixel text-[7px] uppercase text-gold">Plan preview</span>
+            ) : (
+              <ChangeIndicator change={me.change} />
+            )}
           </div>
         </div>
       )}
@@ -106,7 +110,7 @@ export function LeaderboardBoard({
         {/* The arrows had no label anywhere on the page, so nobody could tell
             what they measured. */}
         <span className="pixel text-[9px] text-muted-w">
-          ▲▼ change vs last period
+          ▲▼ change vs last period · plans are previews
         </span>
       </div>
 

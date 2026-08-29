@@ -37,7 +37,6 @@ export function clampScore(value: number): number {
  */
 export function computeScore(reading: EnergyReading): number {
   const { usageKwh, baselineKwh } = reading
-  if (!baselineKwh || baselineKwh <= 0) return SCORE_MIN
   return computeApartmentScore({
     roomNumber: 'league',
     totalConsumptionKwh: usageKwh,

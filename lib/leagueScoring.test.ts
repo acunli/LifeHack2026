@@ -7,6 +7,8 @@ describe('league scoring compatibility', () => {
     [100, 100],
     [120, 100],
     [175, 100],
+    [10, 0],
+    [10, -5],
   ])('matches the apartment score for %i kWh against %i kWh', (usage, baseline) => {
     const apartment = computeApartmentScore({
       roomNumber: 'test',
@@ -17,9 +19,5 @@ describe('league scoring compatibility', () => {
 
     expect(computeLeagueScore({ usageKwh: usage, baselineKwh: baseline })).toBe(apartment.score)
     expect(rankTier(apartment.score)).toBe(apartment.status)
-  })
-
-  it('rejects an invalid baseline without dividing by zero', () => {
-    expect(computeLeagueScore({ usageKwh: 10, baselineKwh: 0 })).toBe(0)
   })
 })

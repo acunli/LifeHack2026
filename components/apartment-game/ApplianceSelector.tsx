@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   gameEvents,
   GAME_EVENTS,
@@ -53,7 +54,7 @@ export default function ApplianceSelector() {
     };
   }, [pending]);
 
-  if (!pending) return null;
+  if (!pending || typeof document === 'undefined') return null;
 
   const install = () => {
     gameEvents.emit(GAME_EVENTS.APPLIANCE_INSTALL_REQUEST, {
@@ -62,7 +63,7 @@ export default function ApplianceSelector() {
     setPending(null);
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -96,6 +97,7 @@ export default function ApplianceSelector() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

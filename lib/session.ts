@@ -29,7 +29,12 @@ type StoredSession = {
 }
 
 function isBrowser(): boolean {
-  return typeof window !== 'undefined' && !!window.localStorage
+  if (typeof window === 'undefined') return false
+  try {
+    return !!window.localStorage
+  } catch {
+    return false
+  }
 }
 
 export function readRawSession(): StoredSession | null {
@@ -37,9 +42,13 @@ export function readRawSession(): StoredSession | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as StoredSession
-    if (!parsed || typeof parsed !== 'object') return null
-    return parsed
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+    const candidate = parsed as StoredSession
+    if (candidate.username !== undefined && typeof candidate.username !== 'string') return null
+    if (candidate.roomNumber !== undefined && typeof candidate.roomNumber !== 'string') return null
+    if (candidate.loggedIn !== undefined && typeof candidate.loggedIn !== 'boolean') return null
+    return candidate
   } catch {
     return null
   }
@@ -73,8 +82,12 @@ export function isLoggedIn(): boolean {
 
 export function saveSession(session: Session): void {
   if (!isBrowser()) return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
-  window.dispatchEvent(new Event('wattlah:session'))
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    window.dispatchEvent(new Event('wattlah:session'))
+  } catch {
+    /* The demo remains renderable when storage is unavailable. */
+  }
 }
 
 /** Attach a username to an existing (legacy) session. */
@@ -94,8 +107,12 @@ export function login(username: string, roomNumber: string): void {
 
 export function logout(): void {
   if (!isBrowser()) return
-  window.localStorage.removeItem(STORAGE_KEY)
-  window.dispatchEvent(new Event('wattlah:session'))
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.dispatchEvent(new Event('wattlah:session'))
+  } catch {
+    /* Storage may be disabled by the browser. */
+  }
 }
 
 /**
@@ -110,11 +127,15 @@ export function userIdFromRoom(roomNumber: string): string {
 /** Seed a legacy (username-less) session — used for demos/tests. */
 export function seedLegacySession(roomNumber: string): void {
   if (!isBrowser()) return
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ roomNumber, loggedIn: true }),
-  )
-  window.dispatchEvent(new Event('wattlah:session'))
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ roomNumber, loggedIn: true }),
+    )
+    window.dispatchEvent(new Event('wattlah:session'))
+  } catch {
+    /* Storage may be disabled by the browser. */
+  }
 }
 
 /* ── Score persistence for apartment → leaderboard sync ────────────── */
@@ -133,7 +154,23 @@ function readScores(): StoredScores {
   try {
     const raw = window.localStorage.getItem(SCORE_KEY)
     if (!raw) return {}
-    return JSON.parse(raw) as StoredScores
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+
+    const scores: StoredScores = {}
+    for (const [userId, value] of Object.entries(parsed)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+      const candidate = value as Partial<StoredScore>
+      if (!Number.isFinite(candidate.current) || !Number.isFinite(candidate.previous)) continue
+      scores[userId] = {
+        current: Math.max(0, Math.min(100, Math.round(candidate.current!))),
+        previous: Math.max(0, Math.min(100, Math.round(candidate.previous!))),
+        isProjected: typeof candidate.isProjected === 'boolean'
+          ? candidate.isProjected
+          : undefined,
+      }
+    }
+    return scores
   } catch {
     return {}
   }
@@ -141,8 +178,12 @@ function readScores(): StoredScores {
 
 function writeScores(scores: StoredScores): void {
   if (!isBrowser()) return
-  window.localStorage.setItem(SCORE_KEY, JSON.stringify(scores))
-  window.dispatchEvent(new Event('wattlah:scores'))
+  try {
+    window.localStorage.setItem(SCORE_KEY, JSON.stringify(scores))
+    window.dispatchEvent(new Event('wattlah:scores'))
+  } catch {
+    /* Score persistence is optional when storage is blocked. */
+  }
 }
 
 /** Save the current user's apartment score so the leaderboard can read it. */

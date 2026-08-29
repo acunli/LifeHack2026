@@ -8,7 +8,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/useSession'
@@ -116,18 +116,20 @@ export default function InteractiveApartmentPage() {
         </p>
       </div>
 
-      {/* Game Canvas */}
-      <ApartmentGameCanvas />
+      <Fragment key={session.roomNumber}>
+        {/* Game Canvas */}
+        <ApartmentGameCanvas />
 
-      {/* Interaction prompt (shows near an empty socket) */}
-      <InteractionPrompt />
+        {/* Interaction prompt (shows near an empty socket) */}
+        <InteractionPrompt />
 
-      {/* Drag one of these onto the room to add a custom appliance */}
-      <AppliancePalette />
+        {/* Drag one of these onto the room to add a custom appliance */}
+        <AppliancePalette />
 
-      {/* Modals: install an appliance at a socket/placeholder, or inspect one that's installed */}
-      <ApplianceSelector />
-      <AppliancePanel />
+        {/* Modals: scan an appliance at a socket/placeholder, or inspect one that's connected */}
+        <ApplianceSelector />
+        <AppliancePanel />
+      </Fragment>
 
       {/* Controls */}
       <div
@@ -138,7 +140,7 @@ export default function InteractiveApartmentPage() {
           textAlign: 'center',
         }}
       >
-        WASD/Arrow Keys - Move · E - Install at a socket · Click an appliance to install/inspect it
+        WASD/Arrow Keys - Move · E - Scan at a socket · Click an appliance to scan/inspect it
         <br />
         Drag an appliance from above onto the room to add it anywhere
       </div>

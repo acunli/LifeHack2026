@@ -24,6 +24,7 @@ import {
   gameEvents,
   GAME_EVENTS,
   type ApplianceInstalledPayload,
+  type ApplianceRemovedPayload,
 } from '@/lib/game/utils/gameEvents'
 import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
 import VoucherPopup from '@/components/VoucherPopup'
@@ -48,7 +49,17 @@ function whatIfKey(roomNumber: string): string {
 function readWhatIf(roomNumber: string): WhatIfState | null {
   try {
     const raw = window.localStorage.getItem(whatIfKey(roomNumber))
-    return raw ? (JSON.parse(raw) as WhatIfState) : null
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const candidate = parsed as Partial<WhatIfState>
+    if (!candidate.cur || typeof candidate.cur !== 'object') return null
+    if (!Array.isArray(candidate.applied)) return null
+    if (!Object.values(candidate.cur).every(
+      (value) => typeof value === 'number' && Number.isFinite(value),
+    )) return null
+    if (!candidate.applied.every((id) => typeof id === 'string')) return null
+    return { cur: candidate.cur, applied: candidate.applied }
   } catch {
     return null
   }
@@ -335,6 +346,7 @@ export default function HomePage() {
   const [voucherOpen, setVoucherOpen] = useState(false)
   const [rewardNotify, setRewardNotify] = useState(false)
   const [rewardDelta, setRewardDelta] = useState<1 | -1>(1)
+  const [hydratedRoom, setHydratedRoom] = useState<string | null>(null)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -455,13 +467,27 @@ export default function HomePage() {
     if (!roomNumber) return
     const raf = requestAnimationFrame(() => {
       const saved = readWhatIf(roomNumber)
-      if (!saved || !saved.applied?.length) return
-      setCur(saved.cur)
-      setApplied(new Set(saved.applied))
+      const validApplied = saved?.applied.filter((id) =>
+        RECS.some((recommendation) => recommendation.id === id),
+      ) ?? []
+      const shouldRestore = validApplied.length > 0
+      const restored = Object.fromEntries(APPLIANCES.map((appliance) => {
+        const value = shouldRestore ? saved?.cur[appliance.id] : undefined
+        return [
+          appliance.id,
+          typeof value === 'number'
+            ? Math.max(0, Math.min(appliance.kwh, value))
+            : appliance.kwh,
+        ]
+      }))
+      setCur(restored)
+      setApplied(new Set(validApplied))
+      setSelected(null)
       animateTo(
-        scoreOf(APPLIANCES.reduce((sum, a) => sum + (saved.cur[a.id] ?? a.kwh), 0)),
-        0,
+        scoreOf(APPLIANCES.reduce((sum, appliance) => sum + restored[appliance.id], 0)),
+        shownRef.current,
       )
+      setHydratedRoom(roomNumber)
     })
     return () => cancelAnimationFrame(raf)
   }, [animateTo, roomNumber])
@@ -477,11 +503,11 @@ export default function HomePage() {
    * to an external system.
    */
   useEffect(() => {
-    if (!roomNumber) return
+    if (!roomNumber || hydratedRoom !== roomNumber) return
     saveScore(userIdFromRoom(roomNumber), score, {
       isProjected: planActive,
     })
-  }, [planActive, roomNumber, score])
+  }, [hydratedRoom, planActive, roomNumber, score])
 
   // Phaser owns movement and visuals; this page owns the product journey.
   // A meter scan updates the mission, XP, and the matching dashboard row.
@@ -494,16 +520,27 @@ export default function HomePage() {
       )
     }
     const handleInstalled = (payload: ApplianceInstalledPayload) => {
-      syncProgress()
+      if (FIXED_AUDIT_TARGETS.has(payload.installTargetId)) {
+        setConnectedTargets((current) => new Set(current).add(payload.installTargetId))
+      }
       const dashboardId = DASHBOARD_APPLIANCE_BY_GAME_ID[payload.appliance.id]
       if (dashboardId) setSelected(dashboardId)
+    }
+    const handleRemoved = (payload: ApplianceRemovedPayload) => {
+      setConnectedTargets((current) => {
+        const next = new Set(current)
+        next.delete(payload.installTargetId)
+        return next
+      })
     }
 
     syncProgress()
     gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled)
+    gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved)
     window.addEventListener(AUDIT_PROGRESS_EVENT, syncProgress)
     return () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled)
+      gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved)
       window.removeEventListener(AUDIT_PROGRESS_EVENT, syncProgress)
     }
   }, [roomNumber])
@@ -740,7 +777,7 @@ export default function HomePage() {
                 <i style={{ width: `${(auditCount / AUDIT_TOTAL) * 100}%` }} />
               </div>
             </div>
-            <div className="wl-stage">
+            <div className="wl-stage" key={roomNumber}>
               {/* The interactive Phaser apartment, replacing the static tile
                   render. Its own systems (movement, sockets, install/inspect)
                   run independently of the heat-zone overlay below - the two
@@ -1199,9 +1236,9 @@ const css = `
 .wl-foot{font-size:11px;color:rgba(163,196,172,.65);text-align:center;padding:4px 0 0}
 
 .wl-scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;
-  transition:opacity .25s;z-index:40}
+  transition:opacity .25s;z-index:940}
 .wl-scrim.open{opacity:1;pointer-events:auto}
-.wl-drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,92vw);z-index:50;
+.wl-drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,92vw);z-index:950;
   background:var(--panel);border-left:3px solid var(--line-hi);
   transform:translateX(103%);transition:transform .28s cubic-bezier(.3,.9,.3,1);
   display:flex;flex-direction:column;overflow:hidden;color:var(--ink)}

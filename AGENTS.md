@@ -1,10 +1,35 @@
 # AGENTS.md — operating context for AI coding agents
 
-Project: **WattWise** — gamified energy-saving web app for a housing complex.
+Project: **WattLah** — gamified energy-saving web app for a housing complex.
 Built for **LifeHack 2026**, Ecovolt "Small Green Habits" track.
 
 `README.md` is the plan and the source of truth. **Read it before writing code.**
 This file is the short version: the rules that are easy to break by accident.
+
+## 2026-08-30 implementation override — read first
+
+The repository has intentionally evolved beyond the pre-build lane plan kept
+below for historical context. The working product now uses Phaser, movement,
+socket scans, room-scoped persistence, savings-plan previews, and a building
+leaderboard. Do not remove those features to satisfy the archived "no engine"
+or two-route guidance.
+
+Current rules:
+
+- `/home` is the canonical product surface; `/leaderboard` is its social loop.
+- Keep measured usage distinct from projected plans and label projections.
+- Use `lib/scoring.ts` as the only scoring truth; its exact-reference score of
+  100 is intentional.
+- Keep persisted audit and plan state isolated by room and validate storage.
+- Phaser owns room simulation; React owns product state. Communicate through
+  the typed, SSR-safe bus in `lib/game/utils/gameEvents.ts`.
+- Preserve deterministic data, pixel-art rendering, accessible HTML controls,
+  responsive touch support, and the no-backend/no-new-dependency constraints.
+- Run lint, `tsc --noEmit`, tests, build, and the core browser journey before
+  handing off.
+
+Sections below describing missing files, lane ownership, no canvas, and the
+original scope are archived constraints, not the current implementation.
 
 ---
 

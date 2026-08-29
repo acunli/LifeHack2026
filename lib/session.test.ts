@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getSession,
+  getSavedScore,
   isLoggedIn,
   login,
   logout,
   needsUsername,
   seedLegacySession,
   setUsername,
+  saveScore,
   userIdFromRoom,
 } from "./session";
 
@@ -95,6 +97,56 @@ describe("hostile environments", () => {
   it("returns null during SSR, where window does not exist", () => {
     vi.stubGlobal("window", undefined);
     expect(getSession()).toBeNull();
+  });
+
+  it("does not crash when storage writes are blocked", () => {
+    installStorage({
+      setItem: () => { throw new Error("SecurityError"); },
+      removeItem: () => { throw new Error("SecurityError"); },
+    });
+    expect(() => login("WattWarden", "04-12")).not.toThrow();
+    expect(() => seedLegacySession("04-12")).not.toThrow();
+    expect(() => saveScore("room-04-12", 74)).not.toThrow();
+    expect(() => logout()).not.toThrow();
+  });
+
+  it("does not crash when the localStorage getter is blocked", () => {
+    const blockedWindow = { dispatchEvent: vi.fn() };
+    Object.defineProperty(blockedWindow, "localStorage", {
+      get: () => { throw new Error("SecurityError"); },
+    });
+    vi.stubGlobal("window", blockedWindow);
+    expect(() => isLoggedIn()).not.toThrow();
+    expect(isLoggedIn()).toBe(false);
+  });
+
+  it("rejects valid JSON with an invalid session shape", () => {
+    const store = installStorage();
+    store.set("wattlah.session", JSON.stringify({
+      username: "Tester",
+      roomNumber: {},
+      loggedIn: true,
+    }));
+    expect(getSession()).toBeNull();
+    expect(isLoggedIn()).toBe(false);
+  });
+
+  it("recovers from null and malformed score entries", () => {
+    const store = installStorage();
+    store.set("wattlah.scores", "null");
+    expect(() => saveScore("room-04-12", 74)).not.toThrow();
+    expect(getSavedScore("room-04-12")?.current).toBe(74);
+
+    store.set("wattlah.scores", JSON.stringify({
+      broken: { current: "high", previous: null },
+      valid: { current: 120.4, previous: -4, isProjected: true },
+    }));
+    expect(getSavedScore("broken")).toBeNull();
+    expect(getSavedScore("valid")).toEqual({
+      current: 100,
+      previous: 0,
+      isProjected: true,
+    });
   });
 });
 

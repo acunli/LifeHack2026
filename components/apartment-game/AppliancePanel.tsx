@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   gameEvents,
   GAME_EVENTS,
@@ -130,13 +131,13 @@ export default function AppliancePanel() {
     };
   }, [view]);
 
-  if (!view) return null;
+  if (!view || typeof document === 'undefined') return null;
   const { installTargetId, appliance, justInstalled, isOn } = view;
   const badge = efficiencyBadge(appliance.dailyKwh);
   const history = getUsageHistory(appliance.id, appliance.dailyKwh);
   const maxKwh = Math.max(...history.map(d => d.kwh), 0.1);
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -272,6 +273,7 @@ export default function AppliancePanel() {
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

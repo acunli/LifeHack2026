@@ -1,11 +1,71 @@
-q# WattWise — Gamified Energy Saving for Housing Complexes
+# WattLah — Gamified Home Energy Audits
 
 **LifeHack 2026 · Ecovolt track: "Small Green Habits"**
 
-> Planning document and single source of truth. No application code exists yet —
-> this repository currently contains pixel-art assets and this plan.
+WattLah turns a resident&apos;s apartment into a short, game-like energy audit:
+walk around the pixel home, scan appliance meters, understand the largest
+loads, preview concrete savings, and compare the projected result with the
+building league.
+
+## Current product
+
+The working journey is:
+
+```text
+room login → choose public handle → scan 5 meters → inspect/pause appliances
+           → build a savings plan → preview score and league rank
+```
+
+- Audit progress, appliance power, plans, session, and score previews persist
+  in room-scoped `localStorage`; no password or private account data is stored.
+- The dashboard keeps measured monthly usage separate from hypothetical plans.
+  League entries are explicitly marked `Plan` / `Projected`, never presented as
+  measured performance.
+- Every score surface uses the contract in `lib/scoring.ts`: reference usage is
+  100, and each percentage point above it removes one score point.
+- The apartment supports keyboard and touch movement, accessible scan dialogs,
+  reduced motion, and responsive phone layouts.
+
+## Run and verify
+
+```bash
+npm install
+npm run dev
+
+npm run lint
+npx tsc --noEmit
+npm test
+npm run build
+```
+
+Stack: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, Phaser 3,
+Vitest, and Playwright. No backend or live sensor is required for the prototype.
+
+## Routes
+
+| Route | Purpose |
+|---|---|
+| `/` | Demo login |
+| `/home` | Canonical apartment audit, measured HUD, and savings-plan builder |
+| `/leaderboard` | Building standings with projected-plan labelling |
+| `/interactive-apartment` | Authenticated appliance sandbox |
+| `/room-test` | Legacy visual-validation route for developers |
+
+## State boundaries
+
+- React owns the resident journey, measured dashboard, plan, and league data.
+- Phaser owns room rendering, movement, sockets, and live appliance interaction.
+- `lib/game/utils/gameEvents.ts` is the typed, SSR-safe bridge between them.
+- `lib/game/utils/auditProgress.ts` owns validated room-scoped meter state.
+- Static TypeScript data remains deterministic; there is no server mutation.
 
 ---
+
+## Historical planning archive
+
+The remainder records the original pre-build hackathon plan. It is useful for
+rationale and asset provenance, but its static-room scope and file map have been
+superseded by the current implementation documented above.
 
 ## 0. What changed in this revision
 

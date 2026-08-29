@@ -3,7 +3,8 @@
 /**
  * A single leaderboard row. The current user's row is highlighted with a gold
  * frame and a "You" tag (not color alone). Rank, username, tier, score meter
- * and daily change are all shown. Hovering reveals expanded details.
+ * and measured period change are shown. Projected plans are labelled instead
+ * of being misrepresented as historical movement.
  */
 
 import { useState } from 'react'
@@ -95,7 +96,11 @@ export function LeaderboardRow({
         {/* Score + change */}
         <div className="flex shrink-0 flex-col items-end gap-1">
           <ScoreMeter score={entry.score} />
-          <ChangeIndicator change={entry.change} />
+          {entry.isProjected ? (
+            <span className="pixel text-[7px] uppercase text-gold">Preview</span>
+          ) : (
+            <ChangeIndicator change={entry.change} />
+          )}
         </div>
 
         {/* Hover tooltip with expanded details */}
@@ -123,10 +128,14 @@ export function LeaderboardRow({
                 <span className="text-foreground">{entry.score}/100</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-w">Change</span>
-                <span style={{ color: entry.change.direction === 'up' ? 'var(--pos)' : entry.change.direction === 'down' ? 'var(--neg)' : 'var(--muted-w)' }}>
-                  {entry.change.direction === 'up' ? '+' : entry.change.direction === 'down' ? '-' : ''}{Math.abs(entry.change.value)}
-                </span>
+                <span className="text-muted-w">{entry.isProjected ? 'Result' : 'Change'}</span>
+                {entry.isProjected ? (
+                  <span style={{ color: 'var(--gold)' }}>plan preview</span>
+                ) : (
+                  <span style={{ color: entry.change.direction === 'up' ? 'var(--pos)' : entry.change.direction === 'down' ? 'var(--neg)' : 'var(--muted-w)' }}>
+                    {entry.change.direction === 'up' ? '+' : entry.change.direction === 'down' ? '-' : ''}{Math.abs(entry.change.value)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
