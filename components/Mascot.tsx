@@ -95,7 +95,7 @@ export default function Mascot({
     >
       {glow && (
         <div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          className={`${animate ? "mascot-glow" : ""} absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full`}
           style={{
             width: w * 1.9,
             height: w * 1.9,
@@ -105,10 +105,42 @@ export default function Mascot({
         />
       )}
 
+      {glow && animate && (
+        <>
+          <span
+            className="mascot-spark mascot-spark-left absolute bg-amber"
+            style={{
+              left: -scale,
+              top: scale * 9,
+              width: scale * 2,
+              height: scale * 2,
+            }}
+          />
+          <span
+            className="mascot-spark mascot-spark-right absolute bg-good"
+            style={{
+              right: -scale,
+              top: scale * 6,
+              width: scale * 2,
+              height: scale * 2,
+            }}
+          />
+          <span
+            className="mascot-spark mascot-spark-top absolute bg-amber"
+            style={{
+              left: scale * 7,
+              top: -scale,
+              width: scale,
+              height: scale,
+            }}
+          />
+        </>
+      )}
+
       {/* Static shadow. The mascot stands still now, so the shadow does too —
           an animated shadow under a still character reads as a glitch. */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
+        className={`${animate ? "mascot-shadow" : ""} absolute left-1/2 -translate-x-1/2 rounded-[50%]`}
         style={{
           bottom: -scale,
           width: w * 0.55,
@@ -118,7 +150,7 @@ export default function Mascot({
       />
 
       <div
-        className="pixelated absolute inset-0"
+        className={`${animate ? "mascot-hop" : ""} pixelated absolute inset-0`}
         style={{
           backgroundImage: `url("${CHARACTERS[character]}")`,
           backgroundSize: `${SHEET_W * scale}px ${SHEET_H * scale}px`,
