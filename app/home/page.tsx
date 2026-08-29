@@ -303,6 +303,7 @@ export default function HomePage() {
   const [rewards, setRewards] = useState(0)
   const [voucherOpen, setVoucherOpen] = useState(false)
   const [rewardNotify, setRewardNotify] = useState(false)
+  const [rewardDelta, setRewardDelta] = useState<1 | -1>(1)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -448,13 +449,10 @@ export default function HomePage() {
 
     // Earn a reward when applying, lose it when undoing
     if (rec.save > 0) {
-      if (!done) {
-        setRewards((r) => r + 1)
-        setRewardNotify(true)
-        setTimeout(() => setRewardNotify(false), 2500)
-      } else {
-        setRewards((r) => Math.max(0, r - 1))
-      }
+      setRewardDelta(done ? -1 : 1)
+      setRewards((r) => done ? Math.max(0, r - 1) : r + 1)
+      setRewardNotify(true)
+      setTimeout(() => setRewardNotify(false), 2500)
     }
 
     animateTo(
@@ -531,7 +529,7 @@ export default function HomePage() {
               <span className="wl-rewards-icon" aria-hidden>🔔</span>
               <span className="wl-rewards-count wl-px">{rewards}</span>
               <span className="wl-rewards-label wl-px">Rewards</span>
-              {rewardNotify && <span className="wl-rewards-plus">+1</span>}
+              {rewardNotify && <span className={'wl-rewards-plus' + (rewardDelta < 0 ? ' negative' : '')}>{rewardDelta > 0 ? '+1' : '-1'}</span>}
             </button>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
@@ -926,6 +924,7 @@ const css = `
 .wl-rewards-count{font-size:12px;color:var(--amber);font-weight:700}
 .wl-rewards-label{font-size:8px;color:var(--ink-dim)}
 .wl-rewards-plus{position:absolute;top:-6px;right:-6px;background:var(--lime);color:var(--bg-deep);font-family:var(--font-pixel),monospace;font-size:8px;font-weight:700;padding:3px 5px;border-radius:50%;animation:wl-plus-pop .4s ease-out both}
+.wl-rewards-plus.negative{background:var(--red)}
 @keyframes wl-plus-pop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 
 .wl-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
