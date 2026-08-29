@@ -1,0 +1,228 @@
+{
+  "furniture": {
+    "couch_tan_large": {
+      "file": "part-Slice 49.png",
+      "width": 32,
+      "height": 16,
+      "description": "Large tan/orange couch - perfect for living room"
+    },
+    "couch_purple": {
+      "file": "part-Slice 76.png",
+      "width": 32,
+      "height": 16,
+      "description": "Purple couch - alternate option"
+    },
+    "bed_white": {
+      "file": "part-Slice 12.png",
+      "width": 32,
+      "height": 14,
+      "description": "Simple white bed"
+    },
+    "bed_purple": {
+      "file": "part-Slice 13.png",
+      "width": 32,
+      "height": 14,
+      "description": "Purple/grey bed"
+    },
+    "coffee_table_small": {
+      "file": "part-Slice 47.png",
+      "width": 16,
+      "height": 15,
+      "description": "Small orange coffee table"
+    },
+    "dining_table": {
+      "file": "part-Slice 105.png",
+      "width": 31,
+      "height": 32,
+      "description": "Kitchen/dining table with items on it"
+    },
+    "small_table": {
+      "file": "part-Slice 93.png",
+      "width": 16,
+      "height": 14,
+      "description": "Small side table"
+    },
+    "chair_orange": {
+      "file": "part-Slice 46.png",
+      "width": 10,
+      "height": 16,
+      "description": "Orange dining chair"
+    },
+    "chair_pink": {
+      "file": "part-Slice 39.png",
+      "width": 16,
+      "height": 27,
+      "description": "Pink/red chair"
+    },
+    "tv_stand": {
+      "file": "part-Slice 67.png",
+      "width": 16,
+      "height": 12,
+      "description": "Low TV stand/desk"
+    },
+    "tv_large": {
+      "file": "part-Slice 135.png",
+      "width": 32,
+      "height": 16,
+      "description": "Large flat-screen TV"
+    },
+    "fridge_double": {
+      "file": "part-Slice 129.png",
+      "width": 31,
+      "height": 16,
+      "description": "Double-door refrigerator"
+    },
+    "fridge_tall": {
+      "file": "part-Slice 66.png",
+      "width": 16,
+      "height": 32,
+      "description": "Tall refrigerator"
+    },
+    "stove_with_burners": {
+      "file": "part-Slice 82.png",
+      "width": 31,
+      "height": 32,
+      "description": "Stove with visible burners"
+    },
+    "stove_simple": {
+      "file": "part-Slice 8.png",
+      "width": 32,
+      "height": 16,
+      "description": "Simple white stove/oven"
+    },
+    "kitchen_sink_double": {
+      "file": "part-Slice 106.png",
+      "width": 30,
+      "height": 16,
+      "description": "Double kitchen sink"
+    },
+    "kitchen_counter": {
+      "file": "part-Slice 107.png",
+      "width": 32,
+      "height": 16,
+      "description": "Kitchen counter with cabinet"
+    },
+    "toilet": {
+      "file": "part-Slice 58.png",
+      "width": 10,
+      "height": 16,
+      "description": "Toilet"
+    },
+    "bathtub": {
+      "file": "part-Slice 1.png",
+      "width": 30,
+      "height": 16,
+      "description": "Bathtub"
+    },
+    "shower_door": {
+      "file": "part-Slice 45.png",
+      "width": 16,
+      "height": 32,
+      "description": "Shower with glass door"
+    },
+    "bathroom_sink": {
+      "file": "part-Slice 28.png",
+      "width": 16,
+      "height": 16,
+      "description": "Bathroom sink/vanity"
+    },
+    "mirror_oval": {
+      "file": "part-Slice 100.png",
+      "width": 13,
+      "height": 30,
+      "description": "Large oval mirror"
+    },
+    "nightstand": {
+      "file": "part-Slice 60.png",
+      "width": 12,
+      "height": 16,
+      "description": "Nightstand/bedside table"
+    },
+    "wardrobe_large": {
+      "file": "part-Slice 64.png",
+      "width": 39,
+      "height": 32,
+      "description": "Large wardrobe/closet"
+    },
+    "dresser_purple": {
+      "file": "part-Slice 10.png",
+      "width": 16,
+      "height": 16,
+      "description": "Purple dresser"
+    },
+    "plant_cactus": {
+      "file": "part-Slice 14.png",
+      "width": 8,
+      "height": 12,
+      "description": "Potted cactus plant"
+    },
+    "plant_large": {
+      "file": "part-Slice 15.png",
+      "width": 8,
+      "height": 14,
+      "description": "Potted plant"
+    },
+    "window": {
+      "file": "part-Slice 131.png",
+      "width": 32,
+      "height": 16,
+      "description": "Window"
+    },
+    "door": {
+      "file": "part-Slice 53.png",
+      "width": 16,
+      "height": 16,
+      "description": "Door"
+    },
+    "painting_frame": {
+      "file": "part-Slice 29.png",
+      "width": 15,
+      "height": 16,
+      "description": "Framed painting"
+    },
+    "monitor_desk": {
+      "file": "part-Slice 121.png",
+      "width": 16,
+      "height": 16,
+      "description": "Computer monitor on desk"
+    }
+  },
+  "tiles": {
+    "floor_wood_horizontal_1": {
+      "file": "Slice 1.png",
+      "width": 8,
+      "height": 8,
+      "description": "Horizontal wood planks - variant 1"
+    },
+    "floor_wood_horizontal_9": {
+      "file": "Slice 9.png",
+      "width": 8,
+      "height": 8,
+      "description": "Horizontal wood planks - variant 9"
+    },
+    "floor_wood_cross_25": {
+      "file": "Slice 25.png",
+      "width": 8,
+      "height": 8,
+      "description": "Cross-pattern wood - variant 25"
+    },
+    "floor_tile_light_37": {
+      "file": "Slice 37.png",
+      "width": 8,
+      "height": 8,
+      "description": "Light blue/white tile"
+    },
+    "floor_tile_light_41": {
+      "file": "Slice 41.png",
+      "width": 8,
+      "height": 8,
+      "description": "Light tile - variant 41"
+    },
+    "wall_grey": {
+      "file": "Slice 100.png",
+      "width": 8,
+      "height": 8,
+      "description": "Grey wall tile (placeholder - will verify)"
+    }
+  }
+}
