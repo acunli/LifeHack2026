@@ -751,7 +751,12 @@ const css = `
    box as the room. Scaled with zoom rather than transform, because transform
    would leave the pins measuring against the unscaled parent. */
 .wl-stage{position:relative;line-height:0;width:736px;height:576px;
-  margin:0 auto;image-rendering:pixelated}
+  margin:0 auto;image-rendering:pixelated;
+  /* Contain the room's z-indexes. Its layout objects go up to 315 and the heat
+     zones to 500, which outranked the drawer (50) and scrim (40) — the
+     apartment painted straight over the open drawer. isolation:isolate makes
+     the stage its own stacking context so those numbers stay inside it. */
+  isolation:isolate;z-index:0}
 @media (max-width:820px){ .wl-stage{ zoom:0.75 } }
 @media (max-width:620px){ .wl-stage{ zoom:0.55 } }
 .wl-stage img{width:100%;height:auto;image-rendering:pixelated;display:block}
