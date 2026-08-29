@@ -698,7 +698,11 @@ export default function HomePage() {
             </div>
             {/* Rewards earned with notification badge */}
             <button
-              className={'wl-rewards' + (rewardNotify ? ' notify' : '')}
+              className={
+                'wl-rewards' +
+                (rewardNotify ? ' notify' : '') +
+                (leaderboardRank > 0 && leaderboardRank <= 3 ? ' unlocked' : ' locked')
+              }
               aria-label={`${rewards} rewards earned${leaderboardRank > 0 && leaderboardRank <= 3 ? '. Open sample voucher.' : ''}`}
               title={leaderboardRank > 0 && leaderboardRank <= 3 ? 'Open sample voucher' : 'Reach the top 3 to unlock a sample voucher'}
               onClick={() => {
@@ -710,7 +714,9 @@ export default function HomePage() {
             >
               <span className="wl-rewards-icon" aria-hidden>🔔</span>
               <span className="wl-rewards-count wl-px">{rewards}</span>
-              <span className="wl-rewards-label wl-px">Rewards</span>
+              <span className="wl-rewards-label wl-px">
+                {leaderboardRank > 0 && leaderboardRank <= 3 ? 'Rewards' : '🔒 Top 3'}
+              </span>
               {rewardNotify && <span className={'wl-rewards-plus' + (rewardDelta < 0 ? ' negative' : '')}>{rewardDelta > 0 ? '+1' : '-1'}</span>}
             </button>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
@@ -1154,6 +1160,10 @@ const css = `
 .wl-audit-label{font-size:8px;color:var(--ink-dim);letter-spacing:.12em}
 /* Rewards earned badge */
 .wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px;position:relative;transition:border-color .3s}
+/* Locked until top 3. Without a visible state the button looked live and
+   silently did nothing at rank 5 — the only hint was a title tooltip. */
+.wl-rewards.locked{opacity:.55;cursor:default}
+.wl-rewards.unlocked{border-color:var(--amber);cursor:pointer}
 .wl-rewards.notify{border-color:var(--amber);animation:wl-reward-pulse .6s ease}
 @keyframes wl-reward-pulse{0%{transform:scale(1)}30%{transform:scale(1.08)}100%{transform:scale(1)}}
 .wl-rewards-icon{font-size:14px;animation:wl-notif-bounce 2s ease-in-out infinite}
