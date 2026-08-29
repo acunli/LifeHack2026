@@ -40,9 +40,9 @@ const PLACEHOLDER_SIZE = 28;
 
 /** Hover halo: gold, so nothing else in the room competes with it. */
 const HAZE_COLOR = 0xffc866;
-const HAZE_ALPHA = 0.15;
+const HAZE_ALPHA = 0.34;
 /** Extra pixels around the sprite's own bounds, so the glow reads as a halo. */
-const HAZE_PAD = 16;
+const HAZE_PAD = 26;
 
 export default class ApartmentScene extends Phaser.Scene {
   private player!: Player;
@@ -329,7 +329,7 @@ export default class ApartmentScene extends Phaser.Scene {
       HAZE_ALPHA,
     );
     haze.setBlendMode(Phaser.BlendModes.ADD);
-    haze.setDepth((sprite.depth ?? 0) - 1);
+    haze.setDepth(Math.max(0.5, (sprite.depth ?? 1) - 0.5));
     this.applianceHazes.set(appliance.info.id, haze);
 
     // Breathe, so it reads as live rather than as a printed outline. Skipped
@@ -340,7 +340,7 @@ export default class ApartmentScene extends Phaser.Scene {
     if (still) return;
     this.tweens.add({
       targets: haze,
-      alpha: HAZE_ALPHA * 1.75,
+      alpha: HAZE_ALPHA * 1.45,
       duration: 1500,
       yoyo: true,
       repeat: -1,
@@ -355,7 +355,7 @@ export default class ApartmentScene extends Phaser.Scene {
     const haze = this.applianceHazes.get(id);
     if (!haze) return;
     this.tweens.killTweensOf(haze);
-    haze.setAlpha(hot ? HAZE_ALPHA * 3.4 : HAZE_ALPHA);
+    haze.setAlpha(hot ? HAZE_ALPHA * 1.95 : HAZE_ALPHA);
     haze.setScale(hot ? 1.12 : 1);
     if (hot) return;
     const still =
@@ -364,7 +364,7 @@ export default class ApartmentScene extends Phaser.Scene {
     if (still) return;
     this.tweens.add({
       targets: haze,
-      alpha: HAZE_ALPHA * 1.75,
+      alpha: HAZE_ALPHA * 1.45,
       duration: 1500,
       yoyo: true,
       repeat: -1,
