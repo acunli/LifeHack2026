@@ -408,11 +408,29 @@ body {
 }
 
 /* ── Histogram + Stats row ──────────────────────────────────────── */
+.histogram-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 .histogram-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   align-items: start;
+}
+.stats-row {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 1080px) {
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 @media (max-width: 860px) {
   .histogram-row {
