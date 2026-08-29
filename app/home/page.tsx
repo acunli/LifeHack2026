@@ -800,7 +800,7 @@ export default function HomePage() {
                 <small>
                   {auditCount === AUDIT_TOTAL
                     ? `All ${AUDIT_TOTAL} appliance meters are connected.`
-                    : 'Walk to a glowing socket, then scan its appliance.'}
+                    : 'Walk to a glowing smart plug, then scan its appliance.'}
                 </small>
               </div>
               <div
@@ -830,7 +830,7 @@ export default function HomePage() {
                   interaction belongs to the game now. */}
             </div>
             <div className="wl-legend">
-              <span><b>Glow</b> = unscanned meter</span>
+              <span><b>Glow</b> = smart plug not yet paired</span>
               <span className="wl-legend-note">Move with WASD, arrow keys, or the touch pad.</span>
             </div>
           </section>
@@ -1000,7 +1000,10 @@ export default function HomePage() {
         />
 
 
-        <div className="wl-foot">Prototype — pixel art by LimeZu, Modern Interiors</div>
+        <div className="wl-foot">
+          Prototype for the Ecovolt challenge, LifeHack 2026 · simulated data ·
+          pixel art by LimeZu, Modern Interiors
+        </div>
       </div>
 
       {/* Drawer */}

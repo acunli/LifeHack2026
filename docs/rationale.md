@@ -9,6 +9,21 @@
 
 ---
 
+## 0. Why this answers Ecovolt's brief specifically
+
+Ecovolt's framing is that sustainability has a behaviour problem, not a data
+problem — that dashboards, statistics and stern reminders are already ignored.
+WattLah takes that literally: there is no line chart on the main screen. The
+resident's own flat is the interface, and consumption is something you walk
+through rather than read.
+
+It also builds on the product Ecovolt actually sells. Every socket in the flat
+is a smart plug; scanning one pairs it and starts measuring that appliance.
+That is what makes the scoring trustworthy rather than self-reported — see §5b.
+Their own deployment cut school electricity by up to 20% by making draw visible
+at the plug; this asks what happens when you make it visible at the flat, and
+then make it social.
+
 ## 1. Target audience
 
 Residents of high-density housing in Singapore — HDB blocks and condominiums,
