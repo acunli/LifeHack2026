@@ -46,6 +46,7 @@ export default function ApplianceSelector() {
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 50,
+        lineHeight: 'normal',
       }}
       onClick={() => setPending(null)}
     >

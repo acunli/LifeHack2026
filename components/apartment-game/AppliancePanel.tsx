@@ -101,6 +101,7 @@ export default function AppliancePanel() {
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 50,
+        lineHeight: 'normal',
       }}
       onClick={() => setView(null)}
     >
