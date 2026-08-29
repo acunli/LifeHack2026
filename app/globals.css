@@ -611,6 +611,91 @@ body {
   opacity: 0.7;
 }
 
+/* Voucher badge count */
+.voucher-badge-count {
+  font-family: var(--font-pixel), monospace;
+  font-size: 14px;
+  color: var(--amber);
+  vertical-align: super;
+}
+
+/* Page-turn animation */
+.voucher-page {
+  perspective: 600px;
+  margin-bottom: 14px;
+  transform-origin: center center;
+  transition: transform 0.35s ease-in-out, opacity 0.35s ease-in-out;
+}
+.voucher-page.swipe-out {
+  transform: rotateY(-90deg) scale(0.9);
+  opacity: 0;
+}
+.voucher-page.swipe-in {
+  animation: voucher-swipe-in 0.4s ease-out both;
+}
+@keyframes voucher-swipe-in {
+  from { transform: rotateY(90deg) scale(0.9); opacity: 0; }
+  to { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+
+/* Navigation */
+.voucher-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.voucher-page-indicator {
+  font-family: var(--font-pixel), monospace;
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+}
+.voucher-next-btn {
+  background: var(--amber);
+  color: var(--bg-deep);
+  border: 3px solid var(--amber-deep);
+  font-family: var(--font-pixel), monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 0 var(--amber-deep);
+  transition: transform 60ms steps(2), box-shadow 60ms steps(2);
+}
+.voucher-next-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 var(--amber-deep);
+}
+
+/* Empty state */
+.voucher-empty-state {
+  text-align: center;
+}
+.voucher-empty-state .voucher-badge {
+  font-size: 48px;
+  opacity: 0.5;
+  margin-bottom: 12px;
+}
+.voucher-close-btn {
+  background: var(--panel);
+  color: var(--ink-dim);
+  border: 3px solid var(--line);
+  font-family: var(--font-pixel), monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.voucher-close-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-hi);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .voucher-scrim { animation: none; }
 }
