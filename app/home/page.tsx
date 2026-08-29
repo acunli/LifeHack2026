@@ -262,7 +262,6 @@ export default function HomePage() {
     Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
   )
   const [selected, setSelected] = useState<string | null>(null)
-  const [whatIf, setWhatIf] = useState(false)
   const [applied, setApplied] = useState<Set<string>>(() => new Set())
   const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -422,12 +421,23 @@ export default function HomePage() {
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
             </button>
-            <button
-              className={'wl-ghost' + (whatIf ? ' on' : '')}
-              onClick={() => setWhatIf((v) => !v)}
-            >
-              {whatIf ? 'What-if: ON' : 'What-if mode'}
-            </button>
+            {/*
+              Was a "What-if mode" toggle that did nothing. It used to change
+              the heat-zone opacity, and the zones went when the game replaced
+              the static room — so it highlighted itself and had no other
+              effect. The what-if mechanic is Apply/Undo in the drawer, so this
+              now reports what those did and undoes them.
+            */}
+            {applied.size > 0 && (
+              <button
+                className="wl-ghost on"
+                onClick={reset}
+                title="Undo every applied change"
+              >
+                {score > BASE_SCORE ? `+${score - BASE_SCORE} · ` : ''}
+                {applied.size} applied — reset
+              </button>
+            )}
             {/* Their rank chip — shows standing and links to the league,
                 which replaces the separate League button. */}
             <Link

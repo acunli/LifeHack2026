@@ -217,38 +217,66 @@ body {
 .anim-row-in { animation: row-in 320ms steps(4) both; }
 
 
-/* Champion plinth. A gold sweep travelling across the block, plus a steady
-   glow, so first place reads as won rather than merely tallest. Stepped so it
-   moves in pixel jumps rather than gliding. */
+/* Podium plinths. All three share one sweep; the metal is set per place via
+   custom properties, so gold/silver/bronze differ in colour rather than in
+   code. Stepped, like the rest of the motion here — a smooth gradient slide
+   reads as CSS, not as a game. */
 @keyframes podium-shine {
   0%   { background-position: -140% 0; }
   60%  { background-position: 240% 0; }
   100% { background-position: 240% 0; }
 }
 @keyframes podium-glow {
-  0%, 100% { box-shadow: 0 0 0 3px var(--bg-deep), 0 0 10px 0 rgba(255,200,102,.25); }
-  50%      { box-shadow: 0 0 0 3px var(--bg-deep), 0 0 22px 2px rgba(255,200,102,.55); }
+  0%, 100% { box-shadow: 0 0 0 3px var(--bg-deep), 0 0 8px 0 var(--rim-soft); }
+  50%      { box-shadow: 0 0 0 3px var(--bg-deep), 0 0 20px 2px var(--rim-strong); }
 }
-.podium-champion {
+.podium-place {
   position: relative;
   overflow: hidden;
-  border-color: var(--amber);
+  border-color: var(--rim);
   animation: podium-glow 1.8s steps(4) infinite;
 }
-.podium-champion::after {
+.podium-place::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
     100deg,
     transparent 35%,
-    rgba(255, 232, 176, 0.55) 50%,
+    var(--shine) 50%,
     transparent 65%
   );
   background-size: 250% 100%;
   animation: podium-shine 2.6s steps(12) infinite;
   pointer-events: none;
 }
+
+/* Gold. Brightest sweep and the fastest cycle, so first place still wins. */
+.podium-gold {
+  --rim: var(--amber);
+  --rim-soft: rgba(255, 200, 102, 0.25);
+  --rim-strong: rgba(255, 200, 102, 0.55);
+  --shine: rgba(255, 232, 176, 0.55);
+}
+.podium-gold::after { animation-duration: 2.6s; }
+
+/* Silver. Cooler and dimmer, on a slower sweep. */
+.podium-silver {
+  --rim: #b9c4cb;
+  --rim-soft: rgba(215, 224, 230, 0.16);
+  --rim-strong: rgba(215, 224, 230, 0.34);
+  --shine: rgba(238, 243, 246, 0.4);
+}
+.podium-silver::after { animation-duration: 3.4s; }
+
+/* Bronze. Warmest and dimmest, slowest of the three. */
+.podium-bronze {
+  --rim: #c07a3c;
+  --rim-soft: rgba(217, 139, 74, 0.16);
+  --rim-strong: rgba(217, 139, 74, 0.34);
+  --shine: rgba(240, 180, 131, 0.36);
+}
+.podium-bronze::after { animation-duration: 4s; }
 
 @media (prefers-reduced-motion: reduce) {
   /* The mascot's own motion is JS-driven and checks matchMedia itself. */
@@ -260,8 +288,8 @@ body {
   .anim-hop,
   .anim-energy,
   .anim-row-in,
-  .podium-champion,
-  .podium-champion::after {
+  .podium-place,
+  .podium-place::after {
     animation: none;
   }
 }
