@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/useSession'
-import { logout } from '@/lib/session'
+import { logout, saveScore, userIdFromRoom } from '@/lib/session'
 import UsernameSetup from '@/components/UsernameSetup'
+import { buildLeaderboard } from '@/data/leaderboard'
 
 /**
  * The standalone appliance dashboard, taken verbatim from the
@@ -217,6 +219,15 @@ export default function HomePage() {
     if (isAuthenticated === false) router.replace('/')
   }, [isAuthenticated, router])
 
+  // Get the user's rank from the leaderboard
+  const leaderboardRank = useMemo(() => {
+    if (!session) return 0
+    const current = { username: session.username, roomNumber: session.roomNumber }
+    const leaderboard = buildLeaderboard(current)
+    const me = leaderboard.find((e) => e.isCurrentUser)
+    return me?.rank ?? 0
+  }, [session])
+
   const [cur, setCur] = useState<Record<string, number>>(() =>
     Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
   )
@@ -269,6 +280,21 @@ export default function HomePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /**
+   * Persist the score so the league reflects what the resident actually did.
+   *
+   * The writer for this lived in the apartment route, which is gone — the
+   * leaderboard still reads getSavedScore, so without this the feature was
+   * half-wired and the league silently fell back to the seeded score.
+   *
+   * Writing to localStorage is what effects are for: pushing React state out
+   * to an external system.
+   */
+  useEffect(() => {
+    if (!session) return
+    saveScore(userIdFromRoom(session.roomNumber), score)
+  }, [score, session])
 
   // Esc closes drawer
   useEffect(() => {
@@ -367,9 +393,16 @@ export default function HomePage() {
             >
               {whatIf ? 'What-if: ON' : 'What-if mode'}
             </button>
-            <button className="wl-ghost" onClick={() => router.push('/leaderboard')}>
-              League
-            </button>
+            {/* Their rank chip — shows standing and links to the league,
+                which replaces the separate League button. */}
+            <Link
+              href="/leaderboard"
+              className="wl-ghost"
+              style={{ color: 'var(--gold)', cursor: 'pointer' }}
+            >
+              #{leaderboardRank} Rank
+            </Link>
+            {/* Log out shipped dead on both sides; ours is wired. */}
             <button
               className="wl-ghost"
               onClick={() => {

@@ -23,6 +23,11 @@
   --amber-deep: #d99a2b;
   --green: #9be564;
   --red: #ff7a6b;
+  --pos: #9be564;
+  --neg: #ff7a6b;
+  --muted-w: #6b8a74;
+  --gold: #ffc866;
+  --deep: #0d1813;
 }
 
 @theme inline {
@@ -181,6 +186,22 @@ body {
     0 0 0 3px var(--bg-deep),
     0 0 14px 0 rgba(255, 200, 102, 0.18),
     0 6px 0 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Golden rank text for top performers. */
+.rank-gold {
+  color: var(--gold);
+  text-shadow: 0 0 6px rgba(255, 200, 102, 0.4);
+}
+
+/* Change indicator colors for clear visual feedback. */
+.change-up {
+  color: var(--pos);
+  background: rgba(155, 229, 100, 0.15);
+}
+.change-down {
+  color: var(--neg);
+  background: rgba(255, 122, 107, 0.15);
 }
 
 /* Rows deal in, stepped so it reads as pixel UI rather than a fade. */

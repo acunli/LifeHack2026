@@ -31,18 +31,25 @@ export function ChangeIndicator({
         ? 'var(--neg)'
         : 'var(--muted-w)'
 
+  const bgColor =
+    change.direction === 'up'
+      ? 'rgba(155, 229, 100, 0.15)'
+      : change.direction === 'down'
+        ? 'rgba(255, 122, 107, 0.15)'
+        : 'transparent'
+
   const magnitude = Math.abs(change.value)
 
   return (
     <span
-      className={`pixel inline-flex items-center gap-1 text-[10px] ${className ?? ''}`}
-      style={{ color }}
+      className={`pixel inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] ${className ?? ''}`}
+      style={{ color, background: bgColor }}
     >
-      <span aria-hidden className="text-[8px] leading-none">
+      <span aria-hidden className="text-[10px] leading-none">
         {ARROW[change.direction]}
       </span>
       <span className="tabular-nums">
-        {change.direction === 'flat' ? '0' : magnitude}
+        {change.direction === 'flat' ? '0' : `${change.direction === 'up' ? '+' : '-'}${magnitude}`}
       </span>
       <span className="sr-only">
         {LABEL[change.direction]}
