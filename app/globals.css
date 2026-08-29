@@ -1,26 +1,27 @@
 @import "tailwindcss";
 
 /*
- * WattWise visual system — dusk-lit, cosy, game-first.
+ * WattLah! visual system — green, dusk-lit, game-first.
+ * Palette merged from the WattLah! v0 login mock.
  *
  * Lane C owns this file. Lane A seeded it so the app reads as a game rather
  * than a form; build on these tokens rather than replacing them, so the room
  * and the HUD stay in one palette.
  */
 :root {
-  --bg: #14121f;
-  --bg-deep: #0d0b16;
-  --panel: #241f36;
-  --panel-hi: #322a4a;
-  --line: #4a3f6b;
-  --line-hi: #6b5a94;
+  --bg: #16261d;
+  --bg-deep: #0d1813;
+  --panel: #223a2c;
+  --panel-hi: #2f5240;
+  --line: #3f6b4e;
+  --line-hi: #5fa072;
 
-  --ink: #f6f2e8;
-  --ink-dim: #a99fc4;
+  --ink: #f3f2e6;
+  --ink-dim: #a3c4ac;
 
   --amber: #ffc866;
   --amber-deep: #d99a2b;
-  --green: #6ee7a8;
+  --green: #9be564;
   --red: #ff7a6b;
 }
 
@@ -43,11 +44,10 @@
 body {
   background: var(--bg);
   color: var(--ink);
-  /* Soft pool of light behind the scene, like a lamp in a dark flat. */
   background-image: radial-gradient(
-    ellipse 80% 60% at 50% 40%,
-    #2a2340 0%,
-    var(--bg) 55%,
+    circle at 50% 42%,
+    var(--panel) 0%,
+    var(--bg) 42%,
     var(--bg-deep) 100%
   );
   background-attachment: fixed;
@@ -61,10 +61,8 @@ body {
 /* Chunky panel with a hard offset shadow — no blur, which reads as pixel UI. */
 .pixel-panel {
   background: var(--panel);
-  border: 3px solid var(--line-hi);
-  box-shadow:
-    0 0 0 3px var(--bg-deep),
-    8px 8px 0 0 rgba(0, 0, 0, 0.45);
+  border: 3px solid var(--line);
+  box-shadow: 8px 8px 0 0 var(--bg-deep);
 }
 
 .pixel-input {
@@ -83,8 +81,8 @@ body {
 /* Button that physically depresses — the cheapest way to feel like a game. */
 .pixel-btn {
   background: var(--amber);
-  color: #2b1d05;
-  border: 3px solid #2b1d05;
+  color: var(--bg-deep);
+  border: 3px solid var(--amber-deep);
   box-shadow: 0 5px 0 0 var(--amber-deep);
   transition: transform 60ms steps(2), box-shadow 60ms steps(2);
 }

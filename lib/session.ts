@@ -7,10 +7,10 @@
  * Framework-free on purpose — React binding lives in useSession.ts.
  */
 
-export const SESSION_KEY = "wattwise.session";
+export const SESSION_KEY = "wattlah.session";
 
 /** Fired on same-tab writes. The native `storage` event only fires cross-tab. */
-export const SESSION_EVENT = "wattwise:session";
+export const SESSION_EVENT = "wattlah:session";
 
 export interface Session {
   roomNumber: string;

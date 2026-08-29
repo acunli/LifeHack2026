@@ -5,99 +5,147 @@ import { useRouter } from "next/navigation";
 import { setSession } from "@/lib/session";
 
 /**
- * Fake login (README §4). Any non-empty room number succeeds.
+ * Fake login (README §4). Any room number with a non-empty password succeeds.
  *
- * ⚠️ COPY IS PLACEHOLDER — belongs to Lane D, arrives in docs/copy.md.
+ * Design merged from the WattLah! v0 mock; the session and navigation are ours.
+ * The mock pulled its sprite from a remote blob URL — we serve the real sheet
+ * locally instead, so the demo does not depend on a network fetch.
  */
+
+interface FieldProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  autoComplete?: string;
+  invalid?: boolean;
+}
+
+function Field({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  autoComplete = "off",
+  invalid,
+}: FieldProps) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-2 block text-[8px] uppercase tracking-[0.22em] text-ink-dim"
+        style={{ fontFamily: "var(--font-pixel)" }}
+      >
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        aria-invalid={invalid || undefined}
+        onChange={(e) => onChange(e.target.value)}
+        className="pixel-input w-full px-3.5 py-3 text-xs tracking-wider"
+        style={{ fontFamily: "var(--font-pixel)" }}
+      />
+    </div>
+  );
+}
+
 export default function LoginForm() {
   const router = useRouter();
-  const [roomNumber, setRoomNumber] = useState("");
+  const [room, setRoom] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const trimmed = roomNumber.trim();
-    if (!trimmed) {
-      setError("Enter your room number");
+    if (!room.trim() || !password.trim()) {
+      setError("Enter room and password");
       return;
     }
-    setSession(trimmed);
+    setError("");
+    setSession(room.trim());
     router.push("/apartment");
   }
 
   return (
-    <div className="float-in flex w-full max-w-md flex-col items-center">
-      {/* Character stands on top of the panel, as if on a ledge. */}
-      <div className="sprite-idle pixelated -mb-2 translate-x-1" aria-hidden />
+    <div className="relative w-full max-w-md">
+      {/* Character stands on the card's top edge. */}
+      <div
+        aria-hidden
+        className="sprite-idle pixelated absolute left-1/2 z-10 -translate-x-1/2"
+        style={{ top: -52 }}
+      />
 
-      <form onSubmit={handleSubmit} noValidate className="pixel-panel w-full p-7">
-        <h1
-          className="text-center text-[22px] leading-relaxed text-amber"
-          style={{ fontFamily: "var(--font-pixel)" }}
-        >
-          WattWise
-        </h1>
-        <p className="mt-3 text-center text-sm text-ink-dim">
-          Your home. Your energy.
-        </p>
+      <section className="pixel-panel px-7 pb-7 pt-13">
+        <header className="mb-7 text-center">
+          <h1
+            className="text-[22px] leading-tight tracking-wide text-amber"
+            style={{ fontFamily: "var(--font-pixel)" }}
+          >
+            WattLah!
+          </h1>
+          <p
+            className="mt-3.5 text-[9px] leading-relaxed text-ink-dim"
+            style={{ fontFamily: "var(--font-pixel)" }}
+          >
+            Save energy. Level up your block.
+          </p>
+        </header>
 
-        <label
-          htmlFor="room"
-          className="mt-7 block text-[10px] uppercase tracking-widest text-ink-dim"
-          style={{ fontFamily: "var(--font-pixel)" }}
-        >
-          Room
-        </label>
-        <input
-          id="room"
-          value={roomNumber}
-          onChange={(e) => {
-            setRoomNumber(e.target.value);
-            if (error) setError(null);
-          }}
-          placeholder="04-12"
-          autoComplete="off"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "room-error" : undefined}
-          className="pixel-input mt-2 w-full px-3 py-2.5 text-sm tracking-wider"
-        />
+        <form onSubmit={handleSubmit} noValidate>
+          <Field
+            id="room"
+            label="Room"
+            value={room}
+            onChange={(v) => {
+              setRoom(v);
+              if (error) setError("");
+            }}
+            placeholder="04-12"
+            invalid={Boolean(error) && !room.trim()}
+          />
 
-        <label
-          htmlFor="password"
-          className="mt-5 block text-[10px] uppercase tracking-widest text-ink-dim"
-          style={{ fontFamily: "var(--font-pixel)" }}
-        >
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          autoComplete="off"
-          className="pixel-input mt-2 w-full px-3 py-2.5 text-sm tracking-wider"
-        />
+          <div className="mt-4">
+            <Field
+              id="password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(v) => {
+                setPassword(v);
+                if (error) setError("");
+              }}
+              placeholder="••••••"
+              autoComplete="current-password"
+              invalid={Boolean(error) && !password.trim()}
+            />
+          </div>
 
-        {/* Reserved row so the panel does not jump when the error appears. */}
-        <p
-          id="room-error"
-          role="alert"
-          className="mt-4 min-h-[18px] text-center text-[10px] uppercase tracking-widest text-bad"
-          style={{ fontFamily: "var(--font-pixel)" }}
-        >
-          {error}
-        </p>
+          {/* Reserved row so the card does not jump when the error appears. */}
+          <div
+            role="alert"
+            className="my-3.5 flex min-h-5 items-center justify-center text-[8px] uppercase tracking-[0.06em] text-amber"
+            style={{ fontFamily: "var(--font-pixel)" }}
+          >
+            {error}
+          </div>
 
-        <button
-          type="submit"
-          className="pixel-btn mt-1 w-full px-4 py-3.5 text-[11px] uppercase tracking-widest"
-          style={{ fontFamily: "var(--font-pixel)" }}
-        >
-          Enter Home
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="pixel-btn w-full px-4 py-3.5 text-xs uppercase tracking-[0.16em]"
+            style={{ fontFamily: "var(--font-pixel)" }}
+          >
+            Enter Home
+          </button>
+        </form>
+      </section>
 
       <p className="mt-6 text-center text-xs text-ink-dim/70">
         Demo build — any room number works.

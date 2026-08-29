@@ -14,7 +14,7 @@ const pressStart = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
-  title: "WattWise — your home, your energy",
+  title: "WattLah! — save energy, level up your block",
   description: "Turn your apartment's energy use into a game. LifeHack 2026.",
 };
 
