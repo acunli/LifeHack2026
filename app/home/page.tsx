@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/useSession'
+import ApartmentRoom from '@/components/ApartmentRoom'
 import { logout, saveScore, userIdFromRoom } from '@/lib/session'
 import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
@@ -38,9 +39,9 @@ const APPLIANCES: Appliance[] = [
     icon: '❄️',
     kwh: 180,
     ref: 118,
-    x: 23,
-    y: 17,
-    r: 15,
+    x: 30.0,
+    y: 40.0,
+    r: 13,
     tip: 'Every degree below 25°C adds roughly 8% to your cooling bill.',
   },
   {
@@ -49,9 +50,9 @@ const APPLIANCES: Appliance[] = [
     icon: '🧊',
     kwh: 95,
     ref: 98,
-    x: 55,
-    y: 25,
-    r: 10,
+    x: 84.8,
+    y: 72.0,
+    r: 9,
     tip: 'Running well. Keep the coils clear and the door shut.',
   },
   {
@@ -60,8 +61,8 @@ const APPLIANCES: Appliance[] = [
     icon: '🧺',
     kwh: 58,
     ref: 46,
-    x: 64,
-    y: 14,
+    x: 54.3,
+    y: 30.6,
     r: 9,
     tip: 'Cold washes use up to 80% less energy. Run full loads only.',
   },
@@ -71,8 +72,8 @@ const APPLIANCES: Appliance[] = [
     icon: '📺',
     kwh: 40,
     ref: 33,
-    x: 87,
-    y: 11,
+    x: 37.0,
+    y: 63.9,
     r: 9,
     tip: 'Standby draw is real — a switched-off TV still sips power.',
   },
@@ -82,8 +83,8 @@ const APPLIANCES: Appliance[] = [
     icon: '💡',
     kwh: 30,
     ref: 25,
-    x: 52,
-    y: 49,
+    x: 45.0,
+    y: 50.0,
     r: 11,
     tip: 'Swapping the last halogens for LED cuts lighting load by ~80%.',
   },
@@ -398,7 +399,13 @@ export default function HomePage() {
             <Link
               href="/leaderboard"
               className="wl-ghost"
-              style={{ color: 'var(--gold)', cursor: 'pointer' }}
+              style={{
+                color: 'var(--amber)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+              }}
             >
               #{leaderboardRank} Rank
             </Link>
@@ -419,9 +426,10 @@ export default function HomePage() {
           {/* Room */}
           <section className="wl-panel wl-roomwrap">
             <div className="wl-stage">
-              {/* next/image re-encodes and blurs pixel art (AGENTS.md). */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/room.png" alt="Top-down pixel-art view of your apartment" />
+              {/* Ayushman's tile renderer, replacing the flat room.png. Its
+                  sprite coordinates come from the room-builder tool, so they
+                  are verified rather than estimated. */}
+              <ApartmentRoom />
               {APPLIANCES.map((a) => {
                 const load = maxCur > 0 ? cur[a.id] / maxCur : 0
                 const c = heat(load)
@@ -715,10 +723,12 @@ const css = `
 .wl-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .wl-app button,.wl-drawer button{font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.14em;cursor:pointer}
 .wl-btn{background:var(--amber);color:#2b1d05;border:3px solid #2b1d05;
+  font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.12em;
   box-shadow:0 5px 0 0 var(--amber-deep);padding:11px 15px;font-size:10px;
   transition:transform 60ms steps(2),box-shadow 60ms steps(2)}
 .wl-btn:active{transform:translateY(5px);box-shadow:0 0 0 0 var(--amber-deep)}
-.wl-ghost{background:transparent;color:var(--ink-dim);border:3px solid var(--line);padding:11px 15px;font-size:10px}
+.wl-ghost{background:transparent;color:var(--ink-dim);border:3px solid var(--line);padding:11px 15px;font-size:10px;
+  font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.12em}
 .wl-ghost:hover{color:var(--ink);border-color:var(--line-hi)}
 .wl-ghost.on{color:#2b1d05;background:var(--lime);border-color:#1e3a10}
 
@@ -726,7 +736,14 @@ const css = `
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
 
 .wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
-.wl-stage{position:relative;line-height:0;max-width:100%}
+/* The renderer draws at a fixed 736x576 (23x18 tiles at 32px). The stage is
+   sized to match so the percentage-positioned pins resolve against the same
+   box as the room. Scaled with zoom rather than transform, because transform
+   would leave the pins measuring against the unscaled parent. */
+.wl-stage{position:relative;line-height:0;width:736px;height:576px;
+  margin:0 auto;image-rendering:pixelated}
+@media (max-width:820px){ .wl-stage{ zoom:0.75 } }
+@media (max-width:620px){ .wl-stage{ zoom:0.55 } }
 .wl-stage img{width:100%;height:auto;image-rendering:pixelated;display:block}
 .wl-zone{position:absolute;transform:translate(-50%,-50%);border-radius:50%;
   cursor:pointer;transition:opacity .18s ease, filter .18s ease;mix-blend-mode:screen}
