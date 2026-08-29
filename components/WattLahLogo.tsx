@@ -1,12 +1,9 @@
-import PixelBolt from "@/components/PixelBolt";
-
 interface WattLahLogoProps {
   className?: string;
 }
 
 /**
- * Single-line arcade wordmark. The pixel lightning mark trails the word as the
- * stroke of an exclamation, its dot carried in the same sprite.
+ * WattLah! logo rendered from the pixel-art PNG.
  */
 export default function WattLahLogo({
   className = "",
@@ -15,27 +12,14 @@ export default function WattLahLogo({
     <span
       role="img"
       aria-label="WattLah!"
-      className={`relative inline-flex -rotate-1 items-center pb-1 ${className}`}
-      style={{ fontFamily: "var(--font-pixel)" }}
+      className={`inline-flex items-center ${className}`}
     >
-      <span
-        aria-hidden
-        className="relative z-10 whitespace-nowrap tracking-[0.045em] text-amber"
-        style={{
-          WebkitTextStroke: "1px var(--bg-deep)",
-          textShadow:
-            "3px 3px 0 var(--amber-deep), 5px 5px 0 var(--bg-deep)",
-        }}
-      >
-        WATTLAH
-      </span>
-
-      <span
-        aria-hidden
-        className="wattlah-bolt relative ml-[0.3em] h-[2.15em] w-[1.08em] shrink-0"
-      >
-        <PixelBolt />
-      </span>
+      <img
+        src="/wattlah-logo.png"
+        alt="WattLah!"
+        className="h-[48px] w-auto object-contain pixelated"
+        style={{ imageRendering: "pixelated" }}
+      />
     </span>
   );
 }
