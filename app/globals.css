@@ -105,21 +105,24 @@ body {
 }
 
 /*
- * Idle character. Sheets are 64x32 = 4 columns x 2 rows of 16x16 frames.
- * Rendered at 4x (64px) and stepped across row 0's four frames.
+ * Mascot motion. The character sheet has one frame per facing direction, so
+ * there is no sprite animation to play — the life is CSS.
+ * Stepped, not eased: a smooth transform on pixel art reads as a web page.
  */
-.sprite-idle {
-  width: 64px;
-  height: 64px;
-  background-image: url("/assets/characters/Adam_idle_16x16.png");
-  background-size: 256px 128px; /* 64x32 at 4x */
-  background-repeat: no-repeat;
-  animation: sprite-idle 1s steps(4) infinite;
+@keyframes mascot-bob {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-4px); }
+}
+.mascot-bob {
+  animation: mascot-bob 1.1s steps(2) infinite alternate;
 }
 
-@keyframes sprite-idle {
-  from { background-position: 0 0; }
-  to   { background-position: -256px 0; }
+@keyframes mascot-shadow {
+  from { transform: translateX(-50%) scaleX(1); opacity: 0.38; }
+  to   { transform: translateX(-50%) scaleX(0.82); opacity: 0.26; }
+}
+.mascot-shadow {
+  animation: mascot-shadow 1.1s steps(2) infinite alternate;
 }
 
 @keyframes float-in {
@@ -131,6 +134,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sprite-idle { animation: none; }
+  .mascot-bob,
+  .mascot-shadow { animation: none; }
   .float-in { animation: none; }
 }

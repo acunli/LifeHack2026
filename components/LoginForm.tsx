@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { setSession } from "@/lib/session";
+import Mascot from "@/components/Mascot";
 
 /**
  * Fake login (README §4). Any room number with a non-empty password succeeds.
@@ -76,14 +77,12 @@ export default function LoginForm() {
 
   return (
     <div className="relative w-full max-w-md">
-      {/* Character stands on the card's top edge. */}
-      <div
-        aria-hidden
-        className="sprite-idle pixelated absolute left-1/2 z-10 -translate-x-1/2"
-        style={{ top: -52 }}
-      />
+      {/* Mascot stands on the card's top edge, feet on the border. */}
+      <div className="absolute left-1/2 z-10 -translate-x-1/2" style={{ top: -116 }}>
+        <Mascot scale={4} glow />
+      </div>
 
-      <section className="pixel-panel px-7 pb-7 pt-13">
+      <section className="pixel-panel px-7 pb-7 pt-12">
         <header className="mb-7 text-center">
           <h1
             className="text-[22px] leading-tight tracking-wide text-amber"

@@ -167,12 +167,16 @@ the filename** — that has already caused one wrong plan.
 | `Interiors_free_16x16.png` | 256 × 1424 | 16 × 89 |
 | `Interiors_free_32x32.png` | 512 × 2848 | 16 × 89 |
 | `Interiors_free_48x48.png` | 768 × 4272 | 16 × 89 |
-| `*_idle_16x16.png` (×4) | 64 × 32 | 4 × 2 frames of 16×16 |
+| `*_idle_16x16.png` (×4) | 64 × 32 | **4 frames of 16×32** — one per facing |
 
 Key points:
 - The three tiers are **pre-rendered upscales of identical art**, not different
   content.
 - Characters exist **only at 16×16**. In a 32px room they need exactly 2×.
+- **The character frames are facings, not an idle animation.** The sheet is four
+  16×32 frames — left, back, right, front — so cycling them spins the character
+  on the spot. Frame 3 (x=48) is front-facing; that is the mascot pose. Any
+  liveliness has to come from CSS, and `components/Mascot.tsx` already does it.
 - Art is **LimeZu — Modern Interiors** (free version). Credit must appear in the
   UI. The free licence is more restrictive than the paid one.
 

@@ -7,6 +7,7 @@ import { clearSession } from "@/lib/session";
 import { useSession } from "@/lib/useSession";
 import ApartmentRoom, { type HeatZone } from "@/components/ApartmentRoom";
 import EnergyDashboard from "@/components/EnergyDashboard";
+import Mascot from "@/components/Mascot";
 import { APPLIANCES, applianceLoad, applianceScore } from "@/data/appliances";
 import { MOCK_APARTMENT } from "@/data/mockApartment";
 import { computeScore } from "@/lib/scoring";
@@ -61,7 +62,7 @@ export default function ApartmentPage() {
     <main className="float-in mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 p-5 sm:p-7">
       <header className="pixel-panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
         <div className="flex items-center gap-4">
-          <div className="sprite-idle pixelated shrink-0" aria-hidden />
+          <Mascot scale={2} />
           <div>
             <p className="text-[9px] uppercase tracking-widest text-ink-dim">
               Welcome home
