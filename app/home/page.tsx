@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from '@/lib/useSession'
 import UsernameSetup from '@/components/UsernameSetup'
+import { buildLeaderboard } from '@/data/leaderboard'
 
 /**
  * The standalone appliance dashboard, taken verbatim from the
@@ -217,6 +218,15 @@ export default function HomePage() {
     if (isAuthenticated === false) router.replace('/')
   }, [isAuthenticated, router])
 
+  // Get the user's rank from the leaderboard
+  const leaderboardRank = useMemo(() => {
+    if (!session) return 0
+    const current = { username: session.username, roomNumber: session.roomNumber }
+    const leaderboard = buildLeaderboard(current)
+    const me = leaderboard.find((e) => e.isCurrentUser)
+    return me?.rank ?? 0
+  }, [session])
+
   const [cur, setCur] = useState<Record<string, number>>(() =>
     Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
   )
@@ -402,7 +412,7 @@ export default function HomePage() {
             >
               {whatIf ? 'What-if: ON' : 'What-if mode'}
             </button>
-            <button className="wl-ghost">League</button>
+            <Link href="/leaderboard" className="wl-ghost" style={{ color: 'var(--gold)', cursor: 'pointer' }}>#{leaderboardRank} Rank</Link>
             <button className="wl-ghost">Log out</button>
           </div>
         </header>

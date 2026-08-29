@@ -12,6 +12,7 @@ import UsernameSetup from "@/components/UsernameSetup";
 import Footer from "@/components/Footer";
 import { applianceScore, type Appliance } from "@/data/appliances";
 import { useEnergyState } from "@/lib/useEnergyState";
+import { buildLeaderboard } from "@/data/leaderboard";
 
 /**
  * INTEGRATION SHELL — keep it thin (README §15.7). It composes; it does not
@@ -43,6 +44,12 @@ export default function ApartmentPage() {
 
   const result = energy.result;
   const hoveredAppliance = hovered;
+
+  // Get the user's rank from the leaderboard
+  const current = { username: session.username, roomNumber: session.roomNumber };
+  const leaderboard = buildLeaderboard(current);
+  const me = leaderboard.find((e) => e.isCurrentUser);
+  const myRank = me?.rank ?? 0;
 
   function handleLogout() {
     logout();
@@ -84,10 +91,11 @@ export default function ApartmentPage() {
           </Link>
           <Link
             href="/leaderboard"
-            className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
+            className="pixel-btn-ghost flex items-center gap-2 px-4 py-2.5 text-[9px] uppercase tracking-widest"
             style={{ fontFamily: "var(--font-pixel)" }}
           >
-            League
+            <span style={{ color: 'var(--gold)' }}>#{myRank}</span>
+            <span>Rank</span>
           </Link>
           <button
             onClick={handleLogout}
