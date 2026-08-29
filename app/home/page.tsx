@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useSession } from '@/lib/useSession'
 import Mascot from '@/components/Mascot'
+import WattLahLogo from '@/components/WattLahLogo'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
 
 /**
@@ -296,6 +297,7 @@ export default function HomePage() {
   const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [displayScore, setDisplayScore] = useState(0)
+  const [rewards, setRewards] = useState(0)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -484,6 +486,11 @@ export default function HomePage() {
     <div style={styles.page}>
       <style>{css}</style>
       <div className="wl-app">
+        {/* Top bar: WattLah logo + electricity symbol */}
+        <div className="wl-topbar">
+          <WattLahLogo className="text-[18px]" />
+          <span className="wl-electricity" aria-hidden>⚡</span>
+        </div>
         {/* Header */}
         <header className="wl-panel wl-header">
           <div className="wl-who">
@@ -494,6 +501,12 @@ export default function HomePage() {
             </div>
           </div>
           <div className="wl-controls">
+            {/* Rewards earned with notification badge */}
+            <div className="wl-rewards" title="Rewards earned">
+              <span className="wl-rewards-icon" aria-hidden>🔔</span>
+              <span className="wl-rewards-count wl-px">{rewards}</span>
+              <span className="wl-rewards-label wl-px">Rewards</span>
+            </div>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
             </button>
@@ -855,10 +868,22 @@ const css = `
 .wl-ghost:hover{color:var(--ink);border-color:var(--line-hi)}
 .wl-ghost.on{color:#2b1d05;background:var(--lime);border-color:#1e3a10}
 
+/* Top bar: WattLah logo + electricity symbol */
+.wl-topbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 6px}
+.wl-electricity{font-size:22px;animation:wl-bolt-pulse 1.2s steps(2) infinite}
+@keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+/* Rewards earned badge */
+.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px}
+.wl-rewards-icon{font-size:14px;animation:wl-notif-bounce 2s ease-in-out infinite}
+@keyframes wl-notif-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.wl-rewards-count{font-size:12px;color:var(--amber);font-weight:700}
+.wl-rewards-label{font-size:8px;color:var(--ink-dim)}
+
 .wl-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
 
-.wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:hidden}
 /* Sized to match the Phaser game's fixed 768x576 canvas, so the
    percentage-positioned pins resolve against the same box as the room.
    Scaled with zoom rather than transform, because transform would leave the
