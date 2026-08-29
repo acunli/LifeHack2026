@@ -44,7 +44,10 @@ export function LeaderboardRow({
           ) : (
             <span className="pixel text-[9px] text-muted-w">#</span>
           )}
-          <span className="pixel text-[11px] text-foreground tabular-nums">
+          <span
+            className="pixel text-[11px] tabular-nums"
+            style={{ color: isTop3 ? 'var(--gold)' : 'var(--ink)' }}
+          >
             {ordinal(entry.rank)}
           </span>
         </div>

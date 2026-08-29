@@ -101,7 +101,7 @@ export function LeaderboardBoard({
             <span className="pixel text-[9px] uppercase tracking-wide text-muted-w">
               Your rank
             </span>
-            <span className="pixel text-[16px]" style={{ color: 'var(--gold)' }}>
+            <span className="pixel rank-gold text-[16px]">
               {ordinal(me.rank)}
             </span>
             <span className="pixel mt-1 text-[9px] text-muted-w">{me.tier}</span>

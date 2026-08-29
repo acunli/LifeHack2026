@@ -9,7 +9,7 @@
  */
 
 import { computeScore, dailyChange, rankTier, type DailyChange } from '@/lib/leagueScoring'
-import { userIdFromRoom } from '@/lib/session'
+import { userIdFromRoom, getSavedScore } from '@/lib/session'
 import { mascotForId, type MascotName } from '@/data/mascotSprites'
 
 export type LeaderboardEntry = {
@@ -99,9 +99,15 @@ function toEntry(
   prev: string,
   currentUserId: string | null,
 ): Omit<LeaderboardEntry, 'rank'> {
-  const score = scoreFor(resident, today)
-  const previousScore = previousScoreFor(resident.roomNumber, score)
   const id = userIdFromRoom(resident.roomNumber)
+  const isCurrentUser = currentUserId === id
+
+  // If this is the current user and they have a saved score from apartment
+  // recommendations, use that instead of the mock data.
+  const saved = isCurrentUser ? getSavedScore(id) : null
+  const score = saved?.current ?? scoreFor(resident, today)
+  const previousScore = saved?.previous ?? previousScoreFor(resident.roomNumber, score)
+
   return {
     id,
     username: resident.username,
@@ -111,7 +117,7 @@ function toEntry(
     previousScore,
     change: dailyChange(score, previousScore),
     tier: rankTier(score),
-    isCurrentUser: currentUserId === id,
+    isCurrentUser,
   }
 }
 

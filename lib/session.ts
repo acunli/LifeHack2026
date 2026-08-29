@@ -13,6 +13,7 @@
  */
 
 const STORAGE_KEY = 'wattlah.session'
+const SCORE_KEY = 'wattlah.scores'
 
 export type Session = {
   username: string
@@ -114,4 +115,44 @@ export function seedLegacySession(roomNumber: string): void {
     JSON.stringify({ roomNumber, loggedIn: true }),
   )
   window.dispatchEvent(new Event('wattlah:session'))
+}
+
+/* ── Score persistence for apartment → leaderboard sync ────────────── */
+
+type StoredScores = Record<string, { current: number; previous: number }>
+
+function readScores(): StoredScores {
+  if (!isBrowser()) return {}
+  try {
+    const raw = window.localStorage.getItem(SCORE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as StoredScores
+  } catch {
+    return {}
+  }
+}
+
+function writeScores(scores: StoredScores): void {
+  if (!isBrowser()) return
+  window.localStorage.setItem(SCORE_KEY, JSON.stringify(scores))
+  window.dispatchEvent(new Event('wattlah:scores'))
+}
+
+/** Save the current user's apartment score so the leaderboard can read it. */
+export function saveScore(userId: string, score: number): void {
+  const scores = readScores()
+  const existing = scores[userId]
+  scores[userId] = {
+    current: score,
+    previous: existing?.current ?? score,
+  }
+  writeScores(scores)
+}
+
+/** Get a saved score for a user, or null if none exists. */
+export function getSavedScore(
+  userId: string,
+): { current: number; previous: number } | null {
+  const scores = readScores()
+  return scores[userId] ?? null
 }

@@ -49,7 +49,7 @@ export function Podium({ entries }: { entries: LeaderboardEntry[] }) {
                     : undefined
                 }
               >
-                <span className="pixel text-[10px] text-muted-w">
+                <span className="pixel rank-gold text-[10px]">
                   {place}
                 </span>
               </div>

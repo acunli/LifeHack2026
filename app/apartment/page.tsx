@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { logout } from "@/lib/session";
+import { logout, userIdFromRoom } from "@/lib/session";
 import { useSession } from "@/lib/useSession";
 import ApartmentRoom from "@/components/ApartmentRoom";
 import EnergyDashboard from "@/components/EnergyDashboard";
@@ -21,7 +21,7 @@ export default function ApartmentPage() {
   const router = useRouter();
   const { session, needsUsername, isAuthenticated } = useSession();
   const [hovered, setHovered] = useState<Appliance | null>(null);
-  const energy = useEnergyState();
+  const energy = useEnergyState(session ? userIdFromRoom(session.roomNumber) : undefined);
 
   // Derived, not synchronised: the dashboard is open whenever a session has
   // resolved and the resident has not dismissed it. Expressing it this way

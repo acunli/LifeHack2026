@@ -5,6 +5,7 @@ import { APPLIANCES } from "@/data/appliances";
 import { RECOMMENDATIONS, type Recommendation } from "@/data/recommendations";
 import { MOCK_APARTMENT } from "@/data/mockApartment";
 import { computeScore, type ApartmentScoreResult } from "@/lib/scoring";
+import { saveScore } from "@/lib/session";
 
 /**
  * The what-if layer.
@@ -54,7 +55,7 @@ export function scoreFor(kwh: KwhById): ApartmentScoreResult {
 /** Deterministic, so it can be a module constant rather than a ref. */
 const BASELINE_SCORE = scoreFor(baseline()).score;
 
-export function useEnergyState() {
+export function useEnergyState(userId?: string) {
   const [kwh, setKwh] = useState<KwhById>(baseline);
   const [applied, setApplied] = useState<ReadonlySet<string>>(
     () => new Set<string>(),
@@ -66,18 +67,30 @@ export function useEnergyState() {
   const toggle = useCallback((rec: Recommendation) => {
     setApplied((prev) => {
       const undo = prev.has(rec.id);
-      setKwh((k) => applyRecommendation(k, rec, undo));
+      setKwh((k) => {
+        const next = applyRecommendation(k, rec, undo);
+        // Persist score change so the leaderboard picks it up.
+        if (userId) {
+          const newScore = scoreFor(next).score;
+          saveScore(userId, newScore);
+        }
+        return next;
+      });
       const next = new Set(prev);
       if (undo) next.delete(rec.id);
       else next.add(rec.id);
       return next;
     });
-  }, []);
+  }, [userId]);
 
   const reset = useCallback(() => {
     setKwh(baseline());
     setApplied(new Set<string>());
-  }, []);
+    // Reset score to baseline in localStorage.
+    if (userId) {
+      saveScore(userId, BASELINE_SCORE);
+    }
+  }, [userId]);
 
   /** kWh saved against the authored baseline. */
   const saved = totalOf(baseline()) - total;
