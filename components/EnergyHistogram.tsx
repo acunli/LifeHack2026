@@ -98,6 +98,7 @@ export default function EnergyHistogram({
             role="img"
             aria-label={`Illustrative daily cost trend. Weekly total S$${costData.reduce((sum, value) => sum + value, 0).toFixed(2)}.`}
           >
+            <div className="linechart-plot">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="linechart-svg" aria-hidden="true">
               <defs>
                 <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
@@ -134,6 +135,7 @@ export default function EnergyHistogram({
                 }}
               />
             ))}
+            </div>
             {/* Positioned at the same percentages as the dots. With
                 space-between the first label's left edge sat at 0 while the
                 first point's centre did, so every label was offset from the

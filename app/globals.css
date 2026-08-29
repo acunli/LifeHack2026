@@ -823,9 +823,16 @@ body {
   height: 140px;
   margin: 0 0 4px 38px;
 }
+/* One box for the plot, so the SVG's 0-100 viewBox and the dots' percentage
+   offsets measure against the same height. Previously the SVG was 110px tall
+   inside a 140px container, so the dots sat progressively below the line. */
+.linechart-plot {
+  position: relative;
+  height: 110px;
+}
 .linechart-svg {
   width: 100%;
-  height: 110px;
+  height: 100%;
   display: block;
 }
 .linechart-labels {
