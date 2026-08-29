@@ -56,7 +56,17 @@ function ApplianceRow({ a }: { a: Appliance }) {
   );
 }
 
-export default function EnergyDashboard({ onClose }: { onClose: () => void }) {
+interface Props {
+  onClose: () => void;
+  /**
+   * The signed-in resident's room. Must come from the session, not from
+   * MOCK_APARTMENT — otherwise the header says "Room 08-14" while this modal
+   * says "Room 04-12", which is the first thing a judge would notice.
+   */
+  roomNumber: string;
+}
+
+export default function EnergyDashboard({ onClose, roomNumber }: Props) {
   const result = computeScore(MOCK_APARTMENT);
   const worst = worstAppliance();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -94,7 +104,7 @@ export default function EnergyDashboard({ onClose }: { onClose: () => void }) {
               className="mt-1.5 text-sm text-ink"
               style={{ fontFamily: "var(--font-pixel)" }}
             >
-              Room {MOCK_APARTMENT.roomNumber}
+              Room {roomNumber}
             </h2>
           </div>
           <button

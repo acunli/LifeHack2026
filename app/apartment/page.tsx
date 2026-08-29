@@ -148,7 +148,10 @@ export default function ApartmentPage() {
       </section>
 
       {showDashboard && (
-        <EnergyDashboard onClose={() => setDismissed(true)} />
+        <EnergyDashboard
+          roomNumber={session.roomNumber}
+          onClose={() => setDismissed(true)}
+        />
       )}
     </main>
   );
