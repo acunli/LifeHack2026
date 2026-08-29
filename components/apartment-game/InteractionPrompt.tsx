@@ -38,6 +38,7 @@ export default function InteractionPrompt() {
         color: '#fff',
         fontSize: '0.875rem',
         fontFamily: 'monospace',
+        lineHeight: 'normal',
       }}
     >
       <strong style={{ color: '#4ade80' }}>[E]</strong> Add appliance — {near.purpose}

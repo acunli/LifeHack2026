@@ -51,6 +51,7 @@ export default function EnergyScoreOverlay() {
         borderRadius: '8px',
         padding: '0.6rem 0.9rem',
         color: '#fff',
+        lineHeight: 'normal',
         fontFamily: 'monospace',
         fontSize: '0.75rem',
         minWidth: '150px',

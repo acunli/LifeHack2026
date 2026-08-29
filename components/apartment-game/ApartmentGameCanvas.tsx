@@ -68,6 +68,7 @@ export default function ApartmentGameCanvas() {
         position: 'relative',
         width: '768px',
         margin: '0 auto',
+        lineHeight: 'normal',
       }}
     >
       <div
