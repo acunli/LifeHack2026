@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { setSession } from "@/lib/session";
 import Mascot from "@/components/Mascot";
+import WattLahLogo from "@/components/WattLahLogo";
 
 /**
  * Fake login (README §4). Any room number with a non-empty password succeeds.
@@ -84,11 +85,8 @@ export default function LoginForm() {
 
       <section className="pixel-panel px-7 pb-7 pt-12">
         <header className="mb-7 text-center">
-          <h1
-            className="text-[22px] leading-tight tracking-wide text-amber"
-            style={{ fontFamily: "var(--font-pixel)" }}
-          >
-            WattLah!
+          <h1 className="flex justify-center text-[24px] leading-none sm:text-[27px]">
+            <WattLahLogo />
           </h1>
           <p
             className="mt-3.5 text-[9px] leading-relaxed text-ink-dim"
