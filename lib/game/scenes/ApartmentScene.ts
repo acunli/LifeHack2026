@@ -19,6 +19,8 @@ import {
   GAME_EVENTS,
   AppliancePayload,
   ApplianceInstallRequestPayload,
+  ApplianceRemoveRequestPayload,
+  ApplianceTogglePowerRequestPayload,
   PlaceCustomAppliancePayload,
 } from '../utils/gameEvents';
 
@@ -99,13 +101,17 @@ export default class ApartmentScene extends Phaser.Scene {
     this.keyE = this.input.keyboard!.addKey('E');
 
     // React requests an install (from a socket walk-up or a custom
-    // placeholder click) or a custom appliance drop; this scene owns
-    // whether it's valid and actually flips the state.
+    // placeholder click), a power toggle, a removal, or a custom appliance
+    // drop; this scene owns whether it's valid and actually flips the state.
     gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALL_REQUEST, this.handleInstallRequest, this);
     gameEvents.on(GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST, this.handlePlaceCustomRequest, this);
+    gameEvents.on(GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST, this.handleTogglePowerRequest, this);
+    gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, this.handleRemoveRequest, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALL_REQUEST, this.handleInstallRequest, this);
       gameEvents.off(GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST, this.handlePlaceCustomRequest, this);
+      gameEvents.off(GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST, this.handleTogglePowerRequest, this);
+      gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, this.handleRemoveRequest, this);
     });
 
     // Status text (temporary)
@@ -243,7 +249,11 @@ export default class ApartmentScene extends Phaser.Scene {
   private wireApplianceClick(appliance: Appliance, targetId: string, purpose: string): void {
     appliance.onClick(() => {
       if (appliance.isInstalled()) {
-        gameEvents.emit(GAME_EVENTS.APPLIANCE_CLICKED, { appliance: appliance.info });
+        gameEvents.emit(GAME_EVENTS.APPLIANCE_CLICKED, {
+          installTargetId: targetId,
+          appliance: appliance.info,
+          isOn: appliance.isOn(),
+        });
       } else {
         this.emitInteract(targetId, purpose);
       }
@@ -272,6 +282,46 @@ export default class ApartmentScene extends Phaser.Scene {
     gameEvents.emit(GAME_EVENTS.APPLIANCE_INSTALLED, {
       installTargetId: payload.installTargetId,
       appliance: appliance.info,
+    });
+  }
+
+  private handleTogglePowerRequest(payload: ApplianceTogglePowerRequestPayload): void {
+    const appliance = this.appliancesByTargetId.get(payload.installTargetId);
+    if (!appliance || !appliance.isInstalled()) return;
+
+    appliance.setOn(!appliance.isOn());
+
+    gameEvents.emit(GAME_EVENTS.APPLIANCE_POWER_CHANGED, {
+      installTargetId: payload.installTargetId,
+      appliance: appliance.info,
+      isOn: appliance.isOn(),
+    });
+  }
+
+  /**
+   * A fixed appliance (fridge, TV, etc.) is part of the static room - removing
+   * it means unplugging it, so it stays in place and its socket opens back up
+   * for a future install. A custom placeholder only exists because the player
+   * dragged it in, so removing it deletes the sprite entirely.
+   */
+  private handleRemoveRequest(payload: ApplianceRemoveRequestPayload): void {
+    const appliance = this.appliancesByTargetId.get(payload.installTargetId);
+    if (!appliance || !appliance.isInstalled()) return;
+
+    const info = appliance.info;
+
+    if (info.isCustom) {
+      appliance.destroy();
+      this.appliancesByTargetId.delete(payload.installTargetId);
+    } else {
+      appliance.uninstall();
+      const socket = this.sockets.find(s => s.definition.id === payload.installTargetId);
+      socket?.release();
+    }
+
+    gameEvents.emit(GAME_EVENTS.APPLIANCE_REMOVED, {
+      installTargetId: payload.installTargetId,
+      appliance: info,
     });
   }
 

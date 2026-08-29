@@ -4,9 +4,10 @@
  * the only channel between them - no shared React state, no polling.
  *
  * Fixed appliances (plugged in at a socket) and custom appliances (dragged
- * in from the palette) share the same interact/install/click events - both
- * are just an "install target" identified by `installTargetId` (a socket id
- * for fixed appliances, a generated placeholder id for custom ones).
+ * in from the palette) share the same interact/install/click/power/remove
+ * events - both are just an "install target" identified by
+ * `installTargetId` (a socket id for fixed appliances, a generated
+ * placeholder id for custom ones).
  */
 
 import * as Phaser from 'phaser';
@@ -42,6 +43,27 @@ export interface ApplianceInstalledPayload {
 }
 
 export interface ApplianceClickedPayload {
+  installTargetId: string;
+  appliance: AppliancePayload;
+  isOn: boolean;
+}
+
+export interface ApplianceTogglePowerRequestPayload {
+  installTargetId: string;
+}
+
+export interface AppliancePowerChangedPayload {
+  installTargetId: string;
+  appliance: AppliancePayload;
+  isOn: boolean;
+}
+
+export interface ApplianceRemoveRequestPayload {
+  installTargetId: string;
+}
+
+export interface ApplianceRemovedPayload {
+  installTargetId: string;
   appliance: AppliancePayload;
 }
 
@@ -60,5 +82,9 @@ export const GAME_EVENTS = {
   APPLIANCE_INSTALL_REQUEST: 'appliance:install-request',
   APPLIANCE_INSTALLED: 'appliance:installed',
   APPLIANCE_CLICKED: 'appliance:clicked',
+  APPLIANCE_TOGGLE_POWER_REQUEST: 'appliance:toggle-power-request',
+  APPLIANCE_POWER_CHANGED: 'appliance:power-changed',
+  APPLIANCE_REMOVE_REQUEST: 'appliance:remove-request',
+  APPLIANCE_REMOVED: 'appliance:removed',
   APPLIANCE_PLACE_CUSTOM_REQUEST: 'appliance:place-custom-request',
 } as const;

@@ -9,7 +9,8 @@
  *
  * The visual is clickable from the moment it exists: before install, a
  * click opens the install-confirm modal (ApartmentScene routes this based
- * on `isInstalled()`); after install, a click opens the inspect panel.
+ * on `isInstalled()`); after install, a click opens the inspect panel,
+ * which can toggle it on/off or remove it.
  */
 
 import * as Phaser from 'phaser';
@@ -17,11 +18,16 @@ import type { AppliancePayload } from '../utils/gameEvents';
 
 export type ApplianceVisual = Phaser.GameObjects.Image | Phaser.GameObjects.Container;
 
+const OFF_ALPHA = 0.45;
+const ON_COLOR = 0x4ade80;
+const OFF_COLOR = 0x666666;
+
 export default class Appliance {
   readonly info: AppliancePayload;
   private visual: ApplianceVisual;
   private powerDot: Phaser.GameObjects.Arc;
   private installed = false;
+  private powered = true;
   private onInstallEffect?: () => void;
 
   constructor(
@@ -35,7 +41,7 @@ export default class Appliance {
     this.onInstallEffect = onInstallEffect;
 
     const bounds = visual.getBounds();
-    this.powerDot = scene.add.circle(bounds.right - 2, bounds.top + 2, 2.5, 0x4ade80, 1);
+    this.powerDot = scene.add.circle(bounds.right - 2, bounds.top + 2, 2.5, ON_COLOR, 1);
     this.powerDot.setDepth(('depth' in visual ? visual.depth : 0) + 1);
     this.powerDot.setVisible(false);
   }
@@ -52,11 +58,43 @@ export default class Appliance {
   install(): void {
     if (this.installed) return;
     this.installed = true;
-    this.powerDot.setVisible(true);
+    this.powered = true;
     this.onInstallEffect?.();
+    this.refreshVisual();
+  }
+
+  /** Unplugs a fixed appliance - it stays in the room, but stops counting and can be installed again later. */
+  uninstall(): void {
+    if (!this.installed) return;
+    this.installed = false;
+    this.powered = true;
+    this.powerDot.setVisible(false);
+    this.visual.setAlpha(1);
+  }
+
+  /** Removes a custom placeholder entirely - there's nothing to revert to. */
+  destroy(): void {
+    this.powerDot.destroy();
+    this.visual.destroy();
+  }
+
+  setOn(on: boolean): void {
+    if (!this.installed || this.powered === on) return;
+    this.powered = on;
+    this.refreshVisual();
+  }
+
+  isOn(): boolean {
+    return this.installed && this.powered;
   }
 
   isInstalled(): boolean {
     return this.installed;
+  }
+
+  private refreshVisual(): void {
+    this.powerDot.setVisible(true);
+    this.powerDot.setFillStyle(this.powered ? ON_COLOR : OFF_COLOR, 1);
+    this.visual.setAlpha(this.powered ? 1 : OFF_ALPHA);
   }
 }

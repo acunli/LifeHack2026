@@ -2,9 +2,9 @@
 
 /**
  * EnergyScoreOverlay - live score badge that updates as appliances (fixed
- * or custom) are installed. Reuses lib/scoring.ts's computeScore via
- * energyCalculator.ts so this game's score follows the same formula as the
- * rest of the app.
+ * or custom) are installed, removed, or switched on/off. Reuses
+ * lib/scoring.ts's computeScore via energyCalculator.ts so this game's
+ * score follows the same formula as the rest of the app.
  */
 
 import { useEffect, useState } from 'react';
@@ -13,6 +13,8 @@ import {
   GAME_EVENTS,
   AppliancePayload,
   ApplianceInstalledPayload,
+  AppliancePowerChangedPayload,
+  ApplianceRemovedPayload,
 } from '@/lib/game/utils/gameEvents';
 import { calculateEnergyScore } from '@/lib/game/utils/energyCalculator';
 
@@ -23,22 +25,44 @@ const STATUS_COLOR: Record<string, string> = {
   'Needs Improvement': '#f87171',
 };
 
+interface InstalledEntry {
+  installTargetId: string;
+  appliance: AppliancePayload;
+  isOn: boolean;
+}
+
 export default function EnergyScoreOverlay() {
-  const [installed, setInstalled] = useState<AppliancePayload[]>([]);
+  const [installed, setInstalled] = useState<InstalledEntry[]>([]);
 
   useEffect(() => {
     const handleInstalled = (payload: ApplianceInstalledPayload) => {
       setInstalled(prev =>
-        prev.some(a => a.id === payload.appliance.id) ? prev : [...prev, payload.appliance]
+        prev.some(e => e.installTargetId === payload.installTargetId)
+          ? prev
+          : [...prev, { installTargetId: payload.installTargetId, appliance: payload.appliance, isOn: true }]
       );
     };
+    const handlePowerChanged = (payload: AppliancePowerChangedPayload) => {
+      setInstalled(prev =>
+        prev.map(e => (e.installTargetId === payload.installTargetId ? { ...e, isOn: payload.isOn } : e))
+      );
+    };
+    const handleRemoved = (payload: ApplianceRemovedPayload) => {
+      setInstalled(prev => prev.filter(e => e.installTargetId !== payload.installTargetId));
+    };
+
     gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
+    gameEvents.on(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
+    gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
     return () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
+      gameEvents.off(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
+      gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
     };
   }, []);
 
-  const result = calculateEnergyScore(installed.map(a => a.dailyKwh));
+  const onCount = installed.filter(e => e.isOn).length;
+  const result = calculateEnergyScore(installed.filter(e => e.isOn).map(e => e.appliance.dailyKwh));
 
   return (
     <div
@@ -69,7 +93,7 @@ export default function EnergyScoreOverlay() {
       </div>
       <div style={{ color: '#aaa' }}>{result.totalDailyKwh} kWh/day</div>
       <div style={{ color: '#666', marginTop: '0.25rem' }}>
-        {installed.length} appliance{installed.length === 1 ? '' : 's'} installed
+        {installed.length} appliance{installed.length === 1 ? '' : 's'} installed · {onCount} on
       </div>
     </div>
   );

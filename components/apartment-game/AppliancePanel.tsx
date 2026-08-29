@@ -8,19 +8,23 @@
  * efficiency badge.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   gameEvents,
   GAME_EVENTS,
   AppliancePayload,
   ApplianceInstalledPayload,
   ApplianceClickedPayload,
+  AppliancePowerChangedPayload,
+  ApplianceRemovedPayload,
 } from '@/lib/game/utils/gameEvents';
 import { getUsageHistory } from '@/lib/game/utils/usageHistory';
 
 interface ViewState {
+  installTargetId: string;
   appliance: AppliancePayload;
   justInstalled: boolean;
+  isOn: boolean;
 }
 
 function useCountUp(target: number, active: boolean, durationMs = 700): number {
@@ -54,19 +58,27 @@ export default function AppliancePanel() {
 
   useEffect(() => {
     const handleInstalled = (payload: ApplianceInstalledPayload) =>
-      setView({ appliance: payload.appliance, justInstalled: true });
+      setView({ installTargetId: payload.installTargetId, appliance: payload.appliance, justInstalled: true, isOn: true });
     const handleClicked = (payload: ApplianceClickedPayload) =>
-      setView({ appliance: payload.appliance, justInstalled: false });
+      setView({ installTargetId: payload.installTargetId, appliance: payload.appliance, justInstalled: false, isOn: payload.isOn });
+    const handlePowerChanged = (payload: AppliancePowerChangedPayload) =>
+      setView(prev => (prev && prev.installTargetId === payload.installTargetId ? { ...prev, isOn: payload.isOn } : prev));
+    const handleRemoved = (payload: ApplianceRemovedPayload) =>
+      setView(prev => (prev && prev.installTargetId === payload.installTargetId ? null : prev));
 
     gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
     gameEvents.on(GAME_EVENTS.APPLIANCE_CLICKED, handleClicked);
+    gameEvents.on(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
+    gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
     return () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
       gameEvents.off(GAME_EVENTS.APPLIANCE_CLICKED, handleClicked);
+      gameEvents.off(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
+      gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
     };
   }, []);
 
-  const kwh = useCountUp(view?.appliance.dailyKwh ?? 0, view !== null);
+  const kwh = useCountUp(view && view.isOn ? view.appliance.dailyKwh : 0, view !== null);
 
   useEffect(() => {
     // Both branches run in timers rather than synchronously in the body —
@@ -84,7 +96,7 @@ export default function AppliancePanel() {
   }, [view]);
 
   if (!view) return null;
-  const { appliance, justInstalled } = view;
+  const { installTargetId, appliance, justInstalled, isOn } = view;
   const badge = efficiencyBadge(appliance.dailyKwh);
   const history = getUsageHistory(appliance.id, appliance.dailyKwh);
   const maxKwh = Math.max(...history.map(d => d.kwh), 0.1);
@@ -137,7 +149,9 @@ export default function AppliancePanel() {
           </p>
         )}
         {!justInstalled && (
-          <p style={{ fontSize: '0.75rem', color: '#4ade80', marginBottom: '0.25rem' }}>● Powered on</p>
+          <p style={{ fontSize: '0.75rem', color: isOn ? '#4ade80' : '#888', marginBottom: '0.25rem' }}>
+            {isOn ? '● Powered on' : '○ Powered off'}
+          </p>
         )}
 
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
@@ -207,6 +221,46 @@ export default function AppliancePanel() {
         </div>
 
         <p style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '1.25rem' }}>{appliance.tip}</p>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <button
+            onClick={() =>
+              gameEvents.emit(GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST, { installTargetId })
+            }
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              backgroundColor: isOn ? 'transparent' : badge.color,
+              color: isOn ? '#ccc' : '#111',
+              border: `1px solid ${isOn ? '#555' : badge.color}`,
+              borderRadius: '6px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {isOn ? 'Turn Off' : 'Turn On'}
+          </button>
+          <button
+            onClick={() => {
+              gameEvents.emit(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, { installTargetId });
+              setView(null);
+            }}
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              backgroundColor: 'transparent',
+              color: '#f87171',
+              border: '1px solid #f87171',
+              borderRadius: '6px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Remove
+          </button>
+        </div>
 
         <button
           onClick={() => setView(null)}

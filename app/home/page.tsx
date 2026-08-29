@@ -29,7 +29,6 @@ const AppliancePanel = dynamic(
   () => import('@/components/apartment-game/AppliancePanel'),
   { ssr: false }
 )
-
 /**
  * The standalone appliance dashboard, taken verbatim from the
  * watt-lah-dashboard zip. Self-contained: one React import, its own inline

@@ -53,6 +53,12 @@ export default class Socket extends Phaser.GameObjects.Container {
     this.refreshVisual();
   }
 
+  /** Frees the socket back up after its appliance is removed. */
+  release(): void {
+    this.definition.occupied = false;
+    this.refreshVisual();
+  }
+
   private refreshVisual(): void {
     if (this.isOccupied()) {
       this.glow.setVisible(false);

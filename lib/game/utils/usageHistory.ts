@@ -6,14 +6,7 @@
  * so each appliance still gets a distinctive-looking pattern.
  */
 
-function seededFraction(seed: string, index: number): number {
-  const str = `${seed}:${index}`;
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
-  }
-  return (hash % 1000) / 1000; // [0, 1)
-}
+import { seededFraction } from './seededRandom';
 
 export interface DayUsage {
   label: string;
