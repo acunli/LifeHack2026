@@ -8,6 +8,9 @@ import { useSession } from '@/lib/useSession'
 import Mascot from '@/components/Mascot'
 import WattLahLogo from '@/components/WattLahLogo'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
+import VoucherPopup from '@/components/VoucherPopup'
+import EnergyHistogram from '@/components/EnergyHistogram'
+import NewsFeed from '@/components/NewsFeed'
 
 /**
  * What-if changes persist across navigation.
@@ -298,6 +301,8 @@ export default function HomePage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [displayScore, setDisplayScore] = useState(0)
   const [rewards, setRewards] = useState(0)
+  const [voucherOpen, setVoucherOpen] = useState(false)
+  const [rewardNotify, setRewardNotify] = useState(false)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -441,6 +446,13 @@ export default function HomePage() {
     setApplied(nextApplied)
     writeWhatIf({ cur: next, applied: [...nextApplied] })
 
+    // Earn a reward when applying a new recommendation (not undoing)
+    if (!done && rec.save > 0) {
+      setRewards((r) => r + 1)
+      setRewardNotify(true)
+      setTimeout(() => setRewardNotify(false), 2500)
+    }
+
     animateTo(
       scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
       shownRef.current,
@@ -502,11 +514,21 @@ export default function HomePage() {
           </div>
           <div className="wl-controls">
             {/* Rewards earned with notification badge */}
-            <div className="wl-rewards" title="Rewards earned">
+            <button
+              className={'wl-rewards' + (rewardNotify ? ' notify' : '')}
+              title="Rewards earned"
+              onClick={() => {
+                if (leaderboardRank > 0 && leaderboardRank <= 3) {
+                  setVoucherOpen(true)
+                }
+              }}
+              style={{ cursor: leaderboardRank <= 3 ? 'pointer' : 'default' }}
+            >
               <span className="wl-rewards-icon" aria-hidden>🔔</span>
               <span className="wl-rewards-count wl-px">{rewards}</span>
               <span className="wl-rewards-label wl-px">Rewards</span>
-            </div>
+              {rewardNotify && <span className="wl-rewards-plus">+1</span>}
+            </button>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
             </button>
@@ -723,6 +745,17 @@ export default function HomePage() {
           </aside>
         </div>
 
+        <div className="section-header">Energy Overview</div>
+        <EnergyHistogram
+          appliances={APPLIANCES}
+          currentUsage={cur}
+          total={total}
+          tariff={TARIFF}
+        />
+
+        <div className="section-header">Latest Energy News</div>
+        <NewsFeed />
+
         <div className="wl-foot">Prototype — pixel art by LimeZu, Modern Interiors</div>
       </div>
 
@@ -812,6 +845,13 @@ export default function HomePage() {
           )}
         </div>
       </aside>
+
+      <VoucherPopup
+        open={voucherOpen}
+        onClose={() => setVoucherOpen(false)}
+        rank={leaderboardRank}
+        username={session.username}
+      />
     </div>
   )
 }
@@ -874,11 +914,15 @@ const css = `
 @keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 
 /* Rewards earned badge */
-.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px}
+.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px;position:relative;transition:border-color .3s}
+.wl-rewards.notify{border-color:var(--amber);animation:wl-reward-pulse .6s ease}
+@keyframes wl-reward-pulse{0%{transform:scale(1)}30%{transform:scale(1.08)}100%{transform:scale(1)}}
 .wl-rewards-icon{font-size:14px;animation:wl-notif-bounce 2s ease-in-out infinite}
 @keyframes wl-notif-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .wl-rewards-count{font-size:12px;color:var(--amber);font-weight:700}
 .wl-rewards-label{font-size:8px;color:var(--ink-dim)}
+.wl-rewards-plus{position:absolute;top:-6px;right:-6px;background:var(--lime);color:var(--bg-deep);font-family:var(--font-pixel),monospace;font-size:8px;font-weight:700;padding:3px 5px;border-radius:50%;animation:wl-plus-pop .4s ease-out both}
+@keyframes wl-plus-pop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 
 .wl-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}

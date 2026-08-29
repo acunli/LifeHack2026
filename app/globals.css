@@ -293,3 +293,305 @@ body {
     animation: none;
   }
 }
+
+/* ── Voucher popup ──────────────────────────────────────────────── */
+.voucher-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: float-in 200ms ease-out both;
+}
+.voucher-popup {
+  background: var(--panel);
+  border: 3px solid var(--line-hi);
+  box-shadow: 0 0 0 3px var(--bg-deep), 8px 8px 0 0 rgba(0, 0, 0, 0.45);
+  padding: 28px 32px;
+  max-width: 380px;
+  width: 90%;
+  position: relative;
+  text-align: center;
+}
+.voucher-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: 2px solid var(--line);
+  color: var(--ink-dim);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--font-pixel), monospace;
+}
+.voucher-close:hover {
+  color: var(--ink);
+  border-color: var(--line-hi);
+}
+.voucher-badge {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+.voucher-title {
+  font-family: var(--font-pixel), monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 6px;
+}
+.voucher-sub {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin-bottom: 16px;
+}
+.voucher-sub b {
+  color: var(--ink);
+}
+.voucher-card {
+  background: var(--bg-deep);
+  border: 3px dashed var(--amber);
+  padding: 18px 16px;
+  margin-bottom: 14px;
+}
+.voucher-card-label {
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+.voucher-card-value {
+  font-family: var(--font-pixel), monospace;
+  font-size: 22px;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+.voucher-card-desc {
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.voucher-card-code {
+  font-family: var(--font-pixel), monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--lime);
+  border: 2px solid var(--lime);
+  display: inline-block;
+  padding: 5px 10px;
+}
+.voucher-note {
+  font-size: 10px;
+  color: var(--ink-dim);
+  opacity: 0.7;
+}
+
+/* ── Section headers ────────────────────────────────────────────── */
+.section-header {
+  font-family: var(--font-pixel), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding: 10px 0 0;
+  border-top: 2px solid var(--line);
+  margin-top: 4px;
+}
+
+/* ── Histogram + Stats row ──────────────────────────────────────── */
+.histogram-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .histogram-row {
+    grid-template-columns: 1fr;
+  }
+}
+.histogram-panel,
+.histogram-stats {
+  background: var(--panel);
+  border: 3px solid var(--line-hi);
+  box-shadow: 0 0 0 3px var(--bg-deep), 8px 8px 0 0 rgba(0, 0, 0, 0.45);
+  padding: 16px;
+}
+.histogram-title {
+  font-family: var(--font-pixel), monospace;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 14px;
+}
+.histogram-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-bottom: 22px;
+  position: relative;
+}
+.histogram-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+.histogram-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.histogram-bar {
+  width: 70%;
+  min-height: 4px;
+  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  border: 2px solid var(--amber-deep);
+  transition: height 0.4s ease;
+}
+.histogram-bar-label {
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  color: var(--ink-dim);
+  margin-top: 4px;
+  position: absolute;
+  bottom: -20px;
+}
+.histogram-bar-value {
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  color: var(--amber);
+  position: absolute;
+  top: -14px;
+}
+.histogram-avg {
+  font-family: var(--font-pixel), monospace;
+  font-size: 8px;
+  color: var(--ink-dim);
+  text-align: center;
+  margin-top: 8px;
+}
+.histogram-avg b {
+  color: var(--amber);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stat-card {
+  background: var(--bg-deep);
+  border: 2px solid var(--line);
+  padding: 12px 10px;
+  text-align: center;
+}
+.stat-card-wide {
+  grid-column: 1 / -1;
+}
+.stat-label {
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--font-pixel), monospace;
+  font-size: 16px;
+  color: var(--amber);
+}
+.stat-unit {
+  font-size: 10px;
+  color: var(--ink-dim);
+  margin-top: 3px;
+}
+
+/* ── News feed ──────────────────────────────────────────────────── */
+.news-feed {
+  overflow: hidden;
+}
+.news-scroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+.news-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.news-scroll::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+.news-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+}
+.news-card {
+  flex: 0 0 280px;
+  scroll-snap-align: start;
+  background: var(--panel);
+  border: 3px solid var(--line-hi);
+  box-shadow: 0 0 0 3px var(--bg-deep), 8px 8px 0 0 rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.news-thumb {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.news-thumb-icon {
+  font-size: 28px;
+  opacity: 0.6;
+}
+.news-body {
+  padding: 12px 14px;
+}
+.news-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.news-source {
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.news-date {
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+.news-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+.news-summary {
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin: 0;
+  line-height: 1.5;
+}
