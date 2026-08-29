@@ -7,6 +7,34 @@ import dynamic from 'next/dynamic'
 import { useSession } from '@/lib/useSession'
 import Mascot from '@/components/Mascot'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
+
+/**
+ * What-if changes persist across navigation.
+ *
+ * Without this the dashboard rebuilt from the authored baseline on every
+ * visit, while the leaderboard read the saved score — so applying a fix, going
+ * to the league and coming back showed 80 there and 74 here.
+ */
+const WHATIF_KEY = 'wattlah.whatif'
+
+type WhatIfState = { cur: Record<string, number>; applied: string[] }
+
+function readWhatIf(): WhatIfState | null {
+  try {
+    const raw = window.localStorage.getItem(WHATIF_KEY)
+    return raw ? (JSON.parse(raw) as WhatIfState) : null
+  } catch {
+    return null
+  }
+}
+
+function writeWhatIf(state: WhatIfState) {
+  try {
+    window.localStorage.setItem(WHATIF_KEY, JSON.stringify(state))
+  } catch {
+    /* storage can be blocked; persistence is a convenience here */
+  }
+}
 import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
 
@@ -249,6 +277,7 @@ export default function HomePage() {
     if (!isLoggedIn()) router.replace('/')
   }, [isAuthenticated, router])
 
+
   // Get the user's rank from the leaderboard
   const leaderboardRank = useMemo(() => {
     if (!session) return 0
@@ -307,6 +336,32 @@ export default function HomePage() {
       cancelAnimationFrame(id)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /**
+   * Restore what-if changes made before navigating away.
+   *
+   * Without this the dashboard rebuilt from the authored baseline on every
+   * visit while the leaderboard read the saved score, so applying a fix,
+   * checking the league and coming back showed 80 there and 74 here.
+   *
+   * animateTo is called too: the reveal has already run to the baseline by
+   * this point, and the number on screen comes from displayScore rather than
+   * `score`, so restoring the state alone leaves the dial reading 74.
+   */
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const saved = readWhatIf()
+      if (!saved || !saved.applied?.length) return
+      setCur(saved.cur)
+      setApplied(new Set(saved.applied))
+      animateTo(
+        scoreOf(APPLIANCES.reduce((sum, a) => sum + (saved.cur[a.id] ?? a.kwh), 0)),
+        0,
+      )
+    })
+    return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -382,6 +437,7 @@ export default function HomePage() {
     if (done) nextApplied.delete(rec.id)
     else nextApplied.add(rec.id)
     setApplied(nextApplied)
+    writeWhatIf({ cur: next, applied: [...nextApplied] })
 
     animateTo(
       scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
@@ -390,8 +446,10 @@ export default function HomePage() {
   }
 
   function reset() {
-    setCur(Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])))
+    const base = Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh]))
+    setCur(base)
     setApplied(new Set())
+    writeWhatIf({ cur: base, applied: [] })
     animateTo(BASE_SCORE, shownRef.current)
   }
 
@@ -747,7 +805,7 @@ export default function HomePage() {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: '100%',
+    minHeight: '100dvh',
     background: 'var(--bg)',
     backgroundImage:
       'radial-gradient(ellipse 80% 60% at 50% 35%,#2f4d38 0%,var(--bg) 55%,var(--bg-deep) 100%)',

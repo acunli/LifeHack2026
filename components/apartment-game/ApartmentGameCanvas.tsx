@@ -53,6 +53,14 @@ export default function ApartmentGameCanvas({
           debug: false, // Set to true to see collision bounds
         },
       },
+      input: {
+        mouse: {
+          // Phaser calls preventDefault on wheel events by default, which
+          // stopped the page scrolling whenever the cursor was over the
+          // apartment — most of the screen.
+          preventDefaultWheel: false,
+        },
+      },
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
