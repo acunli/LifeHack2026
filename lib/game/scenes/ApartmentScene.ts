@@ -38,6 +38,12 @@ const SPAWN_Y = 344;
 
 const PLACEHOLDER_SIZE = 28;
 
+/** Hover halo: gold, so nothing else in the room competes with it. */
+const HAZE_COLOR = 0xffc866;
+const HAZE_ALPHA = 0.15;
+/** Extra pixels around the sprite's own bounds, so the glow reads as a halo. */
+const HAZE_PAD = 16;
+
 export default class ApartmentScene extends Phaser.Scene {
   private player!: Player;
   private sockets: Socket[] = [];
@@ -56,6 +62,14 @@ export default class ApartmentScene extends Phaser.Scene {
 
   /** Tooltip shown while hovering an appliance. */
   private hoverLabel!: Phaser.GameObjects.Text;
+
+  /**
+   * A warm halo behind every appliance, so the things you can interact with
+   * are legible as such before the cursor is on them. Nothing else in the
+   * room glows gold, so it reads as "this one is yours to poke" rather than
+   * as decoration. It breathes slowly at rest and brightens under the cursor.
+   */
+  private applianceHazes = new Map<string, Phaser.GameObjects.Ellipse>();
   private nearestSocketId: string | undefined = undefined;
   private keyE!: Phaser.Input.Keyboard.Key;
   private customApplianceCounter = 0;
@@ -101,6 +115,7 @@ export default class ApartmentScene extends Phaser.Scene {
         isCustom: false,
       };
       const appliance = new Appliance(this, info, sprite);
+      this.addApplianceHaze(appliance, sprite);
       sprite.setInteractive({ useHandCursor: true });
       this.wireApplianceClick(appliance, socketDef.id, socketDef.purpose);
       this.wireApplianceHover(appliance);
@@ -286,9 +301,75 @@ export default class ApartmentScene extends Phaser.Scene {
           c.y - this.hoverLabel.height - 14,
         );
         this.hoverLabel.setVisible(true);
+        this.setHazeHot(appliance.info.id, true);
       },
-      () => this.hoverLabel.setVisible(false),
+      () => {
+        this.hoverLabel.setVisible(false);
+        this.setHazeHot(appliance.info.id, false);
+      },
     );
+  }
+
+  /**
+   * Draw the halo just under its appliance — above the floor, below the
+   * sprite — sized from the sprite's own bounds so a lamp does not get the
+   * same glow as a fridge.
+   */
+  private addApplianceHaze(
+    appliance: Appliance,
+    sprite: Phaser.GameObjects.GameObject & { depth?: number },
+  ): void {
+    const b = appliance.getBounds();
+    const haze = this.add.ellipse(
+      b.centerX,
+      b.centerY,
+      b.width + HAZE_PAD,
+      b.height + HAZE_PAD * 0.7,
+      HAZE_COLOR,
+      HAZE_ALPHA,
+    );
+    haze.setBlendMode(Phaser.BlendModes.ADD);
+    haze.setDepth((sprite.depth ?? 0) - 1);
+    this.applianceHazes.set(appliance.info.id, haze);
+
+    // Breathe, so it reads as live rather than as a printed outline. Skipped
+    // for anyone who has asked the OS for less motion.
+    const still =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (still) return;
+    this.tweens.add({
+      targets: haze,
+      alpha: HAZE_ALPHA * 1.75,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      // Stagger by id so eight appliances do not pulse in lockstep.
+      delay: (appliance.info.id.charCodeAt(0) % 7) * 180,
+    });
+  }
+
+  /** Under the cursor the halo goes bright and steady. */
+  private setHazeHot(id: string, hot: boolean): void {
+    const haze = this.applianceHazes.get(id);
+    if (!haze) return;
+    this.tweens.killTweensOf(haze);
+    haze.setAlpha(hot ? HAZE_ALPHA * 3.4 : HAZE_ALPHA);
+    haze.setScale(hot ? 1.12 : 1);
+    if (hot) return;
+    const still =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (still) return;
+    this.tweens.add({
+      targets: haze,
+      alpha: HAZE_ALPHA * 1.75,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
   }
 
   /**

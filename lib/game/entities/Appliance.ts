@@ -51,6 +51,11 @@ export default class Appliance {
    * first (a Container needs an explicit hit area, an Image doesn't) - this
    * just attaches the click routing.
    */
+  /** Bounding box in world space, for sizing the hover halo. */
+  getBounds(): Phaser.Geom.Rectangle {
+    return this.visual.getBounds();
+  }
+
   /** Centre of the appliance in world space, for proximity and hover UI. */
   getCentre(): { x: number; y: number } {
     const b = this.visual.getBounds();
