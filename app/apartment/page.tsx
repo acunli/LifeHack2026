@@ -76,6 +76,13 @@ export default function ApartmentPage() {
             Score {result.score}
           </button>
           <Link
+            href="/home"
+            className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
+            style={{ fontFamily: "var(--font-pixel)" }}
+          >
+            Dashboard
+          </Link>
+          <Link
             href="/leaderboard"
             className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
             style={{ fontFamily: "var(--font-pixel)" }}
