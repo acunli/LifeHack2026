@@ -262,6 +262,7 @@ export default function HomePage() {
     Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
   )
   const [selected, setSelected] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [applied, setApplied] = useState<Set<string>>(() => new Set())
   const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -341,6 +342,23 @@ export default function HomePage() {
     if (which) setTab(which)
     setDrawerOpen(true)
   }
+
+  // Hover card. The zip anchored this to the room's heat glows; those went
+  // with the static room, so it hangs off the appliance rows instead — same
+  // card, attached to something that still exists.
+  const hovered = hoveredId ? APPLIANCES.find((a) => a.id === hoveredId) ?? null : null
+  const hoveredScore = hovered ? applianceScore(cur[hovered.id], hovered.ref) : 0
+  const hoveredColour =
+    hoveredScore >= 85 ? 'var(--lime)' : hoveredScore >= 60 ? 'var(--amber)' : 'var(--red)'
+  const hoveredOver = hovered
+    ? Math.round(((cur[hovered.id] - hovered.ref) / hovered.ref) * 100)
+    : 0
+  const vsLabel =
+    hoveredOver > 0
+      ? `${hoveredOver}% over typical`
+      : hoveredOver < 0
+        ? `${Math.abs(hoveredOver)}% under typical`
+        : 'exactly typical'
 
   function applyRec(rec: Rec) {
     const done = applied.has(rec.id)
@@ -592,7 +610,28 @@ export default function HomePage() {
                         'wl-row' + (selected === a.id ? ' sel' : '') + (off ? ' off' : '')
                       }
                       onClick={() => select(a.id)}
+                      onMouseEnter={() => setHoveredId(a.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      style={{ position: 'relative' }}
                     >
+                      {hovered?.id === a.id && (
+                        <div className="wl-hovercard">
+                          <div className="wl-hc-name">
+                            <span>{hovered.icon}</span>
+                            <span>{hovered.name}</span>
+                          </div>
+                          <div className="wl-hc-meta">
+                            <span>{cur[hovered.id]} kWh</span>
+                            <span>typical {hovered.ref} kWh</span>
+                          </div>
+                          <div className="wl-hc-track">
+                            <i style={{ width: hoveredScore + '%', background: hoveredColour }} />
+                          </div>
+                          <div className="wl-hc-vs" style={{ color: hoveredColour }}>
+                            {vsLabel}
+                          </div>
+                        </div>
+                      )}
                       <span className="wl-ic">{a.icon}</span>
                       <span className="wl-nm">{a.name}</span>
                       <span className="wl-mini">
@@ -812,6 +851,25 @@ const css = `
 .wl-row{display:flex;align-items:center;gap:9px;padding:9px 6px;border-top:1px solid rgba(95,160,114,.28);
   cursor:pointer;transition:background .15s}
 .wl-row:hover{background:var(--panel-hi)}
+
+/* Hover card, ported from watt-lah-hover. Repositioned: the original sat above
+   a heat glow in the room, which no longer exists, so it now sits to the left
+   of the appliance row it describes. */
+.wl-hovercard{position:absolute;z-index:600;pointer-events:none;min-width:200px;
+  right:calc(100% + 14px);top:50%;transform:translateY(-50%);
+  background:var(--panel);border:3px solid var(--line-hi);
+  box-shadow:0 0 0 3px var(--bg-deep),5px 5px 0 0 rgba(0,0,0,.5);
+  padding:10px 11px;animation:wl-hc-in .12s ease-out both}
+@keyframes wl-hc-in{from{opacity:0;transform:translateY(-46%) scale(.97)}
+  to{opacity:1;transform:translateY(-50%) scale(1)}}
+.wl-hc-name{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink)}
+.wl-hc-meta{font-size:11px;color:var(--ink-dim);margin-top:6px;
+  display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.wl-hc-track{height:7px;background:var(--bg-deep);margin-top:8px;position:relative}
+.wl-hc-track i{position:absolute;inset:0 auto 0 0}
+.wl-hc-vs{font-size:10px;margin-top:7px;font-family:var(--font-pixel),monospace;letter-spacing:.08em}
+@media(prefers-reduced-motion:reduce){.wl-hovercard{animation:none}}
+
 .wl-row.sel{background:var(--panel-hi);box-shadow:inset 3px 0 0 var(--amber)}
 .wl-ic{width:19px;text-align:center;font-size:14px}
 .wl-nm{flex:1;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
