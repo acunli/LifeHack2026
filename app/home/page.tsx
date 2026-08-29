@@ -24,6 +24,7 @@ import {
   gameEvents,
   GAME_EVENTS,
   type ApplianceInstalledPayload,
+  type AppliancePowerChangedPayload,
   type ApplianceRemovedPayload,
 } from '@/lib/game/utils/gameEvents'
 import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
@@ -352,9 +353,23 @@ export default function HomePage() {
   const rewardTimerRef = useRef<number | null>(null)
   const closeVoucher = useCallback(() => setVoucherOpen(false), [])
 
+  /**
+   * Appliances switched off in the game.
+   *
+   * The game already dimmed the sprite and persisted the state, but the
+   * dashboard only listened for APPLIANCE_REMOVED — so turning something off
+   * changed nothing here. An appliance that is off draws nothing, so it should
+   * drop out of the total like any other saving.
+   */
+  const [poweredOff, setPoweredOff] = useState<Set<string>>(() => new Set())
+
   const total = useMemo(
-    () => APPLIANCES.reduce((s, a) => s + cur[a.id], 0),
-    [cur],
+    () =>
+      APPLIANCES.reduce(
+        (s, a) => s + (poweredOff.has(a.id) ? 0 : cur[a.id]),
+        0,
+      ),
+    [cur, poweredOff],
   )
   const score = scoreOf(total)
   const rank = rankOf(score)
@@ -544,10 +559,23 @@ export default function HomePage() {
 
     syncProgress()
     gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled)
+    const handlePower = (payload: AppliancePowerChangedPayload) => {
+      const dashboardId = DASHBOARD_APPLIANCE_BY_GAME_ID[payload.appliance.id]
+      if (!dashboardId) return
+      setPoweredOff((current) => {
+        const next = new Set(current)
+        if (payload.isOn) next.delete(dashboardId)
+        else next.add(dashboardId)
+        return next
+      })
+    }
+
+    gameEvents.on(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePower)
     gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved)
     window.addEventListener(AUDIT_PROGRESS_EVENT, syncProgress)
     return () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled)
+      gameEvents.off(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePower)
       gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved)
       window.removeEventListener(AUDIT_PROGRESS_EVENT, syncProgress)
     }
