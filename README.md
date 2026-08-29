@@ -405,11 +405,17 @@ what it owns, what it must never touch, its hour-by-hour work, and its handoffs.
 **Exists because:** everyone else is blocked until the repo builds. A's first hour
 is the whole team's first hour.
 
-**Owns:** `app/layout.tsx` · `app/page.tsx` · `lib/scoring.ts` · `lib/session.ts` ·
-`lib/scoring.test.ts` · `package.json` · Vercel
+**Owns:** `app/layout.tsx` · `app/page.tsx` · `components/LoginForm.tsx` ·
+`lib/scoring.ts` · `lib/session.ts` · `lib/scoring.test.ts` · `package.json` · Vercel
 (`data/mockApartment.ts` is authored by D and consumed here)
 
-**Never touches:** `components/*` · `globals.css` · `data/spriteMap.ts`
+**Never touches:** `components/ApartmentRoom.tsx` · `EnergyDashboard.tsx` ·
+`StatCard.tsx` · `ScoreBadge.tsx` · `globals.css` · `data/spriteMap.ts`
+
+> `LoginForm.tsx` is the one component Lane A owns — it is the login route's
+> form, not part of C's HUD system. Its **styling** still comes from C's tokens
+> in `globals.css`, and its **copy** from D's `docs/copy.md`. A owns the
+> behaviour: validation, session write, navigation.
 
 **Blocked by:** nobody. Starts first, at 13:00.
 

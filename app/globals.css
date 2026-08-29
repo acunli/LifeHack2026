@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+/*
+ * WattWise visual system — dusk-lit, cosy, game-first.
+ *
+ * Lane C owns this file. Lane A seeded it so the app reads as a game rather
+ * than a form; build on these tokens rather than replacing them, so the room
+ * and the HUD stay in one palette.
+ */
+:root {
+  --bg: #14121f;
+  --bg-deep: #0d0b16;
+  --panel: #241f36;
+  --panel-hi: #322a4a;
+  --line: #4a3f6b;
+  --line-hi: #6b5a94;
+
+  --ink: #f6f2e8;
+  --ink-dim: #a99fc4;
+
+  --amber: #ffc866;
+  --amber-deep: #d99a2b;
+  --green: #6ee7a8;
+  --red: #ff7a6b;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-panel: var(--panel);
+  --color-panel-hi: var(--panel-hi);
+  --color-line: var(--line);
+  --color-line-hi: var(--line-hi);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-amber: var(--amber);
+  --color-amber-deep: var(--amber-deep);
+  --color-good: var(--green);
+  --color-bad: var(--red);
+  --font-pixel: var(--font-press-start);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  /* Soft pool of light behind the scene, like a lamp in a dark flat. */
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    #2a2340 0%,
+    var(--bg) 55%,
+    var(--bg-deep) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Crisp upscaled sprites. Required on every element rendering pixel art. */
+.pixelated {
+  image-rendering: pixelated;
+}
+
+/* Chunky panel with a hard offset shadow — no blur, which reads as pixel UI. */
+.pixel-panel {
+  background: var(--panel);
+  border: 3px solid var(--line-hi);
+  box-shadow:
+    0 0 0 3px var(--bg-deep),
+    8px 8px 0 0 rgba(0, 0, 0, 0.45);
+}
+
+.pixel-input {
+  background: var(--bg-deep);
+  border: 3px solid var(--line);
+  color: var(--ink);
+}
+.pixel-input:focus {
+  border-color: var(--amber);
+  outline: none;
+}
+.pixel-input::placeholder {
+  color: #6b6288;
+}
+
+/* Button that physically depresses — the cheapest way to feel like a game. */
+.pixel-btn {
+  background: var(--amber);
+  color: #2b1d05;
+  border: 3px solid #2b1d05;
+  box-shadow: 0 5px 0 0 var(--amber-deep);
+  transition: transform 60ms steps(2), box-shadow 60ms steps(2);
+}
+.pixel-btn:hover {
+  filter: brightness(1.06);
+}
+.pixel-btn:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 0 0 var(--amber-deep);
+}
+
+.pixel-btn-ghost {
+  background: transparent;
+  color: var(--ink-dim);
+  border: 3px solid var(--line);
+}
+.pixel-btn-ghost:hover {
+  color: var(--ink);
+  border-color: var(--line-hi);
+}
+
+/*
+ * Idle character. Sheets are 64x32 = 4 columns x 2 rows of 16x16 frames.
+ * Rendered at 4x (64px) and stepped across row 0's four frames.
+ */
+.sprite-idle {
+  width: 64px;
+  height: 64px;
+  background-image: url("/assets/characters/Adam_idle_16x16.png");
+  background-size: 256px 128px; /* 64x32 at 4x */
+  background-repeat: no-repeat;
+  animation: sprite-idle 1s steps(4) infinite;
+}
+
+@keyframes sprite-idle {
+  from { background-position: 0 0; }
+  to   { background-position: -256px 0; }
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.float-in {
+  animation: float-in 320ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprite-idle { animation: none; }
+  .float-in { animation: none; }
+}

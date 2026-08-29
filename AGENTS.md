@@ -8,6 +8,38 @@ This file is the short version: the rules that are easy to break by accident.
 
 ---
 
+## Current state — read this first
+
+**Lane A's foundation is in.** The app scaffolds, builds, and has a working
+login → apartment flow. What exists:
+
+```
+app/
+  layout.tsx  page.tsx           login screen (built)
+  apartment/page.tsx             integration shell — SLOTS ONLY, see below
+  globals.css                    game visual system (seeded by A, owned by C)
+components/LoginForm.tsx         built
+lib/scoring.ts  session.ts       the contract, computeScore, session helpers
+lib/scoring.test.ts              16 passing cases
+data/mockApartment.ts            ⚠️ PLACEHOLDER — Lane D replaces
+public/assets/                   all 10 sheets, copied and serving
+```
+
+**What does NOT exist yet:**
+
+- `components/ApartmentRoom.tsx` — the pixel room (Lane B)
+- `data/spriteMap.ts` — sprite coordinates (Lane B)
+- `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx` (Lane C)
+- `docs/` — rationale, copy, demo script (Lane D)
+
+`app/apartment/page.tsx` renders two labelled placeholder panels where B's room
+and C's HUD drop in. **Do not build the room or the HUD inside that file** — it
+is the shared integration point and stays tiny.
+
+All commands in Verification now work.
+
+---
+
 ## Deadline and priority
 
 Working deadline: **Sunday 30 August, 11:00** (see README §21, decision 3 — the
@@ -109,6 +141,17 @@ comparisonPercent = (total - reference) / reference * 100
 score             = clamp(round(100 - comparisonPercent), 0, 100)
 ```
 
+**Known characteristic — do not "fix" it.** An apartment consuming exactly the
+reference amount scores 100 and lands in the top band, and consuming *less* also
+clamps to 100. That is intentional: the formula is a deliberate linear
+normalisation against a stated reference, chosen for being explainable in one
+sentence, not for modelling a real distribution. If you think it should be
+recentred, raise it — do not change it unilaterally. Three lanes and the demo
+script depend on the numbers it produces.
+
+To land the demo apartment in the 72–78 band (README §11), it must consume roughly
+22–28% above reference.
+
 ---
 
 ## Asset facts — measured, do not re-derive
@@ -141,13 +184,36 @@ sips -g pixelWidth -g pixelHeight <file>.png
 
 ---
 
+## Where files go
+
+Create files here, not wherever seems natural (README §14):
+
+```
+app/
+  layout.tsx  page.tsx           login
+  apartment/page.tsx             integration shell — keep tiny
+  globals.css
+components/
+  LoginForm.tsx  ApartmentRoom.tsx
+  EnergyDashboard.tsx  StatCard.tsx  ScoreBadge.tsx
+lib/
+  scoring.ts  scoring.test.ts  session.ts
+data/
+  mockApartment.ts  spriteMap.ts
+public/assets/                   copied from Assets/
+docs/
+```
+
+Hardcoded numbers belong in `data/`, never inline in a component. That separation
+is what lets mock data become real data later without touching the UI.
+
 ## File ownership
 
 Four lanes (README §15). Stay in your lane's files; ask before editing another's.
 
 | Lane | Owns |
 |---|---|
-| A — Foundation | `app/page.tsx`, `lib/`, tests, deploy |
+| A — Foundation | `app/layout.tsx`, `app/page.tsx`, `components/LoginForm.tsx`, `lib/`, tests, deploy |
 | B — Room | `components/ApartmentRoom.tsx`, `data/spriteMap.ts`, `public/assets/` |
 | C — HUD | `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx`, `globals.css` |
 | D — Experience & Story | `docs/`, `data/mockApartment.ts`, all on-screen copy, the video, the upload |
@@ -171,13 +237,16 @@ and call it done — take the string from `copy.md` or ask for it.
 
 ## Verification
 
-Run after any non-trivial change, before moving on:
+Run after any non-trivial change, before moving on. All three work today:
 
 ```bash
-npx tsc --noEmit     # must be clean
-npm run build        # must succeed
-npm test             # after any change to lib/scoring.ts
+./node_modules/.bin/tsc --noEmit   # must be clean
+npm run build                      # must succeed
+npm test                           # 16 cases, must stay green
 ```
+
+Use `./node_modules/.bin/tsc`, not `npx tsc` — `npx` will fetch an unrelated
+package called `tsc` from the registry and print nonsense.
 
 Node was installed via Homebrew (v26.7.0). If you hit `command not found: node`,
 that is why — `brew install node`.
@@ -200,3 +269,42 @@ that is why — `brew install node`.
 - **Ask when scope is ambiguous** rather than guessing expansively. The cost of a
   question is thirty seconds; the cost of building an out-of-scope feature is an
   hour nobody has.
+
+---
+
+## Git
+
+- **Never commit to `main` directly** and never force-push it. Four people share it.
+- Branch per lane: `feat/foundation`, `feat/room`, `feat/hud`, `feat/docs`
+- Do not commit `node_modules/`, `.next/`, or `.DS_Store` — add a `.gitignore` as
+  part of the scaffold task
+- Pull before you start and before you push
+- **Do not commit or push unless asked.** Say what you changed and let the human
+  decide.
+
+---
+
+## What we are judged on
+
+When trading one thing off against another, this is the basis:
+
+| Criterion | Weight |
+|---|---|
+| **Fun and engagement** | **40%** |
+| Behaviour change | 20% |
+| Stickiness | 20% |
+| Craft and usability | 20% |
+
+An hour on the pixel room or the score reveal is worth more than an hour on test
+coverage or architecture. That is not an excuse for broken code — it is how to
+choose when both are defensible and only one fits.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
