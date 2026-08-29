@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { clearSession, getSession } from "@/lib/session";
+import { clearSession } from "@/lib/session";
+import { useSession } from "@/lib/useSession";
 
 /**
  * INTEGRATION SHELL — deliberately minimal (README §15.7).
@@ -12,19 +13,16 @@ import { clearSession, getSession } from "@/lib/session";
  */
 export default function ApartmentPage() {
   const router = useRouter();
-  const [roomNumber, setRoomNumber] = useState<string | null>(null);
+  const session = useSession();
 
-  // localStorage does not exist during SSR — read after mount, never in render.
+  // Only redirect once the session has actually resolved. `undefined` is the
+  // pre-hydration frame; redirecting on it would bounce a signed-in resident
+  // out on every refresh.
   useEffect(() => {
-    const session = getSession();
-    if (!session) {
-      router.replace("/");
-      return;
-    }
-    setRoomNumber(session.roomNumber);
-  }, [router]);
+    if (session === null) router.replace("/");
+  }, [session, router]);
 
-  if (!roomNumber) return null;
+  if (!session) return null;
 
   function handleLogout() {
     clearSession();
@@ -44,7 +42,7 @@ export default function ApartmentPage() {
               className="mt-1.5 text-base text-amber"
               style={{ fontFamily: "var(--font-pixel)" }}
             >
-              Room {roomNumber}
+              Room {session.roomNumber}
             </h1>
           </div>
         </div>

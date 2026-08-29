@@ -213,7 +213,7 @@ Four lanes (README §15). Stay in your lane's files; ask before editing another'
 
 | Lane | Owns |
 |---|---|
-| A — Foundation | `app/page.tsx`, `lib/`, tests, deploy |
+| A — Foundation | `app/layout.tsx`, `app/page.tsx`, `components/LoginForm.tsx`, `lib/`, tests, deploy |
 | B — Room | `components/ApartmentRoom.tsx`, `data/spriteMap.ts`, `public/assets/` |
 | C — HUD | `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx`, `globals.css` |
 | D — Experience & Story | `docs/`, `data/mockApartment.ts`, all on-screen copy, the video, the upload |
