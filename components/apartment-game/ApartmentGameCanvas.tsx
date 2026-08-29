@@ -20,7 +20,16 @@ import { gameEvents, GAME_EVENTS } from '@/lib/game/utils/gameEvents';
 const GAME_WIDTH = 768;
 const GAME_HEIGHT = 576;
 
-export default function ApartmentGameCanvas() {
+/**
+ * `showScore` is off when embedded in the dashboard, which owns the score
+ * panel. With both visible the screen showed 100 / Energy Saver beside
+ * 74 / Average — two different answers to the same question.
+ */
+export default function ApartmentGameCanvas({
+  showScore = true,
+}: {
+  showScore?: boolean;
+} = {}) {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -101,7 +110,7 @@ export default function ApartmentGameCanvas() {
           boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         }}
       />
-      <EnergyScoreOverlay />
+      {showScore && <EnergyScoreOverlay />}
     </div>
   );
 }

@@ -109,7 +109,9 @@ export default class ApartmentScene extends Phaser.Scene {
     });
 
     // Status text (temporary)
-    const statusText = this.add.text(10, 10, 'Apartment from JSON (exact transcription)', {
+    // Debug label removed — it read 'Apartment from JSON (exact transcription)'
+    // on screen, which is a developer note, not something a resident should see.
+    const statusText = this.add.text(10, 10, '', {
       fontSize: '12px',
       color: '#ffffff',
       backgroundColor: '#000000',

@@ -229,15 +229,6 @@ const scoreColour = (s: number) =>
 const applianceScore = (curKwh: number, ref: number) =>
   clamp(Math.round(100 - ((curKwh - ref) / ref) * 100), 0, 100)
 
-function heat(load: number) {
-  const t = clamp(load, 0, 1)
-  if (t < 0.5) {
-    const k = t / 0.5
-    return `rgb(${Math.round(155 + k * 100)},${Math.round(229 - k * 29)},${Math.round(100 + k * 2)})`
-  }
-  const k = (t - 0.5) / 0.5
-  return `rgb(255,${Math.round(200 - k * 90)},${Math.round(102 - k * 12)})`
-}
 
 const BASE_SCORE = scoreOf(APPLIANCES.reduce((x, a) => x + a.kwh, 0))
 
@@ -288,7 +279,6 @@ export default function HomePage() {
   const rank = rankOf(score)
   const colour = scoreColour(score)
   const over = Math.round(((total - REFERENCE) / REFERENCE) * 100)
-  const maxCur = Math.max(...APPLIANCES.map((a) => cur[a.id]))
 
   const animateTo = useCallback((target: number, from: number) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -480,42 +470,20 @@ export default function HomePage() {
                   render. Its own systems (movement, sockets, install/inspect)
                   run independently of the heat-zone overlay below - the two
                   aren't wired together. */}
-              <ApartmentGameCanvas />
+              <ApartmentGameCanvas showScore={false} />
               <InteractionPrompt />
               <ApplianceSelector />
               <AppliancePanel />
-              {APPLIANCES.map((a) => {
-                const load = maxCur > 0 ? cur[a.id] / maxCur : 0
-                const c = heat(load)
-                const opacity = (whatIf ? 0.28 : 0.4) + load * (whatIf ? 0.32 : 0.45)
-                return (
-                  <div key={a.id}>
-                    <div
-                      className={'wl-zone' + (selected === a.id ? ' sel' : '')}
-                      onClick={() => select(a.id)}
-                      title={a.name}
-                      style={{
-                        left: a.x + '%',
-                        top: a.y + '%',
-                        width: a.r * 2 + '%',
-                        paddingBottom: a.r * 2 + '%',
-                        height: 0,
-                        background: `radial-gradient(circle, ${c} 0%, transparent 70%)`,
-                        opacity,
-                      }}
-                    />
-                    <div className="wl-pin" style={{ left: a.x + '%', top: a.y + '%' }}>
-                      {a.icon}
-                    </div>
-                  </div>
-                )
-              })}
+              {/* Heat zones removed: they were placed as percentages of the
+                  static room, and the game canvas is a different size and
+                  layout, so they floated over empty floor. Appliance
+                  interaction belongs to the game now. */}
             </div>
             <div className="wl-legend">
               <span>Low draw</span>
               <span className="wl-ramp" />
               <span>High draw</span>
-              <span className="wl-legend-note">— hover a glow, click to inspect</span>
+              <span className="wl-legend-note">— walk over to a socket and press E to install</span>
             </div>
           </section>
 
@@ -596,7 +564,7 @@ export default function HomePage() {
                 })()
               ) : (
                 <>
-                  <div className="wl-dt">Click any glow in the room, or a row below.</div>
+                  <div className="wl-dt">Pick a row below, or walk around your flat.</div>
                   <div className="wl-tip">
                     Each appliance is compared against what a typical flat in your block uses.
                   </div>
