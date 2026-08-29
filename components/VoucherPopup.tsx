@@ -8,9 +8,10 @@ type VoucherPopupProps = {
   onClose: () => void
   rank: number
   username: string
+  rewards: number
 }
 
-export default function VoucherPopup({ open, onClose, rank, username }: VoucherPopupProps) {
+export default function VoucherPopup({ open, onClose, rank, username, rewards }: VoucherPopupProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -65,6 +66,9 @@ export default function VoucherPopup({ open, onClose, rank, username }: VoucherP
         <div className="voucher-sub">
           Congratulations <b>{username}</b>!
         </div>
+        {rewards > 1 && (
+          <div className="voucher-count">{rewards}x Vouchers</div>
+        )}
         <div className="voucher-card">
           <div className="voucher-card-label">SAMPLE VOUCHER</div>
           <div className="voucher-card-value">S$10 OFF</div>

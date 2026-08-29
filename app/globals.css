@@ -561,6 +561,16 @@ body {
 .voucher-sub b {
   color: var(--ink);
 }
+.voucher-count {
+  font-family: var(--font-pixel), monospace;
+  font-size: 14px;
+  color: var(--amber);
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  padding: 6px 14px;
+  border: 2px solid var(--amber);
+  display: inline-block;
+}
 .voucher-card {
   background: var(--bg-deep);
   border: 3px dashed var(--amber);

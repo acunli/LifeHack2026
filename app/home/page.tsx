@@ -701,10 +701,10 @@ export default function HomePage() {
               }}
               style={{ cursor: leaderboardRank <= 3 ? 'pointer' : 'default' }}
             >
-              <span className="wl-rewards-icon" aria-hidden>🔔</span>
-              <span className="wl-rewards-count wl-px">{rewards}</span>
+              <span className="wl-rewards-icon" aria-hidden>🎟️</span>
+              <span className="wl-rewards-count wl-px">{rewards}x</span>
               <span className="wl-rewards-label wl-px">
-                {applied.size > 0 ? 'Rewards' : '🔒 Save first'}
+                {applied.size > 0 ? 'Vouchers' : '🔒 Save first'}
               </span>
               {rewardNotify && <span className={'wl-rewards-plus' + (rewardDelta < 0 ? ' negative' : '')}>{rewardDelta > 0 ? '+1' : '-1'}</span>}
             </button>
@@ -1074,6 +1074,7 @@ export default function HomePage() {
         onClose={closeVoucher}
         rank={leaderboardRank}
         username={session.username}
+        rewards={rewards}
       />
     </div>
   )
