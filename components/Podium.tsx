@@ -42,7 +42,7 @@ export function Podium({ entries }: { entries: LeaderboardEntry[] }) {
                 {entry.score}
               </span>
               <div
-                className={`pixel-panel mt-2 w-full ${HEIGHTS[place]} ${isChampion ? 'anim-energy' : ''} flex items-start justify-center pt-1`}
+                className={`pixel-panel mt-2 w-full ${HEIGHTS[place]} ${isChampion ? 'podium-champion' : ''} flex items-start justify-center pt-1`}
                 style={
                   isChampion
                     ? { borderColor: 'var(--gold-deep)' }
