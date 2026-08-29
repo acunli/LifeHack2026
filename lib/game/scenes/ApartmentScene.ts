@@ -45,6 +45,17 @@ export default class ApartmentScene extends Phaser.Scene {
   // a generated placeholder id for custom ones. One shared map lets install
   // requests, clicks, and the score overlay treat both kinds identically.
   private appliancesByTargetId = new Map<string, Appliance>();
+
+  /**
+   * Heat aura. A soft ellipse under the player whose colour and size follow
+   * the draw of appliances nearby — walk toward the aircon and it flares red,
+   * stand by the fridge and it stays green. Makes consumption something you
+   * feel while moving, rather than only a number on the panel.
+   */
+  private heatAura!: Phaser.GameObjects.Ellipse;
+
+  /** Tooltip shown while hovering an appliance. */
+  private hoverLabel!: Phaser.GameObjects.Text;
   private nearestSocketId: string | undefined = undefined;
   private keyE!: Phaser.Input.Keyboard.Key;
   private customApplianceCounter = 0;
@@ -92,12 +103,28 @@ export default class ApartmentScene extends Phaser.Scene {
       const appliance = new Appliance(this, info, sprite);
       sprite.setInteractive({ useHandCursor: true });
       this.wireApplianceClick(appliance, socketDef.id, socketDef.purpose);
+      this.wireApplianceHover(appliance);
       this.appliancesByTargetId.set(socketDef.id, appliance);
     });
+
+    // Aura sits under the player but over the floor.
+    this.heatAura = this.add.ellipse(SPAWN_X, SPAWN_Y, 96, 48, 0x9be564, 0.22);
+    this.heatAura.setDepth(880);
+    this.heatAura.setBlendMode(Phaser.BlendModes.ADD);
 
     // LAYER 3: Player, always drawn above the room
     this.player = new Player(this, SPAWN_X, SPAWN_Y);
     this.player.setDepth(900);
+
+    this.hoverLabel = this.add.text(0, 0, '', {
+      fontFamily: 'monospace',
+      fontSize: '11px',
+      color: '#f3f2e6',
+      backgroundColor: '#0d1813',
+      padding: { x: 6, y: 4 },
+    });
+    this.hoverLabel.setDepth(1200);
+    this.hoverLabel.setVisible(false);
     this.physics.world.setBounds(0, 0, canvas.width_px, canvas.height_px);
 
     // Walls + major furniture block movement; small decorations and the
@@ -239,6 +266,62 @@ export default class ApartmentScene extends Phaser.Scene {
   update() {
     this.player.update();
     this.updateSocketProximity();
+    this.updateHeatAura();
+  }
+
+  /**
+   * Hover an appliance to read it without walking over and scanning. The
+   * label follows the appliance rather than the cursor, so it does not jitter.
+   */
+  private wireApplianceHover(appliance: Appliance): void {
+    appliance.onHover(
+      () => {
+        const c = appliance.getCentre();
+        const state = appliance.isDrawing() ? '' : '  (off)';
+        this.hoverLabel.setText(
+          `${appliance.info.name}  ${appliance.info.dailyKwh} kWh/day${state}`,
+        );
+        this.hoverLabel.setPosition(
+          c.x - this.hoverLabel.width / 2,
+          c.y - this.hoverLabel.height - 14,
+        );
+        this.hoverLabel.setVisible(true);
+      },
+      () => this.hoverLabel.setVisible(false),
+    );
+  }
+
+  /**
+   * Colour and size follow the nearest drawing appliance, falling off with
+   * distance. Green when the flat is quiet, red when standing next to
+   * something hungry.
+   */
+  private updateHeatAura(): void {
+    const RANGE = 140;
+    let heat = 0;
+
+    for (const appliance of this.appliancesByTargetId.values()) {
+      if (!appliance.isDrawing()) continue;
+      const c = appliance.getCentre();
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, c.x, c.y);
+      if (dist > RANGE) continue;
+      // Normalised draw, 0-1, against a hungry appliance at ~6 kWh/day.
+      const draw = Math.min(1, appliance.info.dailyKwh / 6);
+      heat = Math.max(heat, draw * (1 - dist / RANGE));
+    }
+
+    const t = Phaser.Math.Clamp(heat, 0, 1);
+    const cool = Phaser.Display.Color.ValueToColor(0x9be564);
+    const hot = Phaser.Display.Color.ValueToColor(0xff7a6b);
+    const mix = Phaser.Display.Color.Interpolate.ColorWithColor(cool, hot, 100, t * 100);
+
+    this.heatAura.setPosition(this.player.x, this.player.y - 4);
+    this.heatAura.setFillStyle(
+      Phaser.Display.Color.GetColor(mix.r, mix.g, mix.b),
+      0.16 + t * 0.3,
+    );
+    const size = 84 + t * 60;
+    this.heatAura.setSize(size, size / 2);
   }
 
   private updateSocketProximity(): void {

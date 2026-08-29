@@ -51,6 +51,22 @@ export default class Appliance {
    * first (a Container needs an explicit hit area, an Image doesn't) - this
    * just attaches the click routing.
    */
+  /** Centre of the appliance in world space, for proximity and hover UI. */
+  getCentre(): { x: number; y: number } {
+    const b = this.visual.getBounds();
+    return { x: b.centerX, y: b.centerY };
+  }
+
+  /** Whether it is currently drawing power — an unplugged unit adds no heat. */
+  isDrawing(): boolean {
+    return this.installed && this.powered;
+  }
+
+  onHover(over: () => void, out: () => void): void {
+    this.visual.on('pointerover', over);
+    this.visual.on('pointerout', out);
+  }
+
   onClick(handler: () => void): void {
     this.visual.on('pointerdown', handler);
   }

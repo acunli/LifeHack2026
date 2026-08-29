@@ -26,6 +26,15 @@ const SPEED = 140;
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   private facing: Facing = 'front';
+  /**
+   * Walk bob.
+   *
+   * The character sheet has one frame per facing and no walk cycle, so there
+   * is no animation to play. Nudging the draw origin while moving gives the
+   * sprite some weight without new art. Origin rather than position, so the
+   * physics body stays put and collisions are unaffected.
+   */
+  private bobPhase = 0;
   private virtualX = 0;
   private virtualY = 0;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -74,6 +83,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     body.setVelocity(vx * SPEED, vy * SPEED);
+
+    const moving = vx !== 0 || vy !== 0;
+    if (moving) {
+      // Stepped, not smooth — a continuous sine reads as floating rather than
+      // walking at this pixel scale.
+      this.bobPhase = (this.bobPhase + 1) % 20;
+      this.setOrigin(0.5, this.bobPhase < 10 ? 1 : 1.035);
+    } else {
+      this.bobPhase = 0;
+      this.setOrigin(0.5, 1);
+    }
 
     if (vy < 0) this.setFacing('back');
     else if (vy > 0) this.setFacing('front');
