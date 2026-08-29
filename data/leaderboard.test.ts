@@ -1,0 +1,56 @@
+import { describe, expect, it } from "vitest";
+import { COMPLEX_SIZE, buildStanding } from "./leaderboard";
+
+describe("buildStanding", () => {
+  it("is deterministic — the same inputs give the same rank every time", () => {
+    // A rank that jitters between renders would hydrate-mismatch, and would
+    // change mid-demo.
+    const a = buildStanding("04-12", 74);
+    const b = buildStanding("04-12", 74);
+    expect(a.rank).toBe(b.rank);
+    expect(a.rows.map((r) => r.roomNumber)).toEqual(
+      b.rows.map((r) => r.roomNumber),
+    );
+  });
+
+  it("includes the resident exactly once", () => {
+    const s = buildStanding("04-12", 74);
+    expect(s.rows.filter((r) => r.isYou)).toHaveLength(1);
+  });
+
+  it("does not duplicate the resident's own room from the seeded set", () => {
+    const s = buildStanding("04-12", 74);
+    const matches = s.rows.filter((r) => r.roomNumber === "04-12");
+    expect(matches).toHaveLength(1);
+  });
+
+  it("keeps the complex at full size", () => {
+    const s = buildStanding("99-99", 74);
+    expect(s.total).toBe(COMPLEX_SIZE + 1);
+  });
+
+  it("sorts by score descending", () => {
+    const s = buildStanding("04-12", 74);
+    for (let i = 1; i < s.rows.length; i++) {
+      expect(s.rows[i - 1].score).toBeGreaterThanOrEqual(s.rows[i].score);
+    }
+  });
+
+  it("ranks a perfect score first, with no gap", () => {
+    const s = buildStanding("04-12", 100);
+    expect(s.rank).toBe(1);
+    expect(s.ahead).toBeNull();
+    expect(s.gapToNext).toBe(0);
+  });
+
+  it("ranks a terrible score last", () => {
+    const s = buildStanding("04-12", 0);
+    expect(s.rank).toBe(s.total);
+  });
+
+  it("reports a non-negative gap to the apartment above", () => {
+    const s = buildStanding("04-12", 74);
+    expect(s.gapToNext).toBeGreaterThanOrEqual(0);
+    if (s.ahead) expect(s.ahead.score).toBeGreaterThanOrEqual(74);
+  });
+});

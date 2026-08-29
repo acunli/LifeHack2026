@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clearSession } from "@/lib/session";
 import { useSession } from "@/lib/useSession";
@@ -82,6 +83,13 @@ export default function ApartmentPage() {
           >
             Score {result.score}
           </button>
+          <Link
+            href="/leaderboard"
+            className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
+            style={{ fontFamily: "var(--font-pixel)" }}
+          >
+            League
+          </Link>
           <button
             onClick={handleLogout}
             className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
