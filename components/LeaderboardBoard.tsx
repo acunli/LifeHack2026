@@ -91,25 +91,21 @@ export function LeaderboardBoard({
         <div className="pixel-panel pixel-panel-gold mb-6 flex items-center justify-between gap-3 p-4">
           <div className="flex flex-col">
             <span className="pixel text-[9px] uppercase tracking-wide text-muted-w">
-              {me.isProjected ? 'Projected rank' : 'Your rank'}
+              Your rank
             </span>
             <span className="pixel rank-gold text-[16px]">
               {ordinal(me.rank)}
             </span>
             <span className="pixel mt-1 text-[9px] text-muted-w">{me.tier}</span>
-            {me.isProjected && (
+            {me.isProjected && me.projectedScore !== undefined && (
               <span className="pixel mt-2 text-[7px] uppercase text-gold">
-                Preview · not measured yet
+                Plan would reach {me.projectedScore} · rank updates when metered
               </span>
             )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <ScoreMeter score={me.score} />
-            {me.isProjected ? (
-              <span className="pixel text-[7px] uppercase text-gold">Plan preview</span>
-            ) : (
-              <ChangeIndicator change={me.change} />
-            )}
+            <ChangeIndicator change={me.change} />
           </div>
         </div>
       )}

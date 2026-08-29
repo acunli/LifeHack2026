@@ -143,6 +143,15 @@ export function seedLegacySession(roomNumber: string): void {
 type StoredScore = {
   current: number
   previous: number
+  /**
+   * The resident's measured score — what the meter says, with no plan applied.
+   *
+   * The league ranks on this and only this. `current` may be a preview of an
+   * uncompleted plan, and a plan must never move a real position: otherwise
+   * anyone can climb the board by clicking Preview, without changing a single
+   * thing in their flat.
+   */
+  measured?: number
   /** True when `current` previews a resident's uncompleted savings plan. */
   isProjected?: boolean
 }
@@ -165,6 +174,9 @@ function readScores(): StoredScores {
       scores[userId] = {
         current: Math.max(0, Math.min(100, Math.round(candidate.current!))),
         previous: Math.max(0, Math.min(100, Math.round(candidate.previous!))),
+        measured: Number.isFinite(candidate.measured)
+          ? Math.max(0, Math.min(100, Math.round(candidate.measured!)))
+          : undefined,
         isProjected: typeof candidate.isProjected === 'boolean'
           ? candidate.isProjected
           : undefined,
@@ -190,7 +202,7 @@ function writeScores(scores: StoredScores): void {
 export function saveScore(
   userId: string,
   score: number,
-  options: { isProjected?: boolean } = {},
+  options: { isProjected?: boolean; measured?: number } = {},
 ): void {
   const scores = readScores()
   const existing = scores[userId]
@@ -210,6 +222,10 @@ export function saveScore(
   scores[userId] = {
     current: score,
     previous: existing?.previous ?? score,
+    // Only a non-projected save can move the measured figure.
+    measured: options.isProjected
+      ? (existing?.measured ?? options.measured ?? score)
+      : (options.measured ?? score),
     isProjected: options.isProjected ?? false,
   }
   writeScores(scores)

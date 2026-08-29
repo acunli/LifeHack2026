@@ -529,6 +529,8 @@ export default function HomePage() {
     if (!roomNumber || hydratedRoom !== roomNumber) return
     saveScore(userIdFromRoom(roomNumber), score, {
       isProjected: planActive,
+      // The measured figure is the flat's actual usage, before any plan.
+      measured: BASE_SCORE,
     })
   }, [hydratedRoom, planActive, roomNumber, score])
 

@@ -99,6 +99,34 @@ evidence** that it worked, and overclaiming is the fastest way to fail that test
   a resident could improve their score by any means and we would credit it.
 - **The leaderboard is one building of seeded neighbours**, not real households.
 
+## 5b. Why this cannot simply be gamed
+
+The obvious attack on a self-reported energy app is to claim savings you never
+made. It is the first question a sceptical reader should ask, so:
+
+**Nothing you click earns you standing.** The league ranks on *measured*
+consumption only. Applying every recommendation in the app moves your projected
+score — the dashboard will show 84 instead of 74 — and leaves your league
+position exactly where it was. The board says so plainly: "Plan would reach 84 ·
+rank updates when metered."
+
+**The plan is a planning tool, not a scoreboard.** Its job is to answer "what is
+this worth?" before you commit, in the same way a mortgage calculator does not
+give you a house.
+
+**In deployment the measurement is not self-reported at all.** Ecovolt's product
+is smart plugs; consumption comes off the meter. A resident cannot type their
+way to a lower bill because the number is read, not claimed. This prototype has
+no meter, so it simulates that reading — which is exactly why the app keeps the
+measured figure and the previewed figure apart rather than letting one quietly
+become the other.
+
+**What remains gameable, honestly.** Rewards in this build unlock on applying a
+plan, not on achieving it, because a two-day prototype cannot wait a month to
+verify anything. In a real deployment the voucher would settle against the next
+meter read, and an unmet plan would simply not pay out. That is a product
+decision we would make, not one we have implemented.
+
 ## 6. Honest read on stickiness
 
 The weakest part of the current build. The leaderboard and the weekly delta give

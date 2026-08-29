@@ -28,6 +28,8 @@ export type LeaderboardEntry = {
   isCurrentUser: boolean
   /** The resident is previewing a plan; this is not a measured result. */
   isProjected: boolean
+  /** The plan's score, when one is being previewed. Never used for ranking. */
+  projectedScore?: number
 }
 
 /** Raw resident records (usernames only — no legal names/emails). */
@@ -107,7 +109,18 @@ function toEntry(
   // If this is the current user and they have a saved score from apartment
   // recommendations, use that instead of the mock data.
   const saved = isCurrentUser ? getSavedScore(id) : null
-  const score = saved?.current ?? scoreFor(resident, periodSeed)
+
+  /*
+   * Rank on the MEASURED score, never the preview.
+   *
+   * Previously the board used saved.current, which is whatever the resident
+   * had previewed — so clicking through the plan lifted them past neighbours
+   * who had actually used less. The plan is shown alongside as an aspiration
+   * ("you would be Nth"), but position is earned by metered usage only.
+   */
+  const measured = saved?.measured ?? saved?.current
+  const score = measured ?? scoreFor(resident, periodSeed)
+  const projectedScore = saved?.isProjected ? saved.current : undefined
   const previousScore = saved?.previous ?? comparisonScoreFor(resident.roomNumber, score)
 
   return {
@@ -121,6 +134,7 @@ function toEntry(
     tier: rankTier(score),
     isCurrentUser,
     isProjected: saved?.isProjected ?? false,
+    projectedScore,
   }
 }
 
