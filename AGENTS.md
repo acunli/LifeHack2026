@@ -10,25 +10,33 @@ This file is the short version: the rules that are easy to break by accident.
 
 ## Current state — read this first
 
-**No application code exists yet.** As of this revision the repository is:
+**Lane A's foundation is in.** The app scaffolds, builds, and has a working
+login → apartment flow. What exists:
 
 ```
-Assets/          the pixel-art sheets (committed)
-README.md        the plan
-AGENTS.md        this file
+app/
+  layout.tsx  page.tsx           login screen (built)
+  apartment/page.tsx             integration shell — SLOTS ONLY, see below
+  globals.css                    game visual system (seeded by A, owned by C)
+components/LoginForm.tsx         built
+lib/scoring.ts  session.ts       the contract, computeScore, session helpers
+lib/scoring.test.ts              16 passing cases
+data/mockApartment.ts            ⚠️ PLACEHOLDER — Lane D replaces
+public/assets/                   all 10 sheets, copied and serving
 ```
 
-There is no `package.json`, no `app/`, no `lib/`, no `components/`, no
-`node_modules/`. **Every path mentioned below is a file to be created, not one to
-be found.** If you are asked to modify something that does not exist, say so
-rather than searching.
+**What does NOT exist yet:**
 
-**The first task is README §17 task 1** — scaffold Next.js + TypeScript + Tailwind.
-Until that lands, no build, typecheck, or test command in this file will run.
+- `components/ApartmentRoom.tsx` — the pixel room (Lane B)
+- `data/spriteMap.ts` — sprite coordinates (Lane B)
+- `components/EnergyDashboard.tsx`, `StatCard.tsx`, `ScoreBadge.tsx` (Lane C)
+- `docs/` — rationale, copy, demo script (Lane D)
 
-**Task 0 gates the build.** Lane D writes the demo story first and hands it over
-at 14:00; it is the spec for what must exist. If you are asked to build UI before
-that exists, flag it.
+`app/apartment/page.tsx` renders two labelled placeholder panels where B's room
+and C's HUD drop in. **Do not build the room or the HUD inside that file** — it
+is the shared integration point and stays tiny.
+
+All commands in Verification now work.
 
 ---
 
@@ -229,16 +237,16 @@ and call it done — take the string from `copy.md` or ask for it.
 
 ## Verification
 
-⚠️ **None of these work until README §17 task 1 (the scaffold) has landed.** There
-is no `package.json` yet. Do not report a passing build before one exists.
-
-Run after any non-trivial change, before moving on:
+Run after any non-trivial change, before moving on. All three work today:
 
 ```bash
-npx tsc --noEmit     # must be clean
-npm run build        # must succeed
-npm test             # only after Vitest is added (task 5); not installed yet
+./node_modules/.bin/tsc --noEmit   # must be clean
+npm run build                      # must succeed
+npm test                           # 16 cases, must stay green
 ```
+
+Use `./node_modules/.bin/tsc`, not `npx tsc` — `npx` will fetch an unrelated
+package called `tsc` from the registry and print nonsense.
 
 Node was installed via Homebrew (v26.7.0). If you hit `command not found: node`,
 that is why — `brew install node`.
