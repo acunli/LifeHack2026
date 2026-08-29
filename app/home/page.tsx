@@ -29,6 +29,7 @@ import {
 import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
 import VoucherPopup from '@/components/VoucherPopup'
 import EnergyHistogram from '@/components/EnergyHistogram'
+import AutoNewsFeed from '@/components/AutoNewsFeed'
 
 /**
  * What-if changes persist across navigation.
@@ -961,6 +962,9 @@ export default function HomePage() {
           </aside>
         </div>
 
+        <div className="section-header">Latest Energy News</div>
+        <AutoNewsFeed />
+
         <div className="section-header">Energy Overview</div>
         <EnergyHistogram
           appliances={APPLIANCES}
@@ -1098,14 +1102,14 @@ const css = `
 .wl-app{
   --bg:#16261d; --bg-deep:#0d1813; --panel:#223a2c; --panel-hi:#2f5240;
   --line:#3f6b4e; --line-hi:#5fa072; --ink:#f3f2e6; --ink-dim:#a3c4ac;
-  --amber:#ffc866; --amber-deep:#d99a2b; --lime:#9be564; --red:#ff7a6b;
+  --amber:#ffe066; --amber-deep:#e6b800; --lime:#9be564; --red:#ff7a6b;
   width:100%;max-width:1240px;display:flex;flex-direction:column;gap:14px;
   font-family:var(--font-geist),system-ui,sans-serif;
 }
 .wl-scrim,.wl-drawer{
   --bg:#16261d; --bg-deep:#0d1813; --panel:#223a2c; --panel-hi:#2f5240;
   --line:#3f6b4e; --line-hi:#5fa072; --ink:#f3f2e6; --ink-dim:#a3c4ac;
-  --amber:#ffc866; --amber-deep:#d99a2b; --lime:#9be564; --red:#ff7a6b;
+  --amber:#ffe066; --amber-deep:#e6b800; --lime:#9be564; --red:#ff7a6b;
   font-family:var(--font-geist),system-ui,sans-serif;
 }
 .wl-panel{background:var(--panel);border:3px solid var(--line-hi);

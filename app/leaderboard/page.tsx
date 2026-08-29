@@ -36,8 +36,8 @@ export default function LeaderboardPage() {
   return (
     <main className="float-in mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-5 sm:p-7">
       <header className="pixel-panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <WattLahLogo className="w-full text-[22px] sm:w-auto sm:text-[25px]" />
-        <div>
+        <WattLahLogo className="text-[22px] sm:text-[25px]" />
+        <div className="flex flex-col">
           <p className="pixel text-[9px] uppercase tracking-widest text-ink-dim">
             Eco league · current period
           </p>
