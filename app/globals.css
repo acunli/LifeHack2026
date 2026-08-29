@@ -745,6 +745,17 @@ body {
 }
 /* Inset to match the chart's plot band (10%-92% of the box). Sitting flush at
    top:0 put the max label level with the peak point, so they overlapped. */
+.linechart-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 2px solid var(--bg-deep);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .linechart-y-labels {
   position: absolute;
   top: 10%;

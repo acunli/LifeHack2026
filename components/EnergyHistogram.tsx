@@ -104,13 +104,31 @@ export default function EnergyHistogram({
                 <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="var(--line)" strokeWidth="0.3" strokeDasharray="2,2" />
               ))}
               <path d={areaPath} fill="url(#lineGrad)" />
-              <path d={linePath} fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              {costData.map((v, i) => {
-                const x = (i / (costData.length - 1)) * 100
-                const y = yFor(v)
-                return <circle key={i} cx={x} cy={y} r="2.5" fill="var(--amber)" stroke="var(--bg-deep)" strokeWidth="1" />
-              })}
+              {/* non-scaling-stroke: the viewBox is square and the box is wide, so
+                  without it the stroke renders thicker vertically than
+                  horizontally. */}
+              <path
+                d={linePath}
+                fill="none"
+                stroke="var(--amber)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
             </svg>
+            {/* Dots live outside the SVG. Inside it they inherit the
+                non-uniform scale and render as ovals rather than circles. */}
+            {costData.map((v, i) => (
+              <span
+                key={i}
+                className="linechart-dot"
+                style={{
+                  left: `${(i / (costData.length - 1)) * 100}%`,
+                  top: `${yFor(v)}%`,
+                }}
+              />
+            ))}
             <div className="linechart-labels">
               {DAYS.map((day) => (
                 <span key={day} className="linechart-label">{day}</span>
