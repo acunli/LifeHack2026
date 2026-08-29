@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Press_Start_2P } from "next/font/google";
 import "./globals.css";
+import MusicToggle from "@/components/MusicToggle";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geist.variable} ${pressStart.variable} min-h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">{children}
+        <MusicToggle />
+      </body>
     </html>
   );
 }
