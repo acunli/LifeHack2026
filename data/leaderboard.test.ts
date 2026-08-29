@@ -84,3 +84,48 @@ describe("handles", () => {
     expect(s.rows.find((r) => r.isYou)?.handle).toBe("You");
   });
 });
+
+describe("rank, tier and daily change", () => {
+  it("assigns a rank to every row, starting at 1", () => {
+    const s = buildStanding("04-12", 74, 3, "You");
+    expect(s.rows[0].rank).toBe(1);
+    s.rows.forEach((r, i) => expect(r.rank).toBe(i + 1));
+  });
+
+  it("derives change from yesterday's score rather than inventing it", () => {
+    const s = buildStanding("04-12", 74, 3, "You");
+    for (const r of s.rows) {
+      expect(r.change.value).toBe(r.score - r.previousScore);
+    }
+  });
+
+  it("keeps previous scores inside 0-100", () => {
+    const s = buildStanding("04-12", 74, 3, "You");
+    for (const r of s.rows) {
+      expect(r.previousScore).toBeGreaterThanOrEqual(0);
+      expect(r.previousScore).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("gives every row a tier matching its score", () => {
+    const s = buildStanding("04-12", 74, 3, "You");
+    for (const r of s.rows) {
+      if (r.score >= 90) expect(r.tier).toBe("Energy Saver");
+      else if (r.score >= 75) expect(r.tier).toBe("Good");
+      else if (r.score >= 50) expect(r.tier).toBe("Average");
+      else expect(r.tier).toBe("Needs Improvement");
+    }
+  });
+});
+
+describe("fetchStanding", () => {
+  it("resolves to the same data buildStanding produces", async () => {
+    const { fetchStanding } = await import("./leaderboard");
+    const direct = buildStanding("04-12", 74, 3, "You");
+    const fetched = await fetchStanding("04-12", 74, 3, "You");
+    expect(fetched.rank).toBe(direct.rank);
+    expect(fetched.rows.map((r) => r.handle)).toEqual(
+      direct.rows.map((r) => r.handle),
+    );
+  });
+});

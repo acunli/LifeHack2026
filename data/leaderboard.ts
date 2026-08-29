@@ -1,4 +1,5 @@
 import { between, makeRng } from "@/lib/rng";
+import { dailyChange, rankTier, type ApartmentStatus, type DailyChange } from "@/lib/scoring";
 import { hashSeed } from "@/lib/rng";
 import type { CharacterName } from "@/components/Mascot";
 
@@ -36,9 +37,14 @@ export interface LeaderboardRow {
   handle: string;
   mascot: CharacterName;
   score: number;
-  /** Change since yesterday, in points. */
+  /** Yesterday's score, so movement is derived rather than invented. */
+  previousScore: number;
+  change: DailyChange;
+  tier: ApartmentStatus;
+  /** Change since yesterday, in points. Kept for existing consumers. */
   delta: number;
   isYou: boolean;
+  rank: number;
 }
 
 function neighbours(): Omit<LeaderboardRow, "isYou">[] {
@@ -51,11 +57,20 @@ function neighbours(): Omit<LeaderboardRow, "isYou">[] {
     const base = HANDLES[i % HANDLES.length];
     const handle =
       i < HANDLES.length ? base : `${base}${Math.floor(i / HANDLES.length) + 1}`;
+    const score = Math.round(between(rng, 48, 97));
+    const previousScore = Math.max(
+      0,
+      Math.min(100, score - Math.round(between(rng, -7, 9))),
+    );
     rows.push({
       handle,
       mascot: mascotFor(handle),
-      score: Math.round(between(rng, 48, 97)),
-      delta: Math.round(between(rng, -7, 9)),
+      score,
+      previousScore,
+      change: dailyChange(score, previousScore),
+      tier: rankTier(score),
+      delta: score - previousScore,
+      rank: 0,
     });
   }
   return rows;
@@ -83,15 +98,23 @@ export function buildStanding(
     isYou: false,
   }));
 
+  const previousScore = Math.max(0, Math.min(100, score - dailyDelta));
   rows.push({
     handle: handle?.trim() || "You",
     mascot: mascotFor(roomNumber),
     score,
+    previousScore,
+    change: dailyChange(score, previousScore),
+    tier: rankTier(score),
     delta: dailyDelta,
     isYou: true,
+    rank: 0,
   });
 
   rows.sort((a, b) => b.score - a.score || a.handle.localeCompare(b.handle));
+  rows.forEach((r, i) => {
+    r.rank = i + 1;
+  });
 
   const index = rows.findIndex((r) => r.isYou);
   const ahead = index > 0 ? rows[index - 1] : null;
@@ -103,4 +126,21 @@ export function buildStanding(
     gapToNext: ahead ? ahead.score - score : 0,
     ahead,
   };
+}
+
+/**
+ * Async data-access shim.
+ *
+ * Ported from the leaderboard mock, and worth keeping: the leaderboard is the
+ * one surface that will eventually need a real backend, and shaping the call
+ * as a promise now means the components already handle loading, empty and
+ * error states. Swapping this for a fetch() later touches no UI.
+ */
+export function fetchStanding(
+  roomNumber: string,
+  score: number,
+  dailyDelta = 3,
+  handle?: string,
+): Promise<Standing> {
+  return Promise.resolve(buildStanding(roomNumber, score, dailyDelta, handle));
 }

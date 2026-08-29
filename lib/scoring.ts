@@ -77,3 +77,25 @@ export function computeScore(
     status: statusFor(score),
   };
 }
+
+/**
+ * Day-on-day score movement. Ported from the leaderboard mock.
+ *
+ * Bounded to [-100, 100] because both inputs are already clamped.
+ */
+export type DailyChange = {
+  value: number;
+  direction: "up" | "down" | "flat";
+};
+
+export function dailyChange(today: number, previous: number): DailyChange {
+  const clamp01 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  const value = clamp01(today) - clamp01(previous);
+  return {
+    value,
+    direction: value > 0 ? "up" : value < 0 ? "down" : "flat",
+  };
+}
+
+/** Alias for statusFor, matching the mock's naming. */
+export const rankTier = statusFor;
