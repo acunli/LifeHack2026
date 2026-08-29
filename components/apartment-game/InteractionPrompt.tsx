@@ -28,20 +28,8 @@ export default function InteractionPrompt() {
   if (!near || near.occupied) return null;
 
   return (
-    <div
-      style={{
-        marginTop: '0.75rem',
-        padding: '0.5rem 1rem',
-        backgroundColor: '#2a2a2a',
-        border: '1px solid #4ade80',
-        borderRadius: '6px',
-        color: '#fff',
-        fontSize: '0.875rem',
-        fontFamily: 'monospace',
-        lineHeight: 'normal',
-      }}
-    >
-      <strong style={{ color: '#4ade80' }}>[E]</strong> Add appliance — {near.purpose}
+    <div className="game-interaction-prompt" role="status" aria-live="polite">
+      <strong>[E]</strong> Scan {near.purpose} meter
     </div>
   );
 }

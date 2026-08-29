@@ -26,6 +26,8 @@ export type LeaderboardEntry = {
   tier: ReturnType<typeof rankTier>
   rank: number
   isCurrentUser: boolean
+  /** The resident is previewing a plan; this is not a measured result. */
+  isProjected: boolean
 }
 
 /** Raw resident records (usernames only — no legal names/emails). */
@@ -62,12 +64,13 @@ function seededUnit(seed: string): number {
 }
 
 /**
- * Deterministic usage factor for a resident/day. Maps to roughly [0.5, 1.5]
- * of baseline, which in turn maps computeScore across the full 0–100 range.
+ * Deterministic usage factor for a resident/period. Maps to roughly [1, 2]
+ * of baseline, which the shared score contract maps across the full 100–0
+ * range without inventing a second leaderboard-only formula.
  */
 function usageFactor(roomNumber: string, day: string): number {
   const u = seededUnit(`${roomNumber}:${day}`)
-  return 0.5 + u // [0.5, 1.5)
+  return 1 + u // [1, 2)
 }
 
 /**
@@ -118,6 +121,7 @@ function toEntry(
     change: dailyChange(score, previousScore),
     tier: rankTier(score),
     isCurrentUser,
+    isProjected: saved?.isProjected ?? false,
   }
 }
 

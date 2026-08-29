@@ -26,6 +26,8 @@ const SPEED = 140;
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   private facing: Facing = 'front';
+  private virtualX = 0;
+  private virtualY = 0;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys: {
     W: Phaser.Input.Keyboard.Key;
@@ -63,8 +65,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const up = this.cursors.up.isDown || this.keys.W.isDown;
     const down = this.cursors.down.isDown || this.keys.S.isDown;
 
-    let vx = (left ? -1 : 0) + (right ? 1 : 0);
-    let vy = (up ? -1 : 0) + (down ? 1 : 0);
+    let vx = Phaser.Math.Clamp((left ? -1 : 0) + (right ? 1 : 0) + this.virtualX, -1, 1);
+    let vy = Phaser.Math.Clamp((up ? -1 : 0) + (down ? 1 : 0) + this.virtualY, -1, 1);
 
     if (vx !== 0 && vy !== 0) {
       vx *= Math.SQRT1_2;
@@ -73,10 +75,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     body.setVelocity(vx * SPEED, vy * SPEED);
 
-    if (up) this.setFacing('back');
-    else if (down) this.setFacing('front');
-    else if (left) this.setFacing('left');
-    else if (right) this.setFacing('right');
+    if (vy < 0) this.setFacing('back');
+    else if (vy > 0) this.setFacing('front');
+    else if (vx < 0) this.setFacing('left');
+    else if (vx > 0) this.setFacing('right');
+  }
+
+  setVirtualDirection(x: number, y: number): void {
+    this.virtualX = Phaser.Math.Clamp(x, -1, 1);
+    this.virtualY = Phaser.Math.Clamp(y, -1, 1);
   }
 
   private setFacing(facing: Facing): void {

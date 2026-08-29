@@ -1,15 +1,18 @@
 /**
  * Scoring logic for WattLah.
  *
- * The leaderboard uses a single 0–100 "energy score". A score is derived from
- * how a resident's energy usage compares to their apartment baseline:
- *   - Using exactly the baseline  -> 50 (Average)
- *   - Using less than baseline    -> higher score (up to 100)
- *   - Using more than baseline    -> lower score (down to 0)
- *
- * All scores are clamped to [0, 100] so the leaderboard never shows a
- * cumulative value above 100.
+ * Compatibility adapter for the leaderboard's original `EnergyReading`
+ * shape. The actual formula and status thresholds live in `lib/scoring.ts`,
+ * so every surface now gives the same usage the same score.
  */
+
+import {
+  computeScore as computeApartmentScore,
+  dailyChange,
+  rankTier,
+  TARIFF_SGD_PER_KWH,
+  type DailyChange,
+} from '@/lib/scoring'
 
 export const SCORE_MIN = 0
 export const SCORE_MAX = 100
@@ -21,7 +24,7 @@ export type EnergyReading = {
   baselineKwh: number
 }
 
-export type RankTier = 'Energy Saver' | 'Good' | 'Average' | 'Needs Improvement'
+export type RankTier = ReturnType<typeof rankTier>
 
 /** Clamp a number into the valid score range. */
 export function clampScore(value: number): number {
@@ -35,37 +38,16 @@ export function clampScore(value: number): number {
 export function computeScore(reading: EnergyReading): number {
   const { usageKwh, baselineKwh } = reading
   if (!baselineKwh || baselineKwh <= 0) return SCORE_MIN
-  // Fraction of baseline saved: >0 means used less than baseline.
-  const saved = (baselineKwh - usageKwh) / baselineKwh
-  // Center on-baseline at 50; a full baseline saved/overshot spans +-50.
-  const raw = 50 + saved * 100
-  return clampScore(Math.round(raw))
+  return computeApartmentScore({
+    roomNumber: 'league',
+    totalConsumptionKwh: usageKwh,
+    referenceConsumptionKwh: baselineKwh,
+    costPerKwh: TARIFF_SGD_PER_KWH,
+  }).score
 }
 
 /**
  * Map a 0–100 score to its qualitative tier. Thresholds preserved from spec.
  */
-export function rankTier(score: number): RankTier {
-  const s = clampScore(score)
-  if (s >= 90) return 'Energy Saver'
-  if (s >= 75) return 'Good'
-  if (s >= 50) return 'Average'
-  return 'Needs Improvement'
-}
-
-export type DailyChange = {
-  value: number
-  direction: 'up' | 'down' | 'flat'
-}
-
-/**
- * Difference between today's score and the previous day's score.
- * Bounded to [-100, 100] because both inputs are already clamped to [0, 100].
- */
-export function dailyChange(today: number, previous: number): DailyChange {
-  const value = clampScore(today) - clampScore(previous)
-  return {
-    value,
-    direction: value > 0 ? 'up' : value < 0 ? 'down' : 'flat',
-  }
-}
+export { dailyChange, rankTier }
+export type { DailyChange }

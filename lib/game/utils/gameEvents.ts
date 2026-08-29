@@ -10,8 +10,6 @@
  * placeholder id for custom ones).
  */
 
-import * as Phaser from 'phaser';
-
 export interface AppliancePayload {
   id: string;
   name: string;
@@ -73,7 +71,52 @@ export interface PlaceCustomAppliancePayload {
   y: number;
 }
 
-export const gameEvents = new Phaser.Events.EventEmitter();
+export interface PlayerMoveRequestPayload {
+  x: number;
+  y: number;
+}
+
+type EventHandler = (...args: never[]) => void;
+type Listener = { handler: EventHandler; context?: unknown };
+
+/** A tiny framework-neutral bus that is safe to import during Next.js SSR. */
+class GameEventBus {
+  private listeners = new Map<string, Listener[]>();
+
+  on(event: string, handler: EventHandler, context?: unknown): this {
+    const listeners = this.listeners.get(event) ?? [];
+    listeners.push({ handler, context });
+    this.listeners.set(event, listeners);
+    return this;
+  }
+
+  off(event: string, handler?: EventHandler, context?: unknown): this {
+    if (!handler) {
+      this.listeners.delete(event);
+      return this;
+    }
+
+    const listeners = this.listeners.get(event)?.filter(listener => (
+      listener.handler !== handler ||
+      (context !== undefined && listener.context !== context)
+    ));
+    if (listeners?.length) this.listeners.set(event, listeners);
+    else this.listeners.delete(event);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const listeners = this.listeners.get(event);
+    if (!listeners?.length) return false;
+    listeners.slice().forEach(listener => {
+      const handler = listener.handler as (...values: unknown[]) => void;
+      handler.apply(listener.context, args);
+    });
+    return true;
+  }
+}
+
+export const gameEvents = new GameEventBus();
 
 export const GAME_EVENTS = {
   SOCKET_NEAR: 'socket:near',
@@ -87,4 +130,6 @@ export const GAME_EVENTS = {
   APPLIANCE_REMOVE_REQUEST: 'appliance:remove-request',
   APPLIANCE_REMOVED: 'appliance:removed',
   APPLIANCE_PLACE_CUSTOM_REQUEST: 'appliance:place-custom-request',
+  PLAYER_MOVE_REQUEST: 'player:move-request',
+  PLAYER_INTERACT_REQUEST: 'player:interact-request',
 } as const;

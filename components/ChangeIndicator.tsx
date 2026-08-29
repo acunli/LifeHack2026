@@ -53,7 +53,7 @@ export function ChangeIndicator({
       </span>
       <span className="sr-only">
         {LABEL[change.direction]}
-        {change.direction !== 'flat' ? ` ${magnitude} points since yesterday` : ' since yesterday'}
+        {change.direction !== 'flat' ? ` ${magnitude} points versus the last period` : ' versus the last period'}
       </span>
     </span>
   )

@@ -40,10 +40,14 @@ export function LeaderboardRow({
       <div
         className={`pixel-panel ${highlight ? 'pixel-panel-gold' : ''} flex items-center gap-3 p-3 transition-all duration-200 ${hovered ? 'translate-x-1 border-[var(--line-hi)]' : ''}`}
         aria-current={highlight ? 'true' : undefined}
+        tabIndex={0}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+        aria-describedby={hovered ? `leaderboard-detail-${entry.id}` : undefined}
         style={hovered ? { boxShadow: '12px 12px 0 0 var(--bg-deep)', position: 'relative', zIndex: 21 } : undefined}
       >
         {/* Rank / medal */}
-        <div className="flex w-12 shrink-0 flex-col items-center gap-1">
+        <div className="leaderboard-rank flex w-12 shrink-0 flex-col items-center gap-1">
           {isTop3 ? (
             <PixelMedal place={entry.rank as 1 | 2 | 3} size={22} />
           ) : (
@@ -58,7 +62,7 @@ export function LeaderboardRow({
         </div>
 
         {/* Mascot */}
-        <div className="shrink-0">
+        <div className="leaderboard-mascot shrink-0">
           <Mascot name={entry.mascot} scale={2} animated={isTop3 || highlight || hovered} />
         </div>
 
@@ -76,6 +80,14 @@ export function LeaderboardRow({
                 You
               </span>
             )}
+            {highlight && entry.isProjected && (
+              <span
+                className="pixel shrink-0 px-1 py-[2px] text-[7px] uppercase"
+                style={{ border: '1px solid var(--gold)', color: 'var(--gold)' }}
+              >
+                Plan
+              </span>
+            )}
           </div>
           <span className="pixel text-[9px] text-muted-w">{entry.tier}</span>
         </div>
@@ -89,7 +101,9 @@ export function LeaderboardRow({
         {/* Hover tooltip with expanded details */}
         {hovered && (
           <div
-            className="pixel-panel absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 p-3"
+            id={`leaderboard-detail-${entry.id}`}
+            role="tooltip"
+            className="leaderboard-tooltip pixel-panel absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 p-3"
             style={{ background: 'var(--bg-deep)', zIndex: 30 }}
           >
             <div className="flex items-center gap-2 mb-2">

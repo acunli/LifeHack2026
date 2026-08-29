@@ -20,10 +20,12 @@ export default class Socket extends Phaser.GameObjects.Container {
   private dot: Phaser.GameObjects.Arc;
   private glow: Phaser.GameObjects.Arc;
   private isNear = false;
+  private occupied: boolean;
 
   constructor(scene: Phaser.Scene, definition: SocketDefinition) {
     super(scene, definition.x, definition.y);
     this.definition = definition;
+    this.occupied = definition.occupied;
 
     this.glow = scene.add.circle(0, 0, GLOW_RADIUS, GLOW_COLOR, 0.35);
     this.glow.setVisible(false);
@@ -44,18 +46,18 @@ export default class Socket extends Phaser.GameObjects.Container {
   }
 
   isOccupied(): boolean {
-    return this.definition.occupied;
+    return this.occupied;
   }
 
   occupy(): void {
-    this.definition.occupied = true;
+    this.occupied = true;
     this.isNear = false;
     this.refreshVisual();
   }
 
   /** Frees the socket back up after its appliance is removed. */
   release(): void {
-    this.definition.occupied = false;
+    this.occupied = false;
     this.refreshVisual();
   }
 

@@ -21,8 +21,16 @@ import {
   ApplianceInstallRequestPayload,
   ApplianceRemoveRequestPayload,
   ApplianceTogglePowerRequestPayload,
+  PlayerMoveRequestPayload,
   PlaceCustomAppliancePayload,
 } from '../utils/gameEvents';
+import {
+  connectAuditTarget,
+  disconnectAuditTarget,
+  readAuditProgress,
+  setAuditTargetPower,
+} from '../utils/auditProgress';
+import { readRawSession } from '@/lib/session';
 
 // Spawn just below the apartment's only door, facing up into the room.
 const SPAWN_X = 368;
@@ -40,6 +48,7 @@ export default class ApartmentScene extends Phaser.Scene {
   private nearestSocketId: string | undefined = undefined;
   private keyE!: Phaser.Input.Keyboard.Key;
   private customApplianceCounter = 0;
+  private roomNumber = 'demo';
 
   constructor() {
     super({ key: 'ApartmentScene' });
@@ -100,6 +109,17 @@ export default class ApartmentScene extends Phaser.Scene {
     this.sockets = socketDefinitions.map(def => new Socket(this, def));
     this.keyE = this.input.keyboard!.addKey('E');
 
+    this.roomNumber = readRawSession()?.roomNumber?.trim() || 'demo';
+    const auditProgress = readAuditProgress(this.roomNumber);
+    auditProgress.connectedTargetIds.forEach(targetId => {
+      const appliance = this.appliancesByTargetId.get(targetId);
+      const socket = this.sockets.find(candidate => candidate.definition.id === targetId);
+      if (!appliance || !socket) return;
+      appliance.install();
+      if (auditProgress.powerByTargetId[targetId] === false) appliance.setOn(false);
+      socket.occupy();
+    });
+
     // React requests an install (from a socket walk-up or a custom
     // placeholder click), a power toggle, a removal, or a custom appliance
     // drop; this scene owns whether it's valid and actually flips the state.
@@ -107,12 +127,21 @@ export default class ApartmentScene extends Phaser.Scene {
     gameEvents.on(GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST, this.handlePlaceCustomRequest, this);
     gameEvents.on(GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST, this.handleTogglePowerRequest, this);
     gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, this.handleRemoveRequest, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    gameEvents.on(GAME_EVENTS.PLAYER_MOVE_REQUEST, this.handlePlayerMoveRequest, this);
+    gameEvents.on(GAME_EVENTS.PLAYER_INTERACT_REQUEST, this.handlePlayerInteractRequest, this);
+    const removeEventHandlers = () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALL_REQUEST, this.handleInstallRequest, this);
       gameEvents.off(GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST, this.handlePlaceCustomRequest, this);
       gameEvents.off(GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST, this.handleTogglePowerRequest, this);
       gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, this.handleRemoveRequest, this);
-    });
+      gameEvents.off(GAME_EVENTS.PLAYER_MOVE_REQUEST, this.handlePlayerMoveRequest, this);
+      gameEvents.off(GAME_EVENTS.PLAYER_INTERACT_REQUEST, this.handlePlayerInteractRequest, this);
+    };
+    // Phaser can destroy a game without dispatching Scene SHUTDOWN first.
+    // Listening for both lifecycle exits keeps the module-level React/Phaser
+    // bus from retaining handlers bound to dead sprites after navigation.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, removeEventHandlers);
+    this.events.once(Phaser.Scenes.Events.DESTROY, removeEventHandlers);
 
     // Status text (temporary)
     // Debug label removed — it read 'Apartment from JSON (exact transcription)'
@@ -278,6 +307,7 @@ export default class ApartmentScene extends Phaser.Scene {
 
     const socket = this.sockets.find(s => s.definition.id === payload.installTargetId);
     socket?.occupy();
+    if (socket) connectAuditTarget(this.roomNumber, payload.installTargetId);
 
     gameEvents.emit(GAME_EVENTS.APPLIANCE_INSTALLED, {
       installTargetId: payload.installTargetId,
@@ -290,6 +320,9 @@ export default class ApartmentScene extends Phaser.Scene {
     if (!appliance || !appliance.isInstalled()) return;
 
     appliance.setOn(!appliance.isOn());
+    if (this.sockets.some(socket => socket.definition.id === payload.installTargetId)) {
+      setAuditTargetPower(this.roomNumber, payload.installTargetId, appliance.isOn());
+    }
 
     gameEvents.emit(GAME_EVENTS.APPLIANCE_POWER_CHANGED, {
       installTargetId: payload.installTargetId,
@@ -317,12 +350,23 @@ export default class ApartmentScene extends Phaser.Scene {
       appliance.uninstall();
       const socket = this.sockets.find(s => s.definition.id === payload.installTargetId);
       socket?.release();
+      disconnectAuditTarget(this.roomNumber, payload.installTargetId);
     }
 
     gameEvents.emit(GAME_EVENTS.APPLIANCE_REMOVED, {
       installTargetId: payload.installTargetId,
       appliance: info,
     });
+  }
+
+  private handlePlayerMoveRequest(payload: PlayerMoveRequestPayload): void {
+    this.player.setVirtualDirection(payload.x, payload.y);
+  }
+
+  private handlePlayerInteractRequest(): void {
+    if (!this.nearestSocketId) return;
+    const socket = this.sockets.find(candidate => candidate.definition.id === this.nearestSocketId);
+    if (socket) this.emitInteract(socket.definition.id, socket.definition.purpose);
   }
 
   /** Drops a new placeholder tile where the player dragged a custom appliance from the palette. */

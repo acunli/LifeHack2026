@@ -7,7 +7,7 @@
  * modal handles fixed and custom appliances identically.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   gameEvents,
   GAME_EVENTS,
@@ -16,6 +16,8 @@ import {
 
 export default function ApplianceSelector() {
   const [pending, setPending] = useState<ApplianceInteractPayload | null>(null);
+  const scanButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleInteract = (payload: ApplianceInteractPayload) => setPending(payload);
@@ -24,6 +26,32 @@ export default function ApplianceSelector() {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INTERACT, handleInteract);
     };
   }, []);
+
+  useEffect(() => {
+    if (!pending) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    scanButtonRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPending(null);
+      if (event.key !== 'Tab') return;
+      const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])') ?? [])];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+      previousFocus?.focus();
+    };
+  }, [pending]);
 
   if (!pending) return null;
 
@@ -38,69 +66,33 @@ export default function ApplianceSelector() {
     <div
       role="dialog"
       aria-modal="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 50,
-        lineHeight: 'normal',
-      }}
+      aria-labelledby="scan-dialog-title"
+      className="game-dialog-backdrop"
       onClick={() => setPending(null)}
     >
       <div
-        style={{
-          backgroundColor: '#1f1f1f',
-          border: '1px solid #4ade80',
-          borderRadius: '10px',
-          padding: '1.5rem',
-          maxWidth: '320px',
-          width: '90%',
-          color: '#fff',
-          fontFamily: 'monospace',
-        }}
+        ref={dialogRef}
+        className="game-dialog pixel-panel"
         onClick={e => e.stopPropagation()}
       >
-        <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '0.25rem' }}>
-          {pending.purpose}
-        </p>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>{pending.appliance.name}</h2>
-        <p style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '1.25rem' }}>
+        <p className="game-dialog-eyebrow">ENERGY AUDIT · {pending.purpose}</p>
+        <h2 id="scan-dialog-title">Scan {pending.appliance.name}</h2>
+        <p className="game-dialog-copy">
           {pending.appliance.tip}
         </p>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="game-dialog-actions">
           <button
+            ref={scanButtonRef}
             onClick={install}
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              backgroundColor: '#4ade80',
-              color: '#111',
-              border: 'none',
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+            className="pixel-btn"
           >
-            Install
+            Scan usage
           </button>
           <button
             onClick={() => setPending(null)}
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              backgroundColor: 'transparent',
-              color: '#888',
-              border: '1px solid #444',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+            className="pixel-btn-ghost"
           >
-            Cancel
+            Not now
           </button>
         </div>
       </div>

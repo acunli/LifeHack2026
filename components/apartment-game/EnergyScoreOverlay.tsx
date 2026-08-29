@@ -17,6 +17,10 @@ import {
   ApplianceRemovedPayload,
 } from '@/lib/game/utils/gameEvents';
 import { calculateEnergyScore } from '@/lib/game/utils/energyCalculator';
+import { readAuditProgress } from '@/lib/game/utils/auditProgress';
+import { socketDefinitions } from '@/lib/game/data/socketDefinitions';
+import { applianceCatalog } from '@/lib/game/data/applianceData';
+import { readRawSession } from '@/lib/session';
 
 const STATUS_COLOR: Record<string, string> = {
   'Energy Saver': '#4ade80',
@@ -35,6 +39,33 @@ export default function EnergyScoreOverlay() {
   const [installed, setInstalled] = useState<InstalledEntry[]>([]);
 
   useEffect(() => {
+    const restoreFrame = requestAnimationFrame(() => {
+      const roomNumber = readRawSession()?.roomNumber?.trim() || 'demo';
+      const progress = readAuditProgress(roomNumber);
+      const restored = progress.connectedTargetIds.flatMap((targetId) => {
+        const socket = socketDefinitions.find(candidate => candidate.id === targetId);
+        if (!socket) return [];
+        const definition = applianceCatalog[socket.applianceId];
+        return [{
+          installTargetId: targetId,
+          appliance: {
+            id: definition.id,
+            name: definition.name,
+            dailyKwh: definition.dailyKwh,
+            hoursPerDay: definition.hoursPerDay,
+            tip: definition.tip,
+            isCustom: false,
+          },
+          isOn: progress.powerByTargetId[targetId] !== false,
+        }];
+      });
+      setInstalled(prev => {
+        const entries = new Map(prev.map(entry => [entry.installTargetId, entry]));
+        restored.forEach(entry => entries.set(entry.installTargetId, entry));
+        return [...entries.values()];
+      });
+    });
+
     const handleInstalled = (payload: ApplianceInstalledPayload) => {
       setInstalled(prev =>
         prev.some(e => e.installTargetId === payload.installTargetId)
@@ -55,6 +86,7 @@ export default function EnergyScoreOverlay() {
     gameEvents.on(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
     gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
     return () => {
+      cancelAnimationFrame(restoreFrame);
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
       gameEvents.off(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
       gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);

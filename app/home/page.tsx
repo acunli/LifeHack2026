@@ -8,6 +8,24 @@ import { useSession } from '@/lib/useSession'
 import Mascot from '@/components/Mascot'
 import WattLahLogo from '@/components/WattLahLogo'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
+import UsernameSetup from '@/components/UsernameSetup'
+import { buildLeaderboard } from '@/data/leaderboard'
+import { MOCK_APARTMENT } from '@/data/mockApartment'
+import {
+  computeScore,
+  statusFor,
+  TARIFF_SGD_PER_KWH,
+} from '@/lib/scoring'
+import {
+  AUDIT_PROGRESS_EVENT,
+  readAuditProgress,
+} from '@/lib/game/utils/auditProgress'
+import {
+  gameEvents,
+  GAME_EVENTS,
+  type ApplianceInstalledPayload,
+} from '@/lib/game/utils/gameEvents'
+import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
 
 /**
  * What-if changes persist across navigation.
@@ -16,28 +34,30 @@ import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
  * visit, while the leaderboard read the saved score — so applying a fix, going
  * to the league and coming back showed 80 there and 74 here.
  */
-const WHATIF_KEY = 'wattlah.whatif'
+const WHATIF_PREFIX = 'wattlah.whatif.v1'
 
 type WhatIfState = { cur: Record<string, number>; applied: string[] }
 
-function readWhatIf(): WhatIfState | null {
+function whatIfKey(roomNumber: string): string {
+  return `${WHATIF_PREFIX}:${userIdFromRoom(roomNumber)}`
+}
+
+function readWhatIf(roomNumber: string): WhatIfState | null {
   try {
-    const raw = window.localStorage.getItem(WHATIF_KEY)
+    const raw = window.localStorage.getItem(whatIfKey(roomNumber))
     return raw ? (JSON.parse(raw) as WhatIfState) : null
   } catch {
     return null
   }
 }
 
-function writeWhatIf(state: WhatIfState) {
+function writeWhatIf(roomNumber: string, state: WhatIfState) {
   try {
-    window.localStorage.setItem(WHATIF_KEY, JSON.stringify(state))
+    window.localStorage.setItem(whatIfKey(roomNumber), JSON.stringify(state))
   } catch {
     /* storage can be blocked; persistence is a convenience here */
   }
 }
-import UsernameSetup from '@/components/UsernameSetup'
-import { buildLeaderboard } from '@/data/leaderboard'
 
 // Phaser needs a browser, so these load client-side only - same pattern as
 // app/interactive-apartment/page.tsx, which owns the canonical version of
@@ -58,6 +78,7 @@ const AppliancePanel = dynamic(
   () => import('@/components/apartment-game/AppliancePanel'),
   { ssr: false }
 )
+
 /**
  * The standalone appliance dashboard, taken verbatim from the
  * watt-lah-dashboard zip. Self-contained: one React import, its own inline
@@ -66,8 +87,8 @@ const AppliancePanel = dynamic(
  * Only the session guard and the back link were added.
  */
 
-const REFERENCE = 320
-const TARIFF = 0.2994
+const REFERENCE = MOCK_APARTMENT.referenceConsumptionKwh
+const TARIFF = TARIFF_SGD_PER_KWH
 
 type Appliance = {
   id: string
@@ -247,22 +268,40 @@ const RECS: Rec[] = [
   },
 ]
 
-const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n))
 const scoreOf = (t: number) =>
-  clamp(Math.round(100 - ((t - REFERENCE) / REFERENCE) * 100), 0, 100)
-const rankOf = (s: number) =>
-  s >= 90 ? 'Energy Saver' : s >= 75 ? 'Good' : s >= 50 ? 'Average' : 'Needs Improvement'
+  computeScore({
+    roomNumber: 'dashboard',
+    totalConsumptionKwh: t,
+    referenceConsumptionKwh: REFERENCE,
+    costPerKwh: TARIFF,
+  }).score
+const rankOf = statusFor
 const scoreColour = (s: number) =>
   s >= 90 ? 'var(--lime)' : s >= 50 ? 'var(--amber)' : 'var(--red)'
 const applianceScore = (curKwh: number, ref: number) =>
-  clamp(Math.round(100 - ((curKwh - ref) / ref) * 100), 0, 100)
+  computeScore({
+    roomNumber: 'appliance',
+    totalConsumptionKwh: curKwh,
+    referenceConsumptionKwh: ref,
+    costPerKwh: TARIFF,
+  }).score
 
 
 const BASE_SCORE = scoreOf(APPLIANCES.reduce((x, a) => x + a.kwh, 0))
+const BASE_TOTAL = APPLIANCES.reduce((sum, appliance) => sum + appliance.kwh, 0)
+const FIXED_AUDIT_TARGETS = new Set(socketDefinitions.map((socket) => socket.id))
+const AUDIT_TOTAL = FIXED_AUDIT_TARGETS.size
+const DASHBOARD_APPLIANCE_BY_GAME_ID: Record<string, string> = {
+  refrigerator: 'fridge',
+  television: 'tv',
+  washing_machine: 'washer',
+}
 
 export default function HomePage() {
   const router = useRouter()
   const { session, needsUsername, isAuthenticated } = useSession()
+  const roomNumber = session?.roomNumber
+  const username = session?.username
 
   /**
    * Read storage directly rather than trusting isAuthenticated.
@@ -277,16 +316,6 @@ export default function HomePage() {
     if (!isLoggedIn()) router.replace('/')
   }, [isAuthenticated, router])
 
-
-  // Get the user's rank from the leaderboard
-  const leaderboardRank = useMemo(() => {
-    if (!session) return 0
-    const current = { username: session.username, roomNumber: session.roomNumber }
-    const leaderboard = buildLeaderboard(current)
-    const me = leaderboard.find((e) => e.isCurrentUser)
-    return me?.rank ?? 0
-  }, [session])
-
   const [cur, setCur] = useState<Record<string, number>>(() =>
     Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh])),
   )
@@ -296,10 +325,13 @@ export default function HomePage() {
   const [tab, setTab] = useState<'appliance' | 'home'>('appliance')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [displayScore, setDisplayScore] = useState(0)
-  const [rewards, setRewards] = useState(0)
+  const [connectedTargets, setConnectedTargets] = useState<Set<string>>(
+    () => new Set(),
+  )
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
+  const drawerRef = useRef<HTMLElement>(null)
 
   const total = useMemo(
     () => APPLIANCES.reduce((s, a) => s + cur[a.id], 0),
@@ -309,9 +341,40 @@ export default function HomePage() {
   const rank = rankOf(score)
   const colour = scoreColour(score)
   const over = Math.round(((total - REFERENCE) / REFERENCE) * 100)
+  const planActive = applied.size > 0
+  const savedKwh = BASE_TOTAL - total
+  const auditCount = [...connectedTargets].filter((id) =>
+    FIXED_AUDIT_TARGETS.has(id),
+  ).length
+  const auditXp = auditCount * 25
+
+  // Calculate the resident's live standing from the current preview without
+  // waiting for the localStorage persistence effect to run after paint.
+  const leaderboardRank = useMemo(() => {
+    if (!roomNumber || !username) return 0
+    const current = { username, roomNumber }
+    const entries = buildLeaderboard(current)
+    const me = entries.find((entry) => entry.isCurrentUser)
+    if (!me) return 0
+    return (
+      1 +
+      entries.filter(
+        (entry) =>
+          !entry.isCurrentUser &&
+          (entry.score > score ||
+            (entry.score === score &&
+              entry.username.localeCompare(username) < 0)),
+      ).length
+    )
+  }, [roomNumber, score, username])
 
   const animateTo = useCallback((target: number, from: number) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      shownRef.current = target
+      setDisplayScore(target)
+      return
+    }
     const diff = target - from
     const dur = 850
     const t0 = performance.now()
@@ -340,6 +403,36 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (!drawerOpen) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    const frame = requestAnimationFrame(() => {
+      drawerRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    })
+    const keepFocusInside = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const focusable = [...(drawerRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [])]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', keepFocusInside)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('keydown', keepFocusInside)
+      previousFocus?.focus()
+    }
+  }, [drawerOpen])
+
   /**
    * Restore what-if changes made before navigating away.
    *
@@ -352,8 +445,9 @@ export default function HomePage() {
    * `score`, so restoring the state alone leaves the dial reading 74.
    */
   useEffect(() => {
+    if (!roomNumber) return
     const raf = requestAnimationFrame(() => {
-      const saved = readWhatIf()
+      const saved = readWhatIf(roomNumber)
       if (!saved || !saved.applied?.length) return
       setCur(saved.cur)
       setApplied(new Set(saved.applied))
@@ -363,8 +457,7 @@ export default function HomePage() {
       )
     })
     return () => cancelAnimationFrame(raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [animateTo, roomNumber])
 
   /**
    * Persist the score so the league reflects what the resident actually did.
@@ -377,9 +470,36 @@ export default function HomePage() {
    * to an external system.
    */
   useEffect(() => {
-    if (!session) return
-    saveScore(userIdFromRoom(session.roomNumber), score)
-  }, [score, session])
+    if (!roomNumber) return
+    saveScore(userIdFromRoom(roomNumber), score, {
+      isProjected: planActive,
+    })
+  }, [planActive, roomNumber, score])
+
+  // Phaser owns movement and visuals; this page owns the product journey.
+  // A meter scan updates the mission, XP, and the matching dashboard row.
+  useEffect(() => {
+    if (!roomNumber) return
+
+    const syncProgress = () => {
+      setConnectedTargets(
+        new Set(readAuditProgress(roomNumber).connectedTargetIds),
+      )
+    }
+    const handleInstalled = (payload: ApplianceInstalledPayload) => {
+      syncProgress()
+      const dashboardId = DASHBOARD_APPLIANCE_BY_GAME_ID[payload.appliance.id]
+      if (dashboardId) setSelected(dashboardId)
+    }
+
+    syncProgress()
+    gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled)
+    window.addEventListener(AUDIT_PROGRESS_EVENT, syncProgress)
+    return () => {
+      gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled)
+      window.removeEventListener(AUDIT_PROGRESS_EVENT, syncProgress)
+    }
+  }, [roomNumber])
 
   // Esc closes drawer
   useEffect(() => {
@@ -438,7 +558,9 @@ export default function HomePage() {
     if (done) nextApplied.delete(rec.id)
     else nextApplied.add(rec.id)
     setApplied(nextApplied)
-    writeWhatIf({ cur: next, applied: [...nextApplied] })
+    if (session) {
+      writeWhatIf(session.roomNumber, { cur: next, applied: [...nextApplied] })
+    }
 
     animateTo(
       scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
@@ -450,7 +572,7 @@ export default function HomePage() {
     const base = Object.fromEntries(APPLIANCES.map((a) => [a.id, a.kwh]))
     setCur(base)
     setApplied(new Set())
-    writeWhatIf({ cur: base, applied: [] })
+    if (session) writeWhatIf(session.roomNumber, { cur: base, applied: [] })
     animateTo(BASE_SCORE, shownRef.current)
   }
 
@@ -500,11 +622,15 @@ export default function HomePage() {
             </div>
           </div>
           <div className="wl-controls">
-            {/* Rewards earned with notification badge */}
-            <div className="wl-rewards" title="Rewards earned">
-              <span className="wl-rewards-icon" aria-hidden>🔔</span>
-              <span className="wl-rewards-count wl-px">{rewards}</span>
-              <span className="wl-rewards-label wl-px">Rewards</span>
+            <div
+              className="wl-rewards"
+              role="status"
+              aria-label={`${auditXp} audit XP. ${auditCount} of ${AUDIT_TOTAL} meters scanned.`}
+              title="Earn 25 XP for every appliance meter you scan"
+            >
+              <span className="wl-rewards-icon" aria-hidden>⚡</span>
+              <span className="wl-rewards-count wl-px">{auditXp}</span>
+              <span className="wl-rewards-label wl-px">Audit XP</span>
             </div>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
@@ -523,7 +649,7 @@ export default function HomePage() {
                 title="Undo every applied change"
               >
                 {score > BASE_SCORE ? `+${score - BASE_SCORE} · ` : ''}
-                {applied.size} applied — reset
+                {applied.size} in plan — reset
               </button>
             )}
             {/* Their rank chip — shows standing and links to the league,
@@ -539,7 +665,7 @@ export default function HomePage() {
                 textDecoration: 'none',
               }}
             >
-              #{leaderboardRank} Rank
+              #{leaderboardRank} {planActive ? 'Projected' : 'Rank'}
             </Link>
             {/* Log out shipped dead on both sides; ours is wired. */}
             <button
@@ -557,6 +683,32 @@ export default function HomePage() {
         <div className="wl-split">
           {/* Room */}
           <section className="wl-panel wl-roomwrap">
+            <div className="wl-quest">
+              <div className="wl-quest-copy">
+                <span className="wl-h3">Today&apos;s mission</span>
+                <strong className="wl-px">
+                  {auditCount === AUDIT_TOTAL
+                    ? 'Energy audit complete!'
+                    : 'Map your biggest energy drains'}
+                </strong>
+                <small>
+                  {auditCount === AUDIT_TOTAL
+                    ? `All ${AUDIT_TOTAL} appliance meters are connected.`
+                    : 'Walk to a glowing socket, then scan its appliance.'}
+                </small>
+              </div>
+              <div
+                className="wl-quest-progress"
+                role="progressbar"
+                aria-label="Energy audit progress"
+                aria-valuemin={0}
+                aria-valuemax={AUDIT_TOTAL}
+                aria-valuenow={auditCount}
+              >
+                <span className="wl-px">{auditCount}/{AUDIT_TOTAL}</span>
+                <i style={{ width: `${(auditCount / AUDIT_TOTAL) * 100}%` }} />
+              </div>
+            </div>
             <div className="wl-stage">
               {/* The interactive Phaser apartment, replacing the static tile
                   render. Its own systems (movement, sockets, install/inspect)
@@ -572,17 +724,17 @@ export default function HomePage() {
                   interaction belongs to the game now. */}
             </div>
             <div className="wl-legend">
-              <span>Low draw</span>
-              <span className="wl-ramp" />
-              <span>High draw</span>
-              <span className="wl-legend-note">— walk over to a socket and press E to install</span>
+              <span><b>Glow</b> = unscanned meter</span>
+              <span className="wl-legend-note">Move with WASD, arrow keys, or the touch pad.</span>
             </div>
           </section>
 
           {/* HUD */}
           <aside className="wl-panel wl-hud">
             <div className="wl-scorewrap">
-              <div className="wl-h3">This month</div>
+              <div className="wl-h3">
+                {planActive ? 'Projected after your plan' : 'Current month'}
+              </div>
               <div style={{ marginTop: 10 }}>
                 <span className="wl-bigscore" style={{ color: colour }}>
                   {displayScore}
@@ -592,8 +744,8 @@ export default function HomePage() {
               <div className="wl-rank" style={{ color: colour }}>
                 {rank}
               </div>
-              <div className="wl-delta">
-                {delta > 0 ? `▲ +${delta} from your changes` : '\u00A0'}
+              <div className="wl-delta" role="status" aria-live="polite">
+                {delta > 0 ? `▲ +${delta} points in preview` : 'Measured reading'}
               </div>
               <div className="wl-bar">
                 <i style={{ width: score + '%', background: colour }} />
@@ -608,7 +760,12 @@ export default function HomePage() {
             </div>
 
             <p className="wl-line">
-              {over > 0 ? (
+              {planActive ? (
+                <>
+                  This plan could save <b>{savedKwh} kWh</b> and about{' '}
+                  <b>S${(savedKwh * TARIFF).toFixed(2)}</b> each month.
+                </>
+              ) : over > 0 ? (
                 <>
                   You used <b>{over}% more</b> than a comparable flat — about{' '}
                   <b>S${(total * TARIFF).toFixed(2)}</b> this month.
@@ -656,7 +813,7 @@ export default function HomePage() {
                 })()
               ) : (
                 <>
-                  <div className="wl-dt">Pick a row below, or walk around your flat.</div>
+                  <div className="wl-dt">Pick a row below, or scan a meter in your flat.</div>
                   <div className="wl-tip">
                     Each appliance is compared against what a typical flat in your block uses.
                   </div>
@@ -670,18 +827,24 @@ export default function HomePage() {
                 {APPLIANCES.map((a) => {
                   const as = applianceScore(cur[a.id], a.ref)
                   const p = Math.round(((cur[a.id] - a.ref) / a.ref) * 100)
-                  const off = cur[a.id] < a.kwh
+                  const improved = cur[a.id] < a.kwh
                   const barColor =
                     as >= 85 ? 'var(--lime)' : as >= 60 ? 'var(--amber)' : 'var(--red)'
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={a.id}
                       className={
-                        'wl-row' + (selected === a.id ? ' sel' : '') + (off ? ' off' : '')
+                        'wl-row' +
+                        (selected === a.id ? ' sel' : '') +
+                        (improved ? ' improved' : '')
                       }
                       onClick={() => select(a.id)}
                       onMouseEnter={() => setHoveredId(a.id)}
                       onMouseLeave={() => setHoveredId(null)}
+                      onFocus={() => setHoveredId(a.id)}
+                      onBlur={() => setHoveredId(null)}
+                      aria-pressed={selected === a.id}
                       style={{ position: 'relative' }}
                     >
                       {hovered?.id === a.id && (
@@ -714,7 +877,7 @@ export default function HomePage() {
                       >
                         {(p > 0 ? '+' : '') + p}%
                       </span>
-                    </div>
+                    </button>
                   )
                 })}
               </div>
@@ -729,11 +892,20 @@ export default function HomePage() {
       <div
         className={'wl-scrim' + (drawerOpen ? ' open' : '')}
         onClick={() => setDrawerOpen(false)}
+        aria-hidden="true"
       />
-      <aside className={'wl-drawer' + (drawerOpen ? ' open' : '')} aria-label="Ways to save">
+      <aside
+        ref={drawerRef}
+        className={'wl-drawer' + (drawerOpen ? ' open' : '')}
+        role="dialog"
+        aria-modal={drawerOpen ? 'true' : undefined}
+        aria-hidden={!drawerOpen}
+        inert={!drawerOpen}
+        aria-label="Build your savings plan"
+      >
         <div className="wl-dhead">
           <div>
-            <div className="wl-h3">Ways to save</div>
+            <div className="wl-h3">Build your savings plan</div>
             <div className="wl-drawer-sub">{drawerLabel}</div>
           </div>
           <button
@@ -801,7 +973,7 @@ export default function HomePage() {
                         className={(done ? 'wl-ghost' : 'wl-btn') + ' wl-act'}
                         onClick={() => applyRec(r)}
                       >
-                        {done ? 'Undo' : 'Apply to what-if'}
+                        {done ? 'Remove from plan' : 'Preview this action'}
                       </button>
                     )}
                   </div>
@@ -835,13 +1007,13 @@ const css = `
   --line:#3f6b4e; --line-hi:#5fa072; --ink:#f3f2e6; --ink-dim:#a3c4ac;
   --amber:#ffc866; --amber-deep:#d99a2b; --lime:#9be564; --red:#ff7a6b;
   width:100%;max-width:1240px;display:flex;flex-direction:column;gap:14px;
-  font-family:var(--font-geist-sans),system-ui,sans-serif;
+  font-family:var(--font-geist),system-ui,sans-serif;
 }
 .wl-scrim,.wl-drawer{
   --bg:#16261d; --bg-deep:#0d1813; --panel:#223a2c; --panel-hi:#2f5240;
   --line:#3f6b4e; --line-hi:#5fa072; --ink:#f3f2e6; --ink-dim:#a3c4ac;
   --amber:#ffc866; --amber-deep:#d99a2b; --lime:#9be564; --red:#ff7a6b;
-  font-family:var(--font-geist-sans),system-ui,sans-serif;
+  font-family:var(--font-geist),system-ui,sans-serif;
 }
 .wl-panel{background:var(--panel);border:3px solid var(--line-hi);
   box-shadow:0 0 0 3px var(--bg-deep),8px 8px 0 0 rgba(0,0,0,.45)}
@@ -871,8 +1043,8 @@ const css = `
 .wl-topbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 6px}
 @keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 
-/* Rewards earned badge */
-.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px}
+/* Audit progress badge */
+.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line)}
 .wl-rewards-icon{font-size:14px;animation:wl-notif-bounce 2s ease-in-out infinite}
 @keyframes wl-notif-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .wl-rewards-count{font-size:12px;color:var(--amber);font-weight:700}
@@ -881,20 +1053,19 @@ const css = `
 .wl-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
 
-.wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:hidden}
-/* Sized to match the Phaser game's fixed 768x576 canvas, so the
-   percentage-positioned pins resolve against the same box as the room.
-   Scaled with zoom rather than transform, because transform would leave the
-   pins measuring against the unscaled parent. */
-.wl-stage{position:relative;line-height:0;width:768px;height:576px;
-  margin:0 auto;image-rendering:pixelated;
-  /* Contain the room's z-indexes. Its layout objects go up to 315 and the heat
-     zones to 500, which outranked the drawer (50) and scrim (40) — the
-     apartment painted straight over the open drawer. isolation:isolate makes
-     the stage its own stacking context so those numbers stay inside it. */
-  isolation:isolate;z-index:0}
-@media (max-width:820px){ .wl-stage{ zoom:0.75 } }
-@media (max-width:620px){ .wl-stage{ zoom:0.55 } }
+.wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:visible}
+.wl-quest{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:12px 14px;background:var(--bg-deep);border-left:4px solid var(--lime)}
+.wl-quest-copy{display:flex;min-width:0;flex-direction:column;gap:5px}
+.wl-quest-copy strong{font-size:9px;color:var(--ink);line-height:1.5}
+.wl-quest-copy small{font-size:12px;color:var(--ink-dim);line-height:1.45}
+.wl-quest-progress{position:relative;width:130px;height:32px;flex:none;overflow:hidden;
+  display:grid;place-items:center;background:var(--panel);border:2px solid var(--line)}
+.wl-quest-progress i{position:absolute;inset:0 auto 0 0;background:rgba(155,229,100,.22);
+  border-right:2px solid var(--lime);transition:width .3s steps(5)}
+.wl-quest-progress span{position:relative;z-index:1;font-size:9px;color:var(--lime)}
+.wl-stage{position:relative;line-height:0;width:100%;max-width:768px;
+  margin:0 auto;image-rendering:pixelated;isolation:isolate;z-index:0}
 .wl-stage img{width:100%;height:auto;image-rendering:pixelated;display:block}
 /* Above the room. Ayushman's layout objects carry z-index up to 315, so
    without this the glows paint underneath the floor and furniture — they were
@@ -909,9 +1080,8 @@ const css = `
 .wl-legend{display:flex;align-items:center;gap:10px;font-size:8px;color:var(--ink-dim);
   font-family:var(--font-pixel),monospace;text-transform:uppercase;letter-spacing:.14em;
   flex-wrap:wrap;justify-content:center}
-.wl-ramp{width:150px;height:10px;background:linear-gradient(90deg,var(--lime),var(--amber),var(--red));
-  border:2px solid var(--line)}
-.wl-legend-note{text-transform:none;letter-spacing:0;font-family:var(--font-geist-sans),sans-serif;font-size:12px;margin-left:6px}
+.wl-legend b{color:var(--lime)}
+.wl-legend-note{text-transform:none;letter-spacing:0;font-family:var(--font-geist),sans-serif;font-size:12px;margin-left:6px}
 
 .wl-hud{padding:18px;display:flex;flex-direction:column;gap:16px}
 .wl-scorewrap{text-align:center}
@@ -929,8 +1099,10 @@ const css = `
 
 .wl-applist{display:flex;flex-direction:column;gap:0}
 .wl-h3{font-family:var(--font-pixel),monospace;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px}
-.wl-row{display:flex;align-items:center;gap:9px;padding:9px 6px;border-top:1px solid rgba(95,160,114,.28);
-  cursor:pointer;transition:background .15s}
+.wl-row{display:flex;width:100%;align-items:center;gap:9px;padding:9px 6px;
+  border:0;border-top:1px solid rgba(95,160,114,.28);background:transparent;color:inherit;
+  text-align:left;font-family:var(--font-geist),sans-serif!important;text-transform:none!important;
+  letter-spacing:0!important;cursor:pointer;transition:background .15s}
 .wl-row:hover{background:var(--panel-hi)}
 
 /* Hover card, ported from watt-lah-hover. Repositioned: the original sat above
@@ -958,8 +1130,7 @@ const css = `
 .wl-mini i{position:absolute;inset:0 auto 0 0;transition:width .45s ease,background .3s}
 .wl-kwh{width:56px;text-align:right;font-size:11px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
 .wl-pct{width:46px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;font-weight:600}
-.wl-row.off{opacity:.45}
-.wl-row.off .wl-nm{text-decoration:line-through}
+.wl-row.improved{background:rgba(155,229,100,.06)}
 
 .wl-detail{border-left:4px solid var(--amber);background:var(--bg-deep);padding:12px}
 .wl-dt{font-size:13px;line-height:1.5}
@@ -988,7 +1159,7 @@ const css = `
 .wl-dbody{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
 .wl-rec{border:3px solid var(--line);background:var(--bg-deep);padding:13px}
 .wl-rec.done{border-color:var(--lime);opacity:.72}
-.wl-rec h4{margin:0;font-size:13px;font-weight:600;display:flex;gap:8px;align-items:flex-start;font-family:var(--font-geist-sans),sans-serif}
+.wl-rec h4{margin:0;font-size:13px;font-weight:600;display:flex;gap:8px;align-items:flex-start;font-family:var(--font-geist),sans-serif}
 .wl-rec p{margin:8px 0 0;font-size:12px;color:var(--ink-dim);line-height:1.55}
 .wl-impact{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
 .wl-chip{font-family:var(--font-pixel),monospace;font-size:7px;letter-spacing:.08em;text-transform:uppercase;
@@ -999,4 +1170,24 @@ const css = `
 .wl-empty{font-size:12px;color:var(--ink-dim);line-height:1.6;text-align:center;padding:26px 10px}
 .wl-potential{background:var(--bg-deep);border-left:4px solid var(--lime);padding:12px;font-size:12px;line-height:1.55}
 .wl-potential b{color:var(--lime)}
+
+@media(max-width:1080px){
+  .wl-hovercard{display:none}
+}
+@media(max-width:620px){
+  .wl-header{align-items:flex-start;padding:14px}
+  .wl-controls{display:grid;width:100%;grid-template-columns:1fr 1fr}
+  .wl-controls>*{min-height:44px;justify-content:center;text-align:center}
+  .wl-controls .wl-btn{grid-column:1/-1}
+  .wl-roomwrap{padding:10px}
+  .wl-quest{align-items:stretch;flex-direction:column;gap:10px}
+  .wl-quest-progress{width:100%;height:28px}
+  .wl-legend{line-height:1.7;padding:0 4px}
+  .wl-legend-note{margin-left:0;font-size:11px;text-align:center}
+  .wl-hud{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .wl-rewards-icon{animation:none}
+  .wl-quest-progress i,.wl-drawer,.wl-scrim,.wl-bar>i,.wl-mini i{transition:none}
+}
 `

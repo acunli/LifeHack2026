@@ -8,14 +8,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChangeIndicator } from '@/components/ChangeIndicator'
-import { Countdown } from '@/components/Countdown'
+import Countdown from '@/components/Countdown'
 import { LeaderboardRow } from '@/components/LeaderboardRow'
 import { Podium } from '@/components/Podium'
 import { ScoreMeter } from '@/components/ScoreMeter'
-import WattLahLogo from '@/components/WattLahLogo'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews'
 import { fetchLeaderboard, type LeaderboardEntry } from '@/data/leaderboard'
-import { logout } from '@/lib/session'
 
 type Status = 'loading' | 'ok' | 'error' | 'empty'
 
@@ -79,32 +77,30 @@ export function LeaderboardBoard({
   const me = entries.find((e) => e.isCurrentUser) ?? null
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-4">
-      <header className="flex flex-wrap items-center justify-between gap-3 py-5">
-        <WattLahLogo className="text-[26px]" />
-        <div className="flex items-center gap-4">
-          <Countdown />
-          <button
-            type="button"
-            onClick={logout}
-            className="pixel text-[9px] text-muted-w underline underline-offset-4 hover:text-foreground"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+    <div className="mx-auto w-full max-w-2xl pb-4">
+      {/* Daily reset countdown. Restored — it went missing in a merge, and it
+          is the only thing on the board giving a reason to come back
+          tomorrow rather than just showing where you stand today. */}
+      <div className="mb-4 flex items-center justify-end">
+        <Countdown />
+      </div>
 
       {/* Current user summary */}
       {status === 'ok' && me && (
         <div className="pixel-panel pixel-panel-gold mb-6 flex items-center justify-between gap-3 p-4">
           <div className="flex flex-col">
             <span className="pixel text-[9px] uppercase tracking-wide text-muted-w">
-              Your rank
+              {me.isProjected ? 'Projected rank' : 'Your rank'}
             </span>
             <span className="pixel rank-gold text-[16px]">
               {ordinal(me.rank)}
             </span>
             <span className="pixel mt-1 text-[9px] text-muted-w">{me.tier}</span>
+            {me.isProjected && (
+              <span className="pixel mt-2 text-[7px] uppercase text-gold">
+                Preview · not measured yet
+              </span>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <ScoreMeter score={me.score} />
@@ -114,11 +110,11 @@ export function LeaderboardBoard({
       )}
 
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="pixel text-[13px] text-foreground">Today&apos;s Standings</h1>
+        <h2 className="pixel text-[13px] text-foreground">Building standings</h2>
         {/* The arrows had no label anywhere on the page, so nobody could tell
             what they measured. */}
         <span className="pixel text-[9px] text-muted-w">
-          ▲▼ change since yesterday
+          ▲▼ change vs last period
         </span>
       </div>
 

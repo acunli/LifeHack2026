@@ -119,7 +119,14 @@ export function seedLegacySession(roomNumber: string): void {
 
 /* ── Score persistence for apartment → leaderboard sync ────────────── */
 
-type StoredScores = Record<string, { current: number; previous: number }>
+type StoredScore = {
+  current: number
+  previous: number
+  /** True when `current` previews a resident's uncompleted savings plan. */
+  isProjected?: boolean
+}
+
+type StoredScores = Record<string, StoredScore>
 
 function readScores(): StoredScores {
   if (!isBrowser()) return {}
@@ -139,7 +146,11 @@ function writeScores(scores: StoredScores): void {
 }
 
 /** Save the current user's apartment score so the leaderboard can read it. */
-export function saveScore(userId: string, score: number): void {
+export function saveScore(
+  userId: string,
+  score: number,
+  options: { isProjected?: boolean } = {},
+): void {
   const scores = readScores()
   const existing = scores[userId]
 
@@ -157,6 +168,7 @@ export function saveScore(userId: string, score: number): void {
   scores[userId] = {
     current: score,
     previous: existing?.previous ?? score,
+    isProjected: options.isProjected ?? false,
   }
   writeScores(scores)
 }
@@ -165,7 +177,7 @@ export function saveScore(userId: string, score: number): void {
 /** Get a saved score for a user, or null if none exists. */
 export function getSavedScore(
   userId: string,
-): { current: number; previous: number } | null {
+): StoredScore | null {
   const scores = readScores()
   return scores[userId] ?? null
 }

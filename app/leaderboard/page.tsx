@@ -8,6 +8,8 @@ import { isLoggedIn } from "@/lib/session";
 import LeaderboardBoard from "@/components/LeaderboardBoard";
 import Footer from "@/components/Footer";
 import UsernameSetup from "@/components/UsernameSetup";
+import WattLahLogo from "@/components/WattLahLogo";
+import { logout } from "@/lib/session";
 
 /**
  * League route. Thin — LeaderboardBoard owns the data states and the layout.
@@ -34,18 +36,28 @@ export default function LeaderboardPage() {
   return (
     <main className="float-in mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-5 sm:p-7">
       <header className="pixel-panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+        <WattLahLogo className="w-full text-[22px] sm:w-auto sm:text-[25px]" />
         <div>
           <p className="pixel text-[9px] uppercase tracking-widest text-ink-dim">
-            Eco League · today
+            Eco league · current period
           </p>
           <h1 className="pixel mt-1.5 text-base text-amber">Your building</h1>
         </div>
-        <Link
-          href="/home"
-          className="pixel pixel-btn px-4 py-2.5 text-[9px] uppercase tracking-widest"
-        >
-          Dashboard
-        </Link>
+        <nav aria-label="League navigation" className="flex items-center gap-3 sm:ml-auto">
+          <Link
+            href="/home"
+            className="pixel pixel-btn px-4 py-2.5 text-[9px] uppercase tracking-widest"
+          >
+            Home
+          </Link>
+          <button
+            type="button"
+            onClick={logout}
+            className="pixel text-[9px] text-ink-dim underline underline-offset-4 hover:text-ink"
+          >
+            Sign out
+          </button>
+        </nav>
       </header>
 
       <LeaderboardBoard

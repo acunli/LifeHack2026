@@ -15,6 +15,7 @@ import * as Phaser from 'phaser';
 import PreloadScene from '@/lib/game/scenes/PreloadScene';
 import ApartmentScene from '@/lib/game/scenes/ApartmentScene';
 import EnergyScoreOverlay from './EnergyScoreOverlay';
+import GameControls from './GameControls';
 import { gameEvents, GAME_EVENTS } from '@/lib/game/utils/gameEvents';
 
 const GAME_WIDTH = 768;
@@ -36,13 +37,19 @@ export default function ApartmentGameCanvas({
 
   useEffect(() => {
     if (!containerRef.current) return;
+    const container = containerRef.current;
+
+    // Username setup, React strict mode, and hot reload can remount this tree
+    // rapidly in development. The mount owns this container exclusively, so
+    // clear any stale Phaser canvas before creating exactly one new game.
+    container.replaceChildren();
 
     // Phaser game configuration
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
       width: 768,  // 48 tiles × 16px (displayed at 2× scale)
       height: 576, // 36 tiles × 16px (displayed at 2× scale)
-      parent: containerRef.current,
+      parent: container,
       backgroundColor: '#000000',
       pixelArt: true, // Crisp pixel rendering
       scene: [PreloadScene, ApartmentScene],
@@ -68,12 +75,14 @@ export default function ApartmentGameCanvas({
     };
 
     // Create game instance
-    gameRef.current = new Phaser.Game(config);
+    const game = new Phaser.Game(config);
+    gameRef.current = game;
 
     // Cleanup on unmount
     return () => {
-      if (gameRef.current) {
-        gameRef.current.destroy(true);
+      game.destroy(true);
+      container.replaceChildren();
+      if (gameRef.current === game) {
         gameRef.current = null;
       }
     };
@@ -81,9 +90,13 @@ export default function ApartmentGameCanvas({
 
   return (
     <div
+      className="apartment-game-shell"
+      role="group"
+      aria-label="Interactive apartment energy audit"
       style={{
         position: 'relative',
-        width: '768px',
+        width: '100%',
+        maxWidth: '768px',
         margin: '0 auto',
         lineHeight: 'normal',
       }}
@@ -110,15 +123,15 @@ export default function ApartmentGameCanvas({
           gameEvents.emit(GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST, { customType, x, y });
         }}
         style={{
-          width: '768px',
-          height: '576px',
+          width: '100%',
+          aspectRatio: '4 / 3',
           border: dragOver ? '2px dashed #4ade80' : '2px solid #333',
-          borderRadius: '8px',
           overflow: 'hidden',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          boxShadow: '6px 6px 0 rgba(0,0,0,0.35)',
         }}
       />
       {showScore && <EnergyScoreOverlay />}
+      <GameControls />
     </div>
   );
 }

@@ -21,11 +21,11 @@ export function ScoreMeter({
       role="img"
       aria-label={`Energy score ${score} out of 100`}
     >
-      <div className="flex gap-[2px]" aria-hidden>
+      <div className="score-meter-track flex gap-[2px]" aria-hidden>
         {Array.from({ length: BLOCKS }).map((_, i) => (
           <span
             key={i}
-            className="h-3 w-[6px]"
+            className="score-meter-block h-3 w-[6px]"
             style={{
               background: i < filled ? 'var(--gold)' : 'var(--deep)',
               boxShadow:

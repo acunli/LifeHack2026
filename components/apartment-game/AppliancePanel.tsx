@@ -8,7 +8,7 @@
  * efficiency badge.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   gameEvents,
   GAME_EVENTS,
@@ -31,6 +31,10 @@ function useCountUp(target: number, active: boolean, durationMs = 700): number {
   const [value, setValue] = useState(0);
   useEffect(() => {
     if (!active) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const frame = requestAnimationFrame(() => setValue(target));
+      return () => cancelAnimationFrame(frame);
+    }
     // Deferred: setting state in the effect body cascades a render.
     const start = performance.now();
     let frame: number;
@@ -55,6 +59,8 @@ function efficiencyBadge(dailyKwh: number): { label: string; color: string } {
 export default function AppliancePanel() {
   const [view, setView] = useState<ViewState | null>(null);
   const [chartIn, setChartIn] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleInstalled = (payload: ApplianceInstalledPayload) =>
@@ -62,7 +68,9 @@ export default function AppliancePanel() {
     const handleClicked = (payload: ApplianceClickedPayload) =>
       setView({ installTargetId: payload.installTargetId, appliance: payload.appliance, justInstalled: false, isOn: payload.isOn });
     const handlePowerChanged = (payload: AppliancePowerChangedPayload) =>
-      setView(prev => (prev && prev.installTargetId === payload.installTargetId ? { ...prev, isOn: payload.isOn } : prev));
+      setView(prev => (prev && prev.installTargetId === payload.installTargetId
+        ? { ...prev, isOn: payload.isOn, justInstalled: false }
+        : prev));
     const handleRemoved = (payload: ApplianceRemovedPayload) =>
       setView(prev => (prev && prev.installTargetId === payload.installTargetId ? null : prev));
 
@@ -77,6 +85,33 @@ export default function AppliancePanel() {
       gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
     };
   }, []);
+
+  const dialogOpen = view !== null;
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setView(null);
+      if (event.key !== 'Tab') return;
+      const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])') ?? [])];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+      previousFocus?.focus();
+    };
+  }, [dialogOpen]);
 
   const kwh = useCountUp(view && view.isOn ? view.appliance.dailyKwh : 0, view !== null);
 
@@ -105,30 +140,15 @@ export default function AppliancePanel() {
     <div
       role="dialog"
       aria-modal="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.65)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 50,
-        lineHeight: 'normal',
-      }}
+      aria-labelledby="appliance-dialog-title"
+      className="game-dialog-backdrop"
       onClick={() => setView(null)}
     >
       <div
+        ref={dialogRef}
+        className="game-dialog appliance-dialog pixel-panel"
         style={{
-          backgroundColor: '#1a1a1a',
-          border: `1px solid ${badge.color}`,
-          borderRadius: '12px',
-          padding: '1.5rem',
-          maxWidth: '360px',
-          width: '92%',
-          color: '#fff',
-          fontFamily: 'monospace',
-          boxShadow: `0 0 24px ${badge.color}33`,
-          animation: 'appliance-panel-in 220ms ease-out',
+          borderColor: badge.color,
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -144,18 +164,18 @@ export default function AppliancePanel() {
         `}</style>
 
         {justInstalled && (
-          <p style={{ fontSize: '0.75rem', color: '#4ade80', marginBottom: '0.25rem', letterSpacing: '0.05em' }}>
-            ✓ INSTALLED
+          <p className="game-dialog-eyebrow" style={{ color: '#9be564' }}>
+            ✓ METER CONNECTED · +25 XP
           </p>
         )}
         {!justInstalled && (
-          <p style={{ fontSize: '0.75rem', color: isOn ? '#4ade80' : '#888', marginBottom: '0.25rem' }}>
-            {isOn ? '● Powered on' : '○ Powered off'}
+          <p className="game-dialog-eyebrow" style={{ color: isOn ? '#9be564' : '#a3c4ac' }}>
+            {isOn ? '● LIVE METER READING' : '○ METER PAUSED'}
           </p>
         )}
 
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>{appliance.name}</h2>
+          <h2 id="appliance-dialog-title" style={{ margin: 0 }}>{appliance.name}</h2>
           <span
             style={{
               fontSize: '0.7rem',
@@ -184,6 +204,8 @@ export default function AppliancePanel() {
 
         <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '0.4rem' }}>Past 7 days</p>
         <div
+          role="img"
+          aria-label={`Past seven days of ${appliance.name} energy usage`}
           style={{
             display: 'flex',
             alignItems: 'flex-end',
@@ -227,17 +249,7 @@ export default function AppliancePanel() {
             onClick={() =>
               gameEvents.emit(GAME_EVENTS.APPLIANCE_TOGGLE_POWER_REQUEST, { installTargetId })
             }
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              backgroundColor: isOn ? 'transparent' : badge.color,
-              color: isOn ? '#ccc' : '#111',
-              border: `1px solid ${isOn ? '#555' : badge.color}`,
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+            className={isOn ? 'pixel-btn-ghost' : 'pixel-btn'}
           >
             {isOn ? 'Turn Off' : 'Turn On'}
           </button>
@@ -246,35 +258,16 @@ export default function AppliancePanel() {
               gameEvents.emit(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, { installTargetId });
               setView(null);
             }}
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              backgroundColor: 'transparent',
-              color: '#f87171',
-              border: '1px solid #f87171',
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+            className="pixel-btn-ghost game-remove-button"
           >
-            Remove
+            {appliance.isCustom ? 'Remove' : 'Disconnect meter'}
           </button>
         </div>
 
         <button
+          ref={closeButtonRef}
           onClick={() => setView(null)}
-          style={{
-            width: '100%',
-            padding: '0.5rem',
-            backgroundColor: badge.color,
-            color: '#111',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
+          className="pixel-btn game-dialog-close"
         >
           Close
         </button>
