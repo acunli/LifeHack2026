@@ -74,7 +74,7 @@ export default function LoginForm() {
     setError("");
     // Handle is chosen on the next screen, so seed a session without one.
     seedLegacySession(room.trim());
-    router.push("/apartment");
+    router.push("/home");
   }
 
   return (

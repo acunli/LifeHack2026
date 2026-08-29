@@ -36,12 +36,20 @@ export default function LeaderboardPage() {
           </p>
           <h1 className="pixel mt-1.5 text-base text-amber">Your building</h1>
         </div>
-        <Link
-          href="/apartment"
-          className="pixel pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
-        >
-          Back home
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/apartment"
+            className="pixel pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
+          >
+            Apartment
+          </Link>
+          <Link
+            href="/home"
+            className="pixel pixel-btn px-4 py-2.5 text-[9px] uppercase tracking-widest"
+          >
+            Dashboard
+          </Link>
+        </div>
       </header>
 
       <LeaderboardBoard

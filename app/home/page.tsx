@@ -343,25 +343,42 @@ export default function HomePage() {
 
   return (
     <div style={styles.page}>
-      <Link
-        href="/apartment"
-        className="pixel"
+      <nav
         style={{
           position: 'fixed',
-          left: 18,
-          top: 18,
+          left: 0,
+          right: 0,
+          top: 0,
           zIndex: 40,
-          padding: '10px 14px',
-          fontSize: 9,
-          textTransform: 'uppercase',
-          letterSpacing: '0.14em',
-          color: 'var(--ink-dim)',
-          border: '3px solid var(--line)',
-          background: 'var(--panel)',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 8,
+          padding: 12,
+          background: 'linear-gradient(180deg, var(--bg-deep), transparent)',
         }}
       >
-        ← Home
-      </Link>
+        {[
+          { href: '/apartment', label: 'Apartment' },
+          { href: '/leaderboard', label: 'League' },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="pixel"
+            style={{
+              padding: '9px 14px',
+              fontSize: 9,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color: 'var(--ink-dim)',
+              border: '3px solid var(--line)',
+              background: 'var(--panel)',
+            }}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
       <style>{css}</style>
       <div className="wl-app">
         {/* Header */}
@@ -657,6 +674,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundAttachment: 'fixed',
     color: 'var(--ink)',
     padding: 18,
+    paddingTop: 64,
     display: 'flex',
     justifyContent: 'center',
   },

@@ -77,7 +77,7 @@ export default function ApartmentPage() {
           </button>
           <Link
             href="/home"
-            className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
+            className="pixel-btn px-4 py-2.5 text-[9px] uppercase tracking-widest"
             style={{ fontFamily: "var(--font-pixel)" }}
           >
             Dashboard
