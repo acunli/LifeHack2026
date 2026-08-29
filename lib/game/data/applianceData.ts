@@ -1,0 +1,69 @@
+/**
+ * Appliance catalog for the interactive apartment.
+ *
+ * Limited to the 5 appliances that already have a real sprite placed in
+ * apartment_layout.json - see socketDefinitions.ts for why Air Conditioner,
+ * Fan, Lamp, and Espresso Machine were dropped from this fixed set (players
+ * can still add generic versions of those - see customApplianceTypes.ts).
+ *
+ * `furnitureName` matches the `name` field on the matching entry in
+ * apartment_layout.json, which is how ApartmentScene finds the sprite to
+ * activate when a socket is installed - no new sprite is spawned, the
+ * appliance that's already sitting in the room is "plugged in".
+ *
+ * dailyKwh/hoursPerDay figures are illustrative household averages (not
+ * measured), used to drive the score via lib/scoring.ts's computeScore and
+ * to label the "time open" stat in the appliance panel.
+ */
+
+export interface ApplianceDefinition {
+  id: string;
+  name: string;
+  furnitureName: string;
+  dailyKwh: number;
+  hoursPerDay: number;
+  tip: string;
+}
+
+export const applianceCatalog: Record<string, ApplianceDefinition> = {
+  refrigerator: {
+    id: 'refrigerator',
+    name: 'Refrigerator',
+    furnitureName: 'Fridge (orange)',
+    dailyKwh: 1.4,
+    hoursPerDay: 24,
+    tip: 'Keep it at 4°C (fridge) / -18°C (freezer) — colder settings waste energy without extra freshness.',
+  },
+  microwave: {
+    id: 'microwave',
+    name: 'Microwave',
+    furnitureName: 'Microwave (alt)',
+    dailyKwh: 0.3,
+    hoursPerDay: 0.25,
+    tip: 'Reheating in a microwave uses a fraction of the energy an oven would for the same job.',
+  },
+  television: {
+    id: 'television',
+    name: 'Television',
+    furnitureName: 'Wall TV',
+    dailyKwh: 0.6,
+    hoursPerDay: 4,
+    tip: 'Switch off at the wall instead of standby — standby draw adds up over a month.',
+  },
+  monitor: {
+    id: 'monitor',
+    name: 'Monitor / PC',
+    furnitureName: 'Monitor (blue)',
+    dailyKwh: 1.0,
+    hoursPerDay: 8,
+    tip: 'Enable sleep mode after a few idle minutes to cut power draw when you step away.',
+  },
+  washing_machine: {
+    id: 'washing_machine',
+    name: 'Washing Machine',
+    furnitureName: 'Cabinet w/ Crystal',
+    dailyKwh: 0.6,
+    hoursPerDay: 1,
+    tip: 'Wash on a cold or eco cycle — heating the water is most of a washing machine\'s energy use.',
+  },
+};
