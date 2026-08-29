@@ -21,8 +21,11 @@ export default function LeaderboardPage() {
     if (isAuthenticated === false) router.replace("/");
   }, [isAuthenticated, router]);
 
-  if (!session) return null;
+  // Order matters: useSession returns session === null whenever a handle is
+  // missing, so the needsUsername branch has to come first or a resident who
+  // has just logged in gets a blank page instead of the handle prompt.
   if (needsUsername) return <UsernameSetup />;
+  if (!session) return null;
 
   return (
     <main className="float-in mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-5 sm:p-7">

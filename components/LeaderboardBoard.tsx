@@ -12,7 +12,7 @@ import { Countdown } from '@/components/Countdown'
 import { LeaderboardRow } from '@/components/LeaderboardRow'
 import { Podium } from '@/components/Podium'
 import { ScoreMeter } from '@/components/ScoreMeter'
-import { WattLahLogo } from '@/components/WattLahLogo'
+import WattLahLogo from '@/components/WattLahLogo'
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews'
 import { fetchLeaderboard, type LeaderboardEntry } from '@/data/leaderboard'
 import { logout } from '@/lib/session'
@@ -81,7 +81,7 @@ export function LeaderboardBoard({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-4">
       <header className="flex flex-wrap items-center justify-between gap-3 py-5">
-        <WattLahLogo size={26} />
+        <WattLahLogo className="text-[26px]" />
         <div className="flex items-center gap-4">
           <Countdown />
           <button

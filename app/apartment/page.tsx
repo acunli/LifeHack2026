@@ -34,11 +34,12 @@ export default function ApartmentPage() {
     if (isAuthenticated === false) router.replace("/");
   }, [isAuthenticated, router]);
 
+  // Order matters: useSession returns session === null whenever a handle is
+  // missing, so the needsUsername branch has to come first or a resident who
+  // has just logged in gets a blank page instead of the handle prompt.
+  if (needsUsername) return <UsernameSetup />;
   if (!session) return null;
 
-  // Everyone on the league has a handle; the resident should too, rather than
-  // showing up as "You" beside PixelPanda and GridGoblin.
-  if (needsUsername) return <UsernameSetup />;
 
   const result = energy.result;
   const hoveredAppliance = hovered;

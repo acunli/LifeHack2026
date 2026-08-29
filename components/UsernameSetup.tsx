@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react'
-import { WattLahLogo } from '@/components/WattLahLogo'
+import WattLahLogo from '@/components/WattLahLogo'
 import { logout, setUsername } from '@/lib/session'
 
 export function UsernameSetup() {
@@ -28,7 +28,7 @@ export function UsernameSetup() {
     <div className="mx-auto w-full max-w-sm">
       <div className="pixel-panel pixel-panel-gold p-6">
         <div className="mb-6 flex justify-center">
-          <WattLahLogo size={30} />
+          <WattLahLogo className="text-[30px]" />
         </div>
         <h1 className="pixel mb-2 text-center text-[12px] text-foreground">
           Choose a username
