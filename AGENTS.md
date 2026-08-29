@@ -8,6 +8,30 @@ This file is the short version: the rules that are easy to break by accident.
 
 ---
 
+## Current state — read this first
+
+**No application code exists yet.** As of this revision the repository is:
+
+```
+Assets/          the pixel-art sheets (committed)
+README.md        the plan
+AGENTS.md        this file
+```
+
+There is no `package.json`, no `app/`, no `lib/`, no `components/`, no
+`node_modules/`. **Every path mentioned below is a file to be created, not one to
+be found.** If you are asked to modify something that does not exist, say so
+rather than searching.
+
+**The first task is README §17 task 1** — scaffold Next.js + TypeScript + Tailwind.
+Until that lands, no build, typecheck, or test command in this file will run.
+
+**Task 0 gates the build.** Lane D writes the demo story first and hands it over
+at 14:00; it is the spec for what must exist. If you are asked to build UI before
+that exists, flag it.
+
+---
+
 ## Deadline and priority
 
 Working deadline: **Sunday 30 August, 11:00** (see README §21, decision 3 — the
@@ -109,6 +133,17 @@ comparisonPercent = (total - reference) / reference * 100
 score             = clamp(round(100 - comparisonPercent), 0, 100)
 ```
 
+**Known characteristic — do not "fix" it.** An apartment consuming exactly the
+reference amount scores 100 and lands in the top band, and consuming *less* also
+clamps to 100. That is intentional: the formula is a deliberate linear
+normalisation against a stated reference, chosen for being explainable in one
+sentence, not for modelling a real distribution. If you think it should be
+recentred, raise it — do not change it unilaterally. Three lanes and the demo
+script depend on the numbers it produces.
+
+To land the demo apartment in the 72–78 band (README §11), it must consume roughly
+22–28% above reference.
+
 ---
 
 ## Asset facts — measured, do not re-derive
@@ -141,6 +176,29 @@ sips -g pixelWidth -g pixelHeight <file>.png
 
 ---
 
+## Where files go
+
+Create files here, not wherever seems natural (README §14):
+
+```
+app/
+  layout.tsx  page.tsx           login
+  apartment/page.tsx             integration shell — keep tiny
+  globals.css
+components/
+  LoginForm.tsx  ApartmentRoom.tsx
+  EnergyDashboard.tsx  StatCard.tsx  ScoreBadge.tsx
+lib/
+  scoring.ts  scoring.test.ts  session.ts
+data/
+  mockApartment.ts  spriteMap.ts
+public/assets/                   copied from Assets/
+docs/
+```
+
+Hardcoded numbers belong in `data/`, never inline in a component. That separation
+is what lets mock data become real data later without touching the UI.
+
 ## File ownership
 
 Four lanes (README §15). Stay in your lane's files; ask before editing another's.
@@ -171,12 +229,15 @@ and call it done — take the string from `copy.md` or ask for it.
 
 ## Verification
 
+⚠️ **None of these work until README §17 task 1 (the scaffold) has landed.** There
+is no `package.json` yet. Do not report a passing build before one exists.
+
 Run after any non-trivial change, before moving on:
 
 ```bash
 npx tsc --noEmit     # must be clean
 npm run build        # must succeed
-npm test             # after any change to lib/scoring.ts
+npm test             # only after Vitest is added (task 5); not installed yet
 ```
 
 Node was installed via Homebrew (v26.7.0). If you hit `command not found: node`,
@@ -200,3 +261,42 @@ that is why — `brew install node`.
 - **Ask when scope is ambiguous** rather than guessing expansively. The cost of a
   question is thirty seconds; the cost of building an out-of-scope feature is an
   hour nobody has.
+
+---
+
+## Git
+
+- **Never commit to `main` directly** and never force-push it. Four people share it.
+- Branch per lane: `feat/foundation`, `feat/room`, `feat/hud`, `feat/docs`
+- Do not commit `node_modules/`, `.next/`, or `.DS_Store` — add a `.gitignore` as
+  part of the scaffold task
+- Pull before you start and before you push
+- **Do not commit or push unless asked.** Say what you changed and let the human
+  decide.
+
+---
+
+## What we are judged on
+
+When trading one thing off against another, this is the basis:
+
+| Criterion | Weight |
+|---|---|
+| **Fun and engagement** | **40%** |
+| Behaviour change | 20% |
+| Stickiness | 20% |
+| Craft and usability | 20% |
+
+An hour on the pixel room or the score reveal is worth more than an hour on test
+coverage or architecture. That is not an excuse for broken code — it is how to
+choose when both are defensible and only one fits.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
