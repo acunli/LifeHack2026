@@ -349,7 +349,7 @@ export default function HomePage() {
           left: 0,
           right: 0,
           top: 0,
-          zIndex: 40,
+          zIndex: 60,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -359,24 +359,18 @@ export default function HomePage() {
             'linear-gradient(180deg, var(--bg-deep) 40%, transparent 100%)',
         }}
       >
-        {[
-          { href: '/room', label: 'Room' },
-          { href: '/leaderboard', label: 'League' },
-        ].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="pixel pixel-btn-ghost"
-            style={{
-              padding: '10px 16px',
-              fontSize: 9,
-              textTransform: 'uppercase',
-              letterSpacing: '0.16em',
-            }}
-          >
-            {item.label}
-          </Link>
-        ))}
+        <Link
+          href="/leaderboard"
+          className="pixel pixel-btn-ghost"
+          style={{
+            padding: '10px 16px',
+            fontSize: 9,
+            textTransform: 'uppercase',
+            letterSpacing: '0.16em',
+          }}
+        >
+          League
+        </Link>
       </nav>
       <style>{css}</style>
       <div className="wl-app">
