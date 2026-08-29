@@ -1,5 +1,5 @@
 /**
- * Daily score change indicator. Direction is shown with a pixel arrow AND a
+ * Score change from the resident's baseline. Direction is shown with an arrow AND a
  * signed number + text label, so meaning never depends on color alone.
  */
 
@@ -53,7 +53,7 @@ export function ChangeIndicator({
       </span>
       <span className="sr-only">
         {LABEL[change.direction]}
-        {change.direction !== 'flat' ? ` ${magnitude} points versus the last period` : ' versus the last period'}
+        {change.direction !== 'flat' ? ` ${magnitude} points versus baseline` : ' versus baseline'}
       </span>
     </span>
   )

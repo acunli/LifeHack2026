@@ -508,7 +508,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1100;
   animation: float-in 200ms ease-out both;
 }
 .voucher-popup {
@@ -599,6 +599,10 @@ body {
   font-size: 10px;
   color: var(--ink-dim);
   opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voucher-scrim { animation: none; }
 }
 
 /* ── Section headers ────────────────────────────────────────────── */
@@ -790,6 +794,11 @@ body {
 /* ── News feed ──────────────────────────────────────────────────── */
 .news-feed {
   overflow: hidden;
+}
+.news-disclaimer {
+  margin: 0 0 10px;
+  color: var(--ink-dim);
+  font-size: 12px;
 }
 .news-scroll {
   display: flex;

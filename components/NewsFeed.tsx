@@ -31,7 +31,7 @@ const NEWS_ARTICLES = [
   {
     id: 4,
     title: 'Community Challenge: Block vs Block Energy Savings Showdown',
-    source: 'WattWise Blog',
+    source: 'WattLah Demo',
     date: 'Aug 24, 2026',
     summary:
       'Neighbouring blocks compete to cut the most energy this September. Prizes include smart home kits and grocery vouchers for top performers.',
@@ -78,6 +78,9 @@ const NEWS_ARTICLES = [
 export default function NewsFeed() {
   return (
     <div className="news-feed">
+      <p className="news-disclaimer" role="note">
+        Illustrative demo content — not live reporting.
+      </p>
       <div className="news-scroll">
         {NEWS_ARTICLES.map((article) => (
           <article key={article.id} className="news-card">

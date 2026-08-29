@@ -18,9 +18,9 @@ export type LeaderboardEntry = {
   /** Kept internally for apartment/energy mock data; never rendered. */
   roomNumber: string
   mascot: MascotName
-  /** Today's 0–100 energy score. */
+  /** Current 0–100 energy score. */
   score: number
-  /** Previous day's 0–100 energy score. */
+  /** Stable comparison baseline for the change indicator. */
   previousScore: number
   change: DailyChange
   tier: ReturnType<typeof rankTier>
@@ -74,7 +74,7 @@ function usageFactor(roomNumber: string, day: string): number {
 }
 
 /**
- * Previous-period score, as the current period plus a bounded drift.
+ * Comparison baseline, as the current score plus a bounded drift.
  *
  * Previously this was a second independent draw for the previous day, which
  * made the comparison unrelated to the current score — the board showed
@@ -82,7 +82,7 @@ function usageFactor(roomNumber: string, day: string): number {
  * change to single digits by construction
  * rather than hoping the hash cooperates.
  */
-function previousScoreFor(roomNumber: string, score: number): number {
+function comparisonScoreFor(roomNumber: string, score: number): number {
   const drift = Math.round((seededUnit(`${roomNumber}:drift`) - 0.5) * 13);
   return Math.max(0, Math.min(100, score - drift));
 }
@@ -95,11 +95,10 @@ function scoreFor(resident: Resident, day: string): number {
   })
 }
 
-/** Build an unranked entry for a resident for the given (today, prev) days. */
+/** Build an unranked entry for a resident for the current deterministic seed. */
 function toEntry(
   resident: Resident,
-  today: string,
-  prev: string,
+  periodSeed: string,
   currentUserId: string | null,
 ): Omit<LeaderboardEntry, 'rank'> {
   const id = userIdFromRoom(resident.roomNumber)
@@ -108,8 +107,8 @@ function toEntry(
   // If this is the current user and they have a saved score from apartment
   // recommendations, use that instead of the mock data.
   const saved = isCurrentUser ? getSavedScore(id) : null
-  const score = saved?.current ?? scoreFor(resident, today)
-  const previousScore = saved?.previous ?? previousScoreFor(resident.roomNumber, score)
+  const score = saved?.current ?? scoreFor(resident, periodSeed)
+  const previousScore = saved?.previous ?? comparisonScoreFor(resident.roomNumber, score)
 
   return {
     id,
@@ -136,8 +135,7 @@ export type CurrentUser = {
  */
 export function buildLeaderboard(
   current: CurrentUser | null,
-  today = 'current-period',
-  prev = 'previous-period',
+  periodSeed = 'current-period',
 ): LeaderboardEntry[] {
   const currentUserId = current ? userIdFromRoom(current.roomNumber) : null
 
@@ -152,7 +150,7 @@ export function buildLeaderboard(
     })
   }
 
-  const entries = residents.map((r) => toEntry(r, today, prev, currentUserId))
+  const entries = residents.map((r) => toEntry(r, periodSeed, currentUserId))
   // If the current user matched a seeded resident, override the display name
   // with their chosen username.
   if (current) {

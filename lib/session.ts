@@ -196,16 +196,16 @@ export function saveScore(
   const existing = scores[userId]
 
   /*
-   * `previous` is the prior comparison period, and it does not move while the
-   * resident previews changes in the current period.
+   * `previous` is the resident's stable starting baseline. It does not move
+   * while they preview changes.
    *
    * It used to track the last score you held, which was wrong twice over:
    * re-saving on mount collapsed it into the current score, so the arrow read
    * 0; and undoing a what-if read as a real decline — resetting 85 back to 74
-   * showed "▼ -11" when the comparison period had not changed.
+   * showed "▼ -11" when their measured baseline had not changed.
    *
-   * Seeded once from the first score seen, then left alone. Today moves; the
-   * comparison point does not.
+   * Seeded once from the first score seen, then left alone. The preview moves;
+   * the comparison point does not.
    */
   scores[userId] = {
     current: score,

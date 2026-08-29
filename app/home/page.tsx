@@ -342,7 +342,6 @@ export default function HomePage() {
   const [connectedTargets, setConnectedTargets] = useState<Set<string>>(
     () => new Set(),
   )
-  const [rewards, setRewards] = useState(0)
   const [voucherOpen, setVoucherOpen] = useState(false)
   const [rewardNotify, setRewardNotify] = useState(false)
   const [rewardDelta, setRewardDelta] = useState<1 | -1>(1)
@@ -351,6 +350,8 @@ export default function HomePage() {
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
   const drawerRef = useRef<HTMLElement>(null)
+  const rewardTimerRef = useRef<number | null>(null)
+  const closeVoucher = useCallback(() => setVoucherOpen(false), [])
 
   const total = useMemo(
     () => APPLIANCES.reduce((s, a) => s + cur[a.id], 0),
@@ -361,6 +362,10 @@ export default function HomePage() {
   const colour = scoreColour(score)
   const over = Math.round(((total - REFERENCE) / REFERENCE) * 100)
   const planActive = applied.size > 0
+  const rewards = useMemo(
+    () => [...applied].filter((id) => RECS.some((rec) => rec.id === id && rec.save > 0)).length,
+    [applied],
+  )
   const savedKwh = BASE_TOTAL - total
   const auditCount = [...connectedTargets].filter((id) =>
     FIXED_AUDIT_TARGETS.has(id),
@@ -451,6 +456,10 @@ export default function HomePage() {
       previousFocus?.focus()
     }
   }, [drawerOpen])
+
+  useEffect(() => () => {
+    if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current)
+  }, [])
 
   /**
    * Restore what-if changes made before navigating away.
@@ -609,9 +618,12 @@ export default function HomePage() {
     // Earn a reward when applying, lose it when undoing
     if (rec.save > 0) {
       setRewardDelta(done ? -1 : 1)
-      setRewards((r) => done ? Math.max(0, r - 1) : r + 1)
       setRewardNotify(true)
-      setTimeout(() => setRewardNotify(false), 2500)
+      if (rewardTimerRef.current) window.clearTimeout(rewardTimerRef.current)
+      rewardTimerRef.current = window.setTimeout(() => {
+        setRewardNotify(false)
+        rewardTimerRef.current = null
+      }, 2500)
     }
 
     animateTo(
@@ -687,7 +699,8 @@ export default function HomePage() {
             {/* Rewards earned with notification badge */}
             <button
               className={'wl-rewards' + (rewardNotify ? ' notify' : '')}
-              title="Rewards earned"
+              aria-label={`${rewards} rewards earned${leaderboardRank > 0 && leaderboardRank <= 3 ? '. Open sample voucher.' : ''}`}
+              title={leaderboardRank > 0 && leaderboardRank <= 3 ? 'Open sample voucher' : 'Reach the top 3 to unlock a sample voucher'}
               onClick={() => {
                 if (leaderboardRank > 0 && leaderboardRank <= 3) {
                   setVoucherOpen(true)
@@ -961,7 +974,7 @@ export default function HomePage() {
           tariff={TARIFF}
         />
 
-        <div className="section-header">Latest Energy News</div>
+        <div className="section-header">Illustrative Energy Briefing</div>
         <NewsFeed />
 
         <div className="wl-foot">Prototype — pixel art by LimeZu, Modern Interiors</div>
@@ -1065,7 +1078,7 @@ export default function HomePage() {
 
       <VoucherPopup
         open={voucherOpen}
-        onClose={() => setVoucherOpen(false)}
+        onClose={closeVoucher}
         rank={leaderboardRank}
         username={session.username}
       />

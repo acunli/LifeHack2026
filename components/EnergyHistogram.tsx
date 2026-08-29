@@ -28,9 +28,10 @@ export default function EnergyHistogram({
   tariff,
 }: EnergyHistogramProps) {
   const weeklyData = useMemo(() => {
+    const dailyAverage = total / 30
     return DAYS.map((day) => {
       const factor = seededBar(day, 'weekly')
-      return Math.round(total * factor * 10) / 10
+      return Math.round(dailyAverage * factor * 10) / 10
     })
   }, [total])
 
@@ -74,7 +75,11 @@ export default function EnergyHistogram({
         {/* Left: Histogram */}
         <div className="histogram-panel">
           <div className="histogram-title">Weekly Usage Trend</div>
-          <div className="histogram-chart">
+          <div
+            className="histogram-chart"
+            role="img"
+            aria-label={`Illustrative weekly usage. Daily average ${avg} kilowatt-hours.`}
+          >
             {DAYS.map((day, i) => (
               <div key={day} className="histogram-bar-col">
                 <div className="histogram-bar-wrap">
@@ -96,8 +101,12 @@ export default function EnergyHistogram({
         {/* Right: Line Chart — Daily Cost Trend */}
         <div className="histogram-panel">
           <div className="histogram-title">Daily Cost Trend</div>
-          <div className="linechart-container">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="linechart-svg">
+          <div
+            className="linechart-container"
+            role="img"
+            aria-label={`Illustrative daily cost trend. Weekly total S$${costData.reduce((sum, value) => sum + value, 0).toFixed(2)}.`}
+          >
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="linechart-svg" aria-hidden="true">
               <defs>
                 <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--amber)" stopOpacity="0.3" />

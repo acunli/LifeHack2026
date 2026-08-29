@@ -110,7 +110,7 @@ export function LeaderboardBoard({
         {/* The arrows had no label anywhere on the page, so nobody could tell
             what they measured. */}
         <span className="pixel text-[9px] text-muted-w">
-          ▲▼ change vs last period · plans are previews
+          ▲▼ change vs baseline · plans are previews
         </span>
       </div>
 
