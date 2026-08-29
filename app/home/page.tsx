@@ -1144,8 +1144,14 @@ const css = `
 
 /* Audit progress badge. Renamed off .wl-rewards so it does not collide with
    the rewards badge, which is a different counter. */
-.wl-audit{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line)}
-.wl-audit-icon,.wl-audit-count,.wl-audit-label{display:inline-block}
+/* Audit badge. Sized to match the other header chips — without an explicit
+   font-size it inherited the panel's and rendered far larger than its
+   neighbours. */
+.wl-audit{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;
+  background:var(--bg-deep);border:3px solid var(--line);line-height:1}
+.wl-audit-icon{font-size:11px}
+.wl-audit-count{font-size:10px;color:var(--amber)}
+.wl-audit-label{font-size:8px;color:var(--ink-dim);letter-spacing:.12em}
 /* Rewards earned badge */
 .wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px;position:relative;transition:border-color .3s}
 .wl-rewards.notify{border-color:var(--amber);animation:wl-reward-pulse .6s ease}
