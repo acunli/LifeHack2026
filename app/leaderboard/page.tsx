@@ -35,29 +35,31 @@ export default function LeaderboardPage() {
 
   return (
     <main className="float-in mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-5 sm:p-7">
-      <header className="pixel-panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <WattLahLogo className="text-[22px] sm:text-[25px]" />
-        <div className="flex flex-col">
-          <p className="pixel text-[9px] uppercase tracking-widest text-ink-dim">
-            Eco league · current period
-          </p>
-          <h1 className="pixel mt-1.5 text-base text-amber">Your building</h1>
+      <header className="pixel-panel px-5 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col items-center">
+            <WattLahLogo className="text-[22px] sm:text-[25px]" />
+            <p className="pixel mt-2 text-[9px] uppercase tracking-widest text-ink-dim">
+              Eco league · current period
+            </p>
+            <h1 className="pixel mt-1 text-base text-amber">Your building</h1>
+          </div>
+          <nav aria-label="League navigation" className="flex items-center gap-3">
+            <Link
+              href="/home"
+              className="pixel pixel-btn px-4 py-2.5 text-[9px] uppercase tracking-widest"
+            >
+              Home
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="pixel text-[9px] text-ink-dim underline underline-offset-4 hover:text-ink"
+            >
+              Sign out
+            </button>
+          </nav>
         </div>
-        <nav aria-label="League navigation" className="flex items-center gap-3 sm:ml-auto">
-          <Link
-            href="/home"
-            className="pixel pixel-btn px-4 py-2.5 text-[9px] uppercase tracking-widest"
-          >
-            Home
-          </Link>
-          <button
-            type="button"
-            onClick={logout}
-            className="pixel text-[9px] text-ink-dim underline underline-offset-4 hover:text-ink"
-          >
-            Sign out
-          </button>
-        </nav>
       </header>
 
       <LeaderboardBoard
