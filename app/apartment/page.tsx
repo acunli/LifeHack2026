@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clearSession } from "@/lib/session";
 import { useSession } from "@/lib/useSession";
-import ApartmentRoom, { type HeatZone } from "@/components/ApartmentRoom";
+import ApartmentRoom from "@/components/ApartmentRoom";
 import EnergyDashboard from "@/components/EnergyDashboard";
 import Mascot from "@/components/Mascot";
-import { APPLIANCES, applianceLoad, applianceScore } from "@/data/appliances";
-import { MOCK_APARTMENT } from "@/data/mockApartment";
-import { computeScore } from "@/lib/scoring";
+import UsernameSetup from "@/components/UsernameSetup";
+import Footer from "@/components/Footer";
+import { applianceScore, type Appliance } from "@/data/appliances";
+import { useEnergyState } from "@/lib/useEnergyState";
 
 /**
  * INTEGRATION SHELL — keep it thin (README §15.7). It composes; it does not
@@ -19,7 +20,8 @@ import { computeScore } from "@/lib/scoring";
 export default function ApartmentPage() {
   const router = useRouter();
   const session = useSession();
-  const [hovered, setHovered] = useState<HeatZone | null>(null);
+  const [hovered, setHovered] = useState<Appliance | null>(null);
+  const energy = useEnergyState();
 
   // Derived, not synchronised: the dashboard is open whenever a session has
   // resolved and the resident has not dismissed it. Expressing it this way
@@ -32,26 +34,14 @@ export default function ApartmentPage() {
     if (session === null) router.replace("/");
   }, [session, router]);
 
-  // One array, three surfaces: the heatmap, the hover readout, the dashboard.
-  const heat: HeatZone[] = useMemo(
-    () =>
-      APPLIANCES.map((a) => ({
-        id: a.id,
-        label: `${a.icon} ${a.name}`,
-        col: a.col,
-        row: a.row,
-        radius: a.radius,
-        load: applianceLoad(a),
-      })),
-    [],
-  );
-
   if (!session) return null;
 
-  const result = computeScore(MOCK_APARTMENT);
-  const hoveredAppliance = hovered
-    ? APPLIANCES.find((a) => a.id === hovered.id)
-    : null;
+  // Everyone on the league has a handle; the resident should too, rather than
+  // showing up as "You" beside PixelPanda and GridGoblin.
+  if (!session.username) return <UsernameSetup />;
+
+  const result = energy.result;
+  const hoveredAppliance = hovered;
 
   function handleLogout() {
     clearSession();
@@ -102,7 +92,11 @@ export default function ApartmentPage() {
       </header>
 
       <section className="pixel-panel flex flex-col items-center gap-4 p-5">
-        <ApartmentRoom heat={heat} onZoneHover={setHovered} />
+        <ApartmentRoom
+            onHover={setHovered}
+            selectedId={hovered?.id ?? null}
+            kwh={energy.kwh}
+          />
 
         {/* Readout swaps to the hovered appliance, falls back to the legend. */}
         <div className="flex min-h-10 w-full max-w-xl items-center justify-center">
@@ -113,7 +107,7 @@ export default function ApartmentPage() {
                 <strong>{hoveredAppliance.name}</strong>
               </span>
               <span className="text-sm tabular-nums text-ink-dim">
-                {hoveredAppliance.kwh} kWh
+                {energy.kwh[hoveredAppliance.id] ?? hoveredAppliance.kwh} kWh
               </span>
               <span
                 className="text-[10px] uppercase tracking-widest"
@@ -137,7 +131,7 @@ export default function ApartmentPage() {
                 className="h-2.5 w-40"
                 style={{
                   background:
-                    "linear-gradient(90deg, rgb(110,231,168), rgb(255,200,102), rgb(255,110,90))",
+                    "linear-gradient(90deg, rgb(155,229,100), rgb(255,200,102), rgb(255,110,90))",
                 }}
               />
               <span>High draw</span>
@@ -147,9 +141,12 @@ export default function ApartmentPage() {
         </div>
       </section>
 
+      <Footer />
+
       {showDashboard && (
         <EnergyDashboard
           roomNumber={session.roomNumber}
+          energy={energy}
           onClose={() => setDismissed(true)}
         />
       )}

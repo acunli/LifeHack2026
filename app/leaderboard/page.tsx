@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/useSession";
 import { buildStanding, type LeaderboardRow } from "@/data/leaderboard";
+import Mascot from "@/components/Mascot";
+import Countdown from "@/components/Countdown";
+import Podium from "@/components/Podium";
+import ScoreMeter from "@/components/ScoreMeter";
+import ChangeIndicator from "@/components/ChangeIndicator";
+import Footer from "@/components/Footer";
 import { MOCK_APARTMENT } from "@/data/mockApartment";
 import { computeScore } from "@/lib/scoring";
 
@@ -34,22 +40,22 @@ function Row({ row, place }: { row: LeaderboardRow; place: number }) {
         {place <= 3 ? MEDALS[place - 1] : place}
       </span>
 
+      <Mascot scale={1} character={row.mascot} animate={false} className="shrink-0" />
+
       <span
         className={`flex-1 text-sm ${row.isYou ? "text-amber" : ""}`}
         style={row.isYou ? { fontFamily: "var(--font-pixel)" } : undefined}
       >
-        {row.isYou ? `Room ${row.roomNumber} — you` : `Room ${row.roomNumber}`}
+        {row.handle}
       </span>
 
-      <span
-        className="w-12 shrink-0 text-right text-xs tabular-nums"
-        style={{ color: row.delta >= 0 ? "var(--green)" : "var(--red)" }}
-      >
-        {row.delta >= 0 ? "▲" : "▼"} {Math.abs(row.delta)}
-      </span>
+      <ChangeIndicator delta={row.delta} className="w-12 shrink-0 justify-end" />
 
+      <span className="hidden sm:block">
+        <ScoreMeter score={row.score} />
+      </span>
       <span
-        className="w-10 shrink-0 text-right text-sm tabular-nums"
+        className="w-10 shrink-0 text-right text-sm tabular-nums sm:hidden"
         style={{ color: scoreColour(row.score) }}
       >
         {row.score}
@@ -69,7 +75,7 @@ export default function LeaderboardPage() {
   if (!session) return null;
 
   const score = computeScore(MOCK_APARTMENT).score;
-  const standing = buildStanding(session.roomNumber, score);
+  const standing = buildStanding(session.roomNumber, score, 3, session.username);
 
   // Top three, then a window around the resident so their neighbours are the
   // ones on screen. A 48-row table is a spreadsheet; this is a rivalry.
@@ -84,7 +90,7 @@ export default function LeaderboardPage() {
       <header className="pixel-panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
         <div>
           <p className="text-[9px] uppercase tracking-widest text-ink-dim">
-            Eco League · this week
+            Eco League · today
           </p>
           <h1
             className="mt-1.5 text-base text-amber"
@@ -93,6 +99,7 @@ export default function LeaderboardPage() {
             Your building
           </h1>
         </div>
+        <Countdown />
         <Link
           href="/apartment"
           className="pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
@@ -123,7 +130,7 @@ export default function LeaderboardPage() {
             <strong className="text-amber">
               {standing.gapToNext} point{standing.gapToNext === 1 ? "" : "s"}
             </strong>{" "}
-            behind Room {standing.ahead.roomNumber}.
+            behind {standing.ahead.handle}.
           </p>
         ) : (
           <p className="mt-3 text-center text-sm text-good">
@@ -132,27 +139,21 @@ export default function LeaderboardPage() {
         )}
       </section>
 
-      <section className="pixel-panel overflow-hidden">
-        <ul className="divide-y divide-line/40">
-          {podium.map((row, i) => (
-            <Row key={row.roomNumber} row={row} place={i + 1} />
-          ))}
-        </ul>
+      <Podium rows={podium} />
 
+      <section className="pixel-panel overflow-hidden">
         {gapped && (
           <p className="px-4 py-2 text-center text-xs text-ink-dim/60">···</p>
         )}
 
         <ul className="divide-y divide-line/40">
           {near.map((row, i) => (
-            <Row key={row.roomNumber} row={row} place={from + i + 1} />
+            <Row key={row.handle} row={row} place={from + i + 1} />
           ))}
         </ul>
       </section>
 
-      <p className="text-center text-xs text-ink-dim/60">
-        Simulated data — demo build.
-      </p>
+      <Footer />
     </main>
   );
 }

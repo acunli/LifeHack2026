@@ -1,4 +1,6 @@
 import { between, makeRng } from "@/lib/rng";
+import { hashSeed } from "@/lib/rng";
+import type { CharacterName } from "@/components/Mascot";
 
 /**
  * The complex leaderboard. Static and seeded — §5 rules out a real-time or
@@ -9,10 +11,32 @@ import { between, makeRng } from "@/lib/rng";
 
 export const COMPLEX_SIZE = 48;
 
+/**
+ * Handles rather than room numbers. Merged from the leaderboard mock, which
+ * made the point well: a public board of unit numbers identifies where people
+ * live, and a wall of "Room 07-12" reads as a housing register rather than a
+ * game.
+ */
+const HANDLES = [
+  "PixelPanda", "WattWarden", "SolarSprout", "VoltViper", "EcoEmber",
+  "GridGoblin", "LumenLotus", "AmpAcorn", "JouleJelly", "KiloKoala",
+  "FluxFerret", "NovaNewt", "TeraTapir", "OhmOtter", "SparkSloth",
+  "CircuitCrab", "BreezeBadger", "MeterMoth", "CoilCoyote", "PhotonPika",
+  "DynamoDingo", "TurbineTern", "EmberEagle", "QuantaQuail",
+];
+
+const MASCOTS: CharacterName[] = ["Alex", "Adam", "Amelia", "Bob"];
+
+/** Stable per-resident mascot, so a handle always shows the same character. */
+export const mascotFor = (seed: string): CharacterName =>
+  MASCOTS[hashSeed(seed) % MASCOTS.length];
+
 export interface LeaderboardRow {
-  roomNumber: string;
+  /** Public handle. Room numbers are never rendered for neighbours. */
+  handle: string;
+  mascot: CharacterName;
   score: number;
-  /** Change since last week, in points. */
+  /** Change since yesterday, in points. */
   delta: number;
   isYou: boolean;
 }
@@ -22,10 +46,14 @@ function neighbours(): Omit<LeaderboardRow, "isYou">[] {
   const rows: Omit<LeaderboardRow, "isYou">[] = [];
 
   for (let i = 0; i < COMPLEX_SIZE; i++) {
-    const floor = String(2 + Math.floor(i / 4)).padStart(2, "0");
-    const unit = String(1 + (i % 4) * 5 + Math.floor(between(rng, 0, 4))).padStart(2, "0");
+    // Handles repeat past the list length with a suffix, so 48 units all get
+    // a distinct name without needing 48 hand-written ones.
+    const base = HANDLES[i % HANDLES.length];
+    const handle =
+      i < HANDLES.length ? base : `${base}${Math.floor(i / HANDLES.length) + 1}`;
     rows.push({
-      roomNumber: `${floor}-${unit}`,
+      handle,
+      mascot: mascotFor(handle),
       score: Math.round(between(rng, 48, 97)),
       delta: Math.round(between(rng, -7, 9)),
     });
@@ -47,17 +75,23 @@ export interface Standing {
 export function buildStanding(
   roomNumber: string,
   score: number,
-  weeklyDelta = 3,
+  dailyDelta = 3,
+  handle?: string,
 ): Standing {
-  const rows: LeaderboardRow[] = neighbours()
-    .filter((r) => r.roomNumber !== roomNumber)
-    .map((r) => ({ ...r, isYou: false }));
+  const rows: LeaderboardRow[] = neighbours().map((r) => ({
+    ...r,
+    isYou: false,
+  }));
 
-  rows.push({ roomNumber, score, delta: weeklyDelta, isYou: true });
+  rows.push({
+    handle: handle?.trim() || "You",
+    mascot: mascotFor(roomNumber),
+    score,
+    delta: dailyDelta,
+    isYou: true,
+  });
 
-  rows.sort(
-    (a, b) => b.score - a.score || a.roomNumber.localeCompare(b.roomNumber),
-  );
+  rows.sort((a, b) => b.score - a.score || a.handle.localeCompare(b.handle));
 
   const index = rows.findIndex((r) => r.isYou);
   const ahead = index > 0 ? rows[index - 1] : null;

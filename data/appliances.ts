@@ -1,5 +1,3 @@
-import { TILE } from "./spriteMap";
-
 /**
  * The appliance layer. One array drives three surfaces: the heatmap glow, the
  * hover readout, and the dashboard list.
@@ -21,11 +19,15 @@ export interface Appliance {
   kwh: number;
   /** What a comparable flat's appliance of this kind uses, kWh. */
   referenceKwh: number;
-  /** Where it sits in the room, in tiles. Drives the heatmap. */
-  col: number;
-  row: number;
-  /** Heat blob radius, tiles. */
-  radius: number;
+  /**
+   * Position over room.png, as a PERCENTAGE of the image. Percentages rather
+   * than tiles so the room scales to any width without the blobs drifting off
+   * their appliances.
+   */
+  x: number;
+  y: number;
+  /** Heat blob radius, as a percentage of room width. */
+  r: number;
   room: string;
   tip: string;
 }
@@ -37,9 +39,9 @@ export const APPLIANCES: Appliance[] = [
     icon: "❄️",
     kwh: 180,
     referenceKwh: 118,
-    col: 9,
-    row: 1,
-    radius: 3.0,
+    x: 23,
+    y: 17,
+    r: 15,
     room: "Living room",
     tip: "Every degree below 25°C adds roughly 8% to your cooling bill.",
   },
@@ -49,9 +51,9 @@ export const APPLIANCES: Appliance[] = [
     icon: "🧊",
     kwh: 95,
     referenceKwh: 98,
-    col: 11,
-    row: 5,
-    radius: 2.2,
+    x: 55,
+    y: 25,
+    r: 10,
     room: "Kitchen",
     tip: "Running well. Keep the coils clear and the door shut.",
   },
@@ -61,9 +63,9 @@ export const APPLIANCES: Appliance[] = [
     icon: "🧺",
     kwh: 58,
     referenceKwh: 46,
-    col: 1,
-    row: 6,
-    radius: 2.0,
+    x: 64,
+    y: 14,
+    r: 9,
     room: "Utility",
     tip: "Cold washes use up to 80% less energy. Run full loads only.",
   },
@@ -73,9 +75,9 @@ export const APPLIANCES: Appliance[] = [
     icon: "📺",
     kwh: 40,
     referenceKwh: 33,
-    col: 6,
-    row: 3,
-    radius: 2.0,
+    x: 87,
+    y: 11,
+    r: 9,
     room: "Living room",
     tip: "Standby draw is real — a switched-off TV still sips power.",
   },
@@ -85,9 +87,9 @@ export const APPLIANCES: Appliance[] = [
     icon: "💡",
     kwh: 30,
     referenceKwh: 25,
-    col: 4,
-    row: 5,
-    radius: 2.4,
+    x: 52,
+    y: 49,
+    r: 11,
     room: "Throughout",
     tip: "Swapping the last halogens for LED cuts lighting load by ~80%.",
   },
@@ -114,5 +116,3 @@ export function worstAppliance(all: Appliance[] = APPLIANCES): Appliance {
 
 export const totalApplianceKwh = (all: Appliance[] = APPLIANCES) =>
   all.reduce((sum, a) => sum + a.kwh, 0);
-
-export const TILE_PX = TILE;

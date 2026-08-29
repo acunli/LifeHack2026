@@ -14,6 +14,12 @@ export const SESSION_EVENT = "wattlah:session";
 
 export interface Session {
   roomNumber: string;
+  /**
+   * Public handle shown on the league. Optional because a session created
+   * before handles existed is still valid — the app prompts for one rather
+   * than signing the resident out.
+   */
+  username?: string;
   loggedIn: boolean;
 }
 
@@ -35,7 +41,11 @@ export function parseSession(raw: string | null): Session | null {
     if (typeof parsed?.roomNumber !== "string") return null;
     if (!parsed.roomNumber.trim()) return null;
     if (parsed.loggedIn !== true) return null;
-    return { roomNumber: parsed.roomNumber, loggedIn: true };
+    const username =
+      typeof parsed.username === "string" && parsed.username.trim()
+        ? parsed.username.trim()
+        : undefined;
+    return { roomNumber: parsed.roomNumber, username, loggedIn: true };
   } catch {
     return null;
   }
@@ -53,14 +63,21 @@ function announce() {
   }
 }
 
-export function setSession(roomNumber: string): void {
+export function setSession(roomNumber: string, username?: string): void {
   try {
-    const session: Session = { roomNumber, loggedIn: true };
+    const session: Session = { roomNumber, username, loggedIn: true };
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch {
     // Persistence is a convenience, never load-bearing for the demo.
   }
   announce();
+}
+
+/** Attaches a handle to an existing session, leaving the room number alone. */
+export function setUsername(username: string): void {
+  const current = getSession();
+  if (!current) return;
+  setSession(current.roomNumber, username.trim());
 }
 
 export function clearSession(): void {
