@@ -3,32 +3,31 @@
 /**
  * The WattLah! mascot.
  *
- * Sheet layout, measured: 64×32 px = FOUR frames of 16×32, one per facing
- * direction — left, back, right, front. They are NOT idle-animation frames.
- * Cycling them makes the character spin on the spot, which is what the first
- * version did. Frame 3 (x=48) is the front-facing pose; that is the mascot.
+ * Sheet layout, verified by cropping: 64×32 px = FOUR frames of 16×32, one per
+ * facing — 0 left, 1 back, 2 right, 3 front. They are not idle-animation
+ * frames, so cycling them fast spins the character on the spot.
  *
- * With only one frame per direction there is no sprite animation available, so
- * the life comes from a stepped vertical bob and a shadow that tightens as the
- * character rises. Stepped, not eased — a smooth transform on pixel art reads
- * as CSS, not as a game.
+ * Used properly they give a real idle: hold front, glance left, hold, glance
+ * right, hold. That reads as a character noticing things, which a vertical bob
+ * does not — a bob reads as floating, because nothing in the art moves.
  */
 
 const CHARACTERS = {
-  Amelia: "/assets/characters/Amelia_idle_16x16.png",
-  Adam: "/assets/characters/Adam_idle_16x16.png",
   Alex: "/assets/characters/Alex_idle_16x16.png",
+  Adam: "/assets/characters/Adam_idle_16x16.png",
+  Amelia: "/assets/characters/Amelia_idle_16x16.png",
   Bob: "/assets/characters/Bob_idle_16x16.png",
 } as const;
 
 export type CharacterName = keyof typeof CHARACTERS;
 
-/** Source frame geometry, in pixels. */
 const FRAME_W = 16;
 const FRAME_H = 32;
 const SHEET_W = 64;
 const SHEET_H = 32;
-const FRONT_FRAME = 3;
+
+/** Column index of each facing on the sheet. */
+const FACING = { left: 0, back: 1, right: 2, front: 3 } as const;
 
 interface Props {
   /** Integer only — a fractional scale reintroduces blur (AGENTS.md). */
@@ -36,17 +35,21 @@ interface Props {
   character?: CharacterName;
   /** Amber halo behind the character. On for the login lockup, off inline. */
   glow?: boolean;
+  /** Off for a static crop, e.g. in a dense header. */
+  animate?: boolean;
   className?: string;
 }
 
 export default function Mascot({
   scale = 4,
-  character = "Amelia",
+  character = "Alex",
   glow = false,
+  animate = true,
   className = "",
 }: Props) {
   const w = FRAME_W * scale;
   const h = FRAME_H * scale;
+  const offset = (col: number) => `${-col * FRAME_W * scale}px`;
 
   return (
     <div
@@ -66,10 +69,10 @@ export default function Mascot({
         />
       )}
 
-      {/* Ground shadow. Sits under the feet and tightens as the mascot rises,
-          which is what sells the bob as weight rather than drift. */}
+      {/* Static shadow. The mascot stands still now, so the shadow does too —
+          an animated shadow under a still character reads as a glitch. */}
       <div
-        className="mascot-shadow absolute left-1/2 -translate-x-1/2 rounded-[50%]"
+        className="absolute left-1/2 -translate-x-1/2 rounded-[50%]"
         style={{
           bottom: -scale,
           width: w * 0.55,
@@ -79,13 +82,19 @@ export default function Mascot({
       />
 
       <div
-        className="mascot-bob pixelated absolute inset-0"
-        style={{
-          backgroundImage: `url("${CHARACTERS[character]}")`,
-          backgroundSize: `${SHEET_W * scale}px ${SHEET_H * scale}px`,
-          backgroundPosition: `${-FRONT_FRAME * FRAME_W * scale}px 0`,
-          backgroundRepeat: "no-repeat",
-        }}
+        className={`pixelated absolute inset-0 ${animate ? "mascot-look" : ""}`}
+        style={
+          {
+            backgroundImage: `url("${CHARACTERS[character]}")`,
+            backgroundSize: `${SHEET_W * scale}px ${SHEET_H * scale}px`,
+            backgroundPositionX: offset(FACING.front),
+            backgroundPositionY: "0",
+            backgroundRepeat: "no-repeat",
+            "--f-front": offset(FACING.front),
+            "--f-left": offset(FACING.left),
+            "--f-right": offset(FACING.right),
+          } as React.CSSProperties
+        }
       />
     </div>
   );

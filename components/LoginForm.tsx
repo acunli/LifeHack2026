@@ -79,7 +79,7 @@ export default function LoginForm() {
     <div className="relative w-full max-w-md">
       {/* Mascot stands on the card's top edge, feet on the border. */}
       <div className="absolute left-1/2 z-10 -translate-x-1/2" style={{ top: -116 }}>
-        <Mascot scale={4} glow />
+        <Mascot scale={4} glow character="Alex" />
       </div>
 
       <section className="pixel-panel px-7 pb-7 pt-12">

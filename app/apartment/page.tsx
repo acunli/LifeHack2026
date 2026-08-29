@@ -62,7 +62,7 @@ export default function ApartmentPage() {
     <main className="float-in mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 p-5 sm:p-7">
       <header className="pixel-panel flex flex-wrap items-center justify-between gap-4 px-5 py-4">
         <div className="flex items-center gap-4">
-          <Mascot scale={2} />
+          <Mascot scale={2} character="Alex" />
           <div>
             <p className="text-[9px] uppercase tracking-widest text-ink-dim">
               Welcome home

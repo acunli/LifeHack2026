@@ -105,24 +105,20 @@ body {
 }
 
 /*
- * Mascot motion. The character sheet has one frame per facing direction, so
- * there is no sprite animation to play — the life is CSS.
- * Stepped, not eased: a smooth transform on pixel art reads as a web page.
+ * Mascot idle. Holds front, glances left, holds, glances right, holds.
+ * steps(1) so each facing snaps rather than sliding between positions —
+ * background-position is interpolatable, and a tween here would smear the
+ * sprite sideways through its neighbours on the sheet.
  */
-@keyframes mascot-bob {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-4px); }
+@keyframes mascot-look {
+  0%,  34%  { background-position-x: var(--f-front); }
+  36%, 46%  { background-position-x: var(--f-left); }
+  48%, 72%  { background-position-x: var(--f-front); }
+  74%, 84%  { background-position-x: var(--f-right); }
+  86%, 100% { background-position-x: var(--f-front); }
 }
-.mascot-bob {
-  animation: mascot-bob 1.1s steps(2) infinite alternate;
-}
-
-@keyframes mascot-shadow {
-  from { transform: translateX(-50%) scaleX(1); opacity: 0.38; }
-  to   { transform: translateX(-50%) scaleX(0.82); opacity: 0.26; }
-}
-.mascot-shadow {
-  animation: mascot-shadow 1.1s steps(2) infinite alternate;
+.mascot-look {
+  animation: mascot-look 7s steps(1) infinite;
 }
 
 @keyframes float-in {
@@ -134,7 +130,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mascot-bob,
-  .mascot-shadow { animation: none; }
+  .mascot-look { animation: none; }
   .float-in { animation: none; }
 }
