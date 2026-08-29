@@ -86,6 +86,15 @@ const APPLIANCES: Appliance[] = [
 type Rec = {
   id: string
   for: string
+  /**
+   * Which appliance absorbs the saving for a whole-home recommendation.
+   *
+   * Without this, applyRec skipped every rec with for:'home', so "Run a fan
+   * with the aircon" advertised -18 kWh and an Apply button but changed
+   * nothing — the score sat still while the label flipped to Undo. Both
+   * cooling fixes reduce compressor run time, so the aircon absorbs them.
+   */
+  affects?: string
   title: string
   save: number
   effort: string
@@ -160,6 +169,7 @@ const RECS: Rec[] = [
   {
     id: 'h-fan',
     for: 'home',
+    affects: 'aircon',
     title: 'Run a fan with the aircon',
     save: 18,
     effort: 'Free',
@@ -176,6 +186,7 @@ const RECS: Rec[] = [
   {
     id: 'h-curtain',
     for: 'home',
+    affects: 'aircon',
     title: 'Close curtains at midday',
     save: 14,
     effort: 'Free',
@@ -285,10 +296,13 @@ export default function HomePage() {
     rafRef.current = requestAnimationFrame(step)
   }, [])
 
-  // Reveal on load
+  // Reveal on load. Deferred into a frame callback rather than called
+  // synchronously in the effect body, which sets state before first paint and
+  // cascades a render. (Reapplied — the merge from origin/main reverted it.)
   useEffect(() => {
-    animateTo(score, 0)
+    const raf = requestAnimationFrame(() => animateTo(score, 0))
     return () => {
+      cancelAnimationFrame(raf)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -314,22 +328,32 @@ export default function HomePage() {
 
   function applyRec(rec: Rec) {
     const done = applied.has(rec.id)
+
+    // Compute the next usage map here rather than inside the setCur updater.
+    // The updater runs later, so reading newScore out of it and passing that
+    // to animateTo animated to the PREVIOUS score — the number never moved,
+    // even though `cur` and `score` were updating correctly underneath.
+    const target = rec.for !== 'home' ? rec.for : rec.affects
+    const appliance = target ? APPLIANCES.find((a) => a.id === target) : undefined
+
+    const next = { ...cur }
+    if (appliance && rec.save > 0) {
+      // Undo never exceeds the authored baseline; apply never goes negative.
+      next[appliance.id] = done
+        ? Math.min(appliance.kwh, cur[appliance.id] + rec.save)
+        : Math.max(0, cur[appliance.id] - rec.save)
+    }
+    setCur(next)
+
     const nextApplied = new Set(applied)
-    let newScore = score
-    setCur((prev) => {
-      const next = { ...prev }
-      if (rec.for !== 'home' && rec.save > 0) {
-        const base = APPLIANCES.find((a) => a.id === rec.for)!.kwh
-        if (done) next[rec.for] = Math.min(base, prev[rec.for] + rec.save)
-        else next[rec.for] = Math.max(0, prev[rec.for] - rec.save)
-      }
-      newScore = scoreOf(APPLIANCES.reduce((s, a) => s + next[a.id], 0))
-      return next
-    })
     if (done) nextApplied.delete(rec.id)
     else nextApplied.add(rec.id)
     setApplied(nextApplied)
-    animateTo(newScore, shownRef.current)
+
+    animateTo(
+      scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
+      shownRef.current,
+    )
   }
 
   function reset() {
