@@ -1,24 +1,28 @@
 # WattLah! — demo script
 
-**Target: 2 min 35 s.** The brief asks for 2–3 minutes, end to end, "ideally
+**Target: 2 min 40 s.** The brief asks for 2–3 minutes, end to end, "ideally
 with someone actually using it."
 
-Everything below is a real interaction in the current build. Nothing is mocked
-for the video.
+Every interaction below is real in the current build. Nothing is mocked for the
+video. Labels are quoted exactly as they appear on screen.
 
 ---
 
-## Pre-flight (do this before recording)
+## Pre-flight
 
 - [ ] `npm run dev`, open **http://localhost:3000**
-- [ ] **Clear site data** for localhost — otherwise you skip the handle prompt
-      and the score reveal starts from an already-saved value
-- [ ] Browser at **~1440×900**, zoomed to 100%. Below 820px wide the room
-      scales down and the demo looks cramped
-- [ ] Close devtools. Hide bookmarks bar
-- [ ] Do a full dry run once — the score reveal only counts up on first load
+- [ ] **Clear site data** for localhost. Without it you skip the handle prompt
+      *and* the score starts from a saved value instead of counting up — you
+      lose the best beat in the demo.
+- [ ] Browser at **~1440×900**, zoom 100%. Narrower and the apartment scales down.
+- [ ] Close devtools, hide the bookmarks bar.
+- [ ] Decide about music: the **♪ button, bottom right** loops a track. For a
+      voiceover take, leave it **off** and add music in the edit so you control
+      the mix.
+- [ ] Do one full dry run. The score reveal only counts up on a fresh load.
 
-**Do not navigate to `/room-test`.** It is a bare dev route with no chrome.
+**Do not open `/room-test` or `/interactive-apartment`.** Both are leftover dev
+routes with no chrome.
 
 ---
 
@@ -31,68 +35,61 @@ for the video.
 
 No screen yet, or B-roll of a bill.
 
-### 0:15 — Login (10 s)
-Type room **04-12**, any password. Hit **Enter Home**.
+### 0:15 — Sign in (10 s)
+Room **04-12**, any password. **Enter Home**.
 
-> "Residents sign in with their unit."
-
-*The mascot is glancing around and the bolt is animating — let it breathe for a
-beat before clicking.*
+*Let the mascot glance around for a beat before clicking — he's the first thing
+that says "this is a game, not a form".*
 
 ### 0:25 — Pick a handle (8 s)
-Type a handle, e.g. **VoltViper**.
+Type **VoltViper**. Save.
 
 > "Your block sees a handle, never your unit number."
 
-That is a deliberate privacy choice and worth saying out loud.
+A deliberate privacy choice, and worth saying out loud.
 
 ### 0:33 — The score lands (20 s)
 The dashboard opens and the score **counts up to 74**.
 
-> "This is the flat's energy score. Seventy-four — twenty-six percent above a
-> comparable unit, about a hundred and twenty dollars this month."
+> "This flat scores seventy-four. Twenty-six percent above a comparable unit —
+> about a hundred and twenty dollars this month."
 
-*If it does not animate, hit **Replay reveal**.*
+### 0:53 — The flat is the interface (35 s)
+> "Instead of a chart, we show them their own home. And you can walk around it."
 
-### 0:53 — The room is the dashboard (30 s)
-> "Instead of a chart, we show them their own home."
+**Walk with WASD.** Move to a glowing socket and press **E** to scan a meter.
+The mission bar above the room reads **"Map your biggest energy drains — 0/5"**
+and ticks up.
 
-Point at the **red glow** over the living area.
+> "Every glow is an appliance nobody has looked at yet."
 
-> "The hot spots are where the energy goes. The aircon is the problem, and you
-> can see it before you read a single number."
+### 1:28 — Name the fix (25 s)
+Click **💡 Ways to save**. Read the top card aloud:
 
-**Click the aircon zone** — it selects and the panel updates.
-
-### 1:23 — Name the fix (25 s)
-Click **Ways to save**. The drawer opens.
-
-> "We do not just say 'use less'. We name the single change worth the most."
-
-Read the top one aloud:
 > "Set the aircon to twenty-five degrees. Thirty-four kilowatt-hours a month.
 > Costs nothing."
 
-### 1:48 — Watch it move (25 s)
-Click **Apply** on that recommendation.
+### 1:53 — Watch it move (30 s)
+Click **Preview this action**.
 
-> "Apply it, and you see what it is worth."
+The **score climbs 74 → 80**, the header shows **"+6 · 1 applied — reset"**, and
+the **🎟️ voucher unlocks**.
 
-The **score climbs** and the **aircon glow cools**. Let both finish.
+> "Apply it and you see exactly what it's worth. That's the loop — see the
+> problem, see the value, watch it change."
 
-> "That is the loop. See the problem, see what fixing it is worth, watch it
-> change."
+Click the **🎟️ voucher** badge to open the reward.
 
-### 2:13 — Make it social (20 s)
-Click the **#N Rank** chip.
+### 2:23 — Make it social (20 s)
+Click the **rank chip** in the header.
 
-> "And because a block is a community, it is a league."
+> "And because a block is a community, it's a league."
 
-Point at the **countdown**.
+Point at **"Resets in 19:20:08"**.
 
-> "It resets at midnight. That is the part that brings people back tomorrow."
+> "It resets at midnight. That's what brings people back tomorrow."
 
-### 2:33 — Close (10 s)
+### 2:43 — Close (10 s)
 > "Invisible utility data, turned into something you can see, act on, and
 > compete over."
 
@@ -102,20 +99,21 @@ Point at the **countdown**.
 
 | Symptom | Do this |
 |---|---|
-| Score does not count up | Click **Replay reveal** |
-| Handle prompt does not appear | Clear site data and reload |
-| A glow sits over the wrong furniture | Do not point at that one; use the aircon, which is anchored to the living area |
-| Page blank after login | Reload once — the session guard resolves after hydration |
+| Score doesn't count up | Clear site data and reload |
+| Blank page after login | Reload once; the session guard resolves after hydration |
+| Voucher badge does nothing | It reads **🔒 Save first** until you apply a recommendation |
+| Page won't scroll | Should be fixed; if it recurs, move the cursor off the game canvas |
+| Server hangs / pins the CPU | `pkill -f next-server`, `rm -rf .next`, `npm run dev` |
 
 ---
 
 ## Do not claim on camera
 
-The rationale marks several figures `[SOURCE?]`. Until they are sourced:
+`docs/rationale.md` still marks four figures `[SOURCE?]`. Until those are cited:
 
-- **Do not** say the 8%-per-degree figure is from NEA
-- **Do not** present the data as measured — say **simulated** if asked
-- **Do not** claim the +10 points over 8 weeks as a result. It is a target
+- **Don't** attribute the 8%-per-degree figure to NEA
+- **Don't** present the data as measured — say **simulated** if asked
+- **Don't** quote the +10 points over 8 weeks as a result. It's a target
 
-Saying "our data is simulated, the brief allows it, and here is how we would
-measure it for real" is stronger than being caught overstating.
+"Our data is simulated, the brief allows it, and here's how we'd measure it for
+real" is a stronger answer than being caught overstating.

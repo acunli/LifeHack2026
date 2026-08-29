@@ -14,16 +14,21 @@ type VoucherPopupProps = {
 const VOUCHER_VALUES = ['S$10 OFF', 'S$15 OFF', 'S$20 OFF', 'S$25 OFF', 'S$30 OFF']
 const VOUCHER_CODES = ['ECOVOLT-SAVE-2026', 'ECOVOLT-ECO-2026', 'ECOVOLT-GREEN-2026', 'ECOVOLT-HERO-2026', 'ECOVOLT-STAR-2026']
 
-export default function VoucherPopup({ open, onClose, rank, username, rewards }: VoucherPopupProps) {
+export default function VoucherPopup({ open, onClose, username, rewards }: VoucherPopupProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const [current, setCurrent] = useState(0)
   const [phase, setPhase] = useState<'idle' | 'swiping-out' | 'swiping-in'>('idle')
 
+  // Deferred into a frame: setting state in the effect body cascades a render
+  // every time the popup opens.
   useEffect(() => {
     if (!open) return
-    setCurrent(0)
-    setPhase('idle')
+    const frame = requestAnimationFrame(() => {
+      setCurrent(0)
+      setPhase('idle')
+    })
+    return () => cancelAnimationFrame(frame)
   }, [open])
 
   useEffect(() => {
