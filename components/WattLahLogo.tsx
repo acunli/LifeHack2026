@@ -1,10 +1,12 @@
+import PixelBolt from "@/components/PixelBolt";
+
 interface WattLahLogoProps {
   className?: string;
 }
 
 /**
- * Single-line arcade wordmark. The blocky 8-bit lightning mark trails the
- * word as the stroke of an exclamation, with a pixel dot beneath it.
+ * Single-line arcade wordmark. The pixel lightning mark trails the word as the
+ * stroke of an exclamation, its dot carried in the same sprite.
  */
 export default function WattLahLogo({
   className = "",
@@ -30,48 +32,9 @@ export default function WattLahLogo({
 
       <span
         aria-hidden
-        className="wattlah-bolt relative ml-[0.35em] h-[1.89em] w-[1.05em] shrink-0"
+        className="wattlah-bolt relative ml-[0.3em] h-[2.15em] w-[1.08em] shrink-0"
       >
-        <svg
-          viewBox="0 0 43 78"
-          className="h-full w-full overflow-visible"
-          shapeRendering="crispEdges"
-        >
-          <path
-            d="M24 2H40L29 24H41L10 58L17 34H2Z"
-            fill="var(--green)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-            strokeLinejoin="miter"
-            transform="translate(3 3)"
-          />
-          <path
-            d="M24 2H40L29 24H41L10 58L17 34H2Z"
-            fill="var(--amber)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-            strokeLinejoin="miter"
-          />
-          <rect
-            x="16"
-            y="64"
-            width="11"
-            height="11"
-            fill="var(--green)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-            transform="translate(3 3)"
-          />
-          <rect
-            x="16"
-            y="64"
-            width="11"
-            height="11"
-            fill="var(--amber)"
-            stroke="var(--bg-deep)"
-            strokeWidth="3"
-          />
-        </svg>
+        <PixelBolt />
       </span>
     </span>
   );
