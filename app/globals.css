@@ -623,9 +623,11 @@ body {
   flex-direction: column;
   gap: 14px;
 }
+/* Single column now. The second track held the weekly usage bars, and after
+   removing them the row kept reserving half the width for nothing. */
 .histogram-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -741,15 +743,20 @@ body {
   flex: 1;
   text-align: center;
 }
+/* Inset to match the chart's plot band (10%-92% of the box). Sitting flush at
+   top:0 put the max label level with the peak point, so they overlapped. */
 .linechart-y-labels {
   position: absolute;
-  top: 0;
-  left: -2px;
-  height: 110px;
+  top: 10%;
+  bottom: 8%;
+  left: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   pointer-events: none;
+  transform: translateY(-0.35em);
+  padding-right: 4px;
+  background: linear-gradient(90deg, var(--panel) 70%, transparent);
 }
 .linechart-y-labels span {
   font-family: var(--font-pixel), monospace;

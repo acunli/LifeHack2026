@@ -58,16 +58,27 @@ export default function EnergyHistogram({
     return top
   }, [appliances, currentUsage])
 
-  // Build SVG path for line chart
+  /*
+   * Plot into a padded band rather than the full 0-100 box.
+   *
+   * With y = 100 - (v/maxCost)*100 the peak landed exactly on y=0, so the
+   * highest point and its stroke were clipped by the viewport edge and the
+   * top axis label sat on top of it. Insetting top and bottom gives the line
+   * room to breathe and stops the peak colliding with its own label.
+   */
+  const PLOT_TOP = 10
+  const PLOT_BOTTOM = 92
+  const yFor = (v: number) =>
+    PLOT_BOTTOM - (v / maxCost) * (PLOT_BOTTOM - PLOT_TOP)
+
   const linePoints = costData.map((v, i) => {
     const x = (i / (costData.length - 1)) * 100
-    const y = 100 - (v / maxCost) * 100
-    return `${x},${y}`
+    return `${x},${yFor(v)}`
   })
   const linePath = `M${linePoints.join(' L')}`
 
   // Area fill path (closes at bottom)
-  const areaPath = `${linePath} L100,100 L0,100 Z`
+  const areaPath = `${linePath} L100,${PLOT_BOTTOM} L0,${PLOT_BOTTOM} Z`
 
   return (
     <div className="histogram-section">
@@ -96,7 +107,7 @@ export default function EnergyHistogram({
               <path d={linePath} fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               {costData.map((v, i) => {
                 const x = (i / (costData.length - 1)) * 100
-                const y = 100 - (v / maxCost) * 100
+                const y = yFor(v)
                 return <circle key={i} cx={x} cy={y} r="2.5" fill="var(--amber)" stroke="var(--bg-deep)" strokeWidth="1" />
               })}
             </svg>

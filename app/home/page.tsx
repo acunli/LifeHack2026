@@ -969,7 +969,6 @@ export default function HomePage() {
           tariff={TARIFF}
         />
 
-        <div className="section-header">Illustrative Energy Briefing</div>
 
         <div className="wl-foot">Prototype — pixel art by LimeZu, Modern Interiors</div>
       </div>
