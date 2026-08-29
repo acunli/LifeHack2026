@@ -143,18 +143,24 @@ export function saveScore(userId: string, score: number): void {
   const scores = readScores()
   const existing = scores[userId]
 
-  // Only move `previous` when the score actually changes. The dashboard saves
-  // on every mount, so rewriting it unconditionally collapsed previous into
-  // current the moment you navigated back — the gain you had just made showed
-  // as "no change since yesterday".
-  if (existing && existing.current === score) return
-
+  /*
+   * `previous` is yesterday, and yesterday does not move.
+   *
+   * It used to track the last score you held, which was wrong twice over:
+   * re-saving on mount collapsed it into the current score, so the arrow read
+   * 0; and undoing a what-if read as a real decline — resetting 85 back to 74
+   * showed "▼ -11 since yesterday" when nothing about yesterday had changed.
+   *
+   * Seeded once from the first score seen, then left alone. Today moves; the
+   * comparison point does not.
+   */
   scores[userId] = {
     current: score,
-    previous: existing?.current ?? score,
+    previous: existing?.previous ?? score,
   }
   writeScores(scores)
 }
+
 
 /** Get a saved score for a user, or null if none exists. */
 export function getSavedScore(
