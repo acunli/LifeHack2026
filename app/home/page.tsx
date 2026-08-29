@@ -360,7 +360,7 @@ export default function HomePage() {
         }}
       >
         {[
-          { href: '/apartment', label: 'Apartment' },
+          { href: '/room', label: 'Room' },
           { href: '/leaderboard', label: 'League' },
         ].map((item) => (
           <Link
@@ -386,7 +386,7 @@ export default function HomePage() {
             <div className="wl-sprite" aria-hidden="true" />
             <div>
               <div className="wl-eyebrow wl-px">Welcome home</div>
-              <div className="wl-roomno wl-px">Room 04-12</div>
+              <div className="wl-roomno wl-px">Room {session.roomNumber}</div>
             </div>
           </div>
           <div className="wl-controls">

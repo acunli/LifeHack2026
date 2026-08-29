@@ -17,7 +17,7 @@ import { useEnergyState } from "@/lib/useEnergyState";
  * INTEGRATION SHELL — keep it thin (README §15.7). It composes; it does not
  * build. The room, the HUD and the dashboard each own their own rendering.
  */
-export default function ApartmentPage() {
+export default function RoomPage() {
   const router = useRouter();
   const { session, needsUsername, isAuthenticated } = useSession();
   const [hovered, setHovered] = useState<Appliance | null>(null);

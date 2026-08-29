@@ -38,10 +38,10 @@ export default function LeaderboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/apartment"
+            href="/room"
             className="pixel pixel-btn-ghost px-4 py-2.5 text-[9px] uppercase tracking-widest"
           >
-            Apartment
+            Room
           </Link>
           <Link
             href="/home"
