@@ -34,7 +34,12 @@ export default function EnergyHistogram({
     })
   }, [total])
 
+  const costData = useMemo(() => {
+    return weeklyData.map((kwh) => Math.round(kwh * tariff * 100) / 100)
+  }, [weeklyData, tariff])
+
   const maxVal = Math.max(...weeklyData, 1)
+  const maxCost = Math.max(...costData, 1)
   const avg = Math.round((weeklyData.reduce((s, v) => s + v, 0) / 7) * 10) / 10
   const peak = Math.max(...weeklyData)
   const low = Math.min(...weeklyData)
@@ -51,6 +56,17 @@ export default function EnergyHistogram({
     }
     return top
   }, [appliances, currentUsage])
+
+  // Build SVG path for line chart
+  const linePoints = costData.map((v, i) => {
+    const x = (i / (costData.length - 1)) * 100
+    const y = 100 - (v / maxCost) * 100
+    return `${x},${y}`
+  })
+  const linePath = `M${linePoints.join(' L')}`
+
+  // Area fill path (closes at bottom)
+  const areaPath = `${linePath} L100,100 L0,100 Z`
 
   return (
     <div className="histogram-row">
@@ -76,39 +92,45 @@ export default function EnergyHistogram({
         </div>
       </div>
 
-      {/* Right: Statistics */}
-      <div className="histogram-stats">
-        <div className="histogram-title">This Month&apos;s Stats</div>
-        <div className="stat-grid">
-          <div className="stat-card">
-            <div className="stat-label">Total Usage</div>
-            <div className="stat-value">{total}</div>
-            <div className="stat-unit">kWh</div>
+      {/* Right: Line Chart — Daily Cost Trend */}
+      <div className="histogram-panel">
+        <div className="histogram-title">Daily Cost Trend</div>
+        <div className="linechart-container">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="linechart-svg">
+            <defs>
+              <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--amber)" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="var(--amber)" stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
+            {/* Grid lines */}
+            {[0, 25, 50, 75, 100].map((y) => (
+              <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="var(--line)" strokeWidth="0.3" strokeDasharray="2,2" />
+            ))}
+            {/* Area fill */}
+            <path d={areaPath} fill="url(#lineGrad)" />
+            {/* Line */}
+            <path d={linePath} fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Dots */}
+            {costData.map((v, i) => {
+              const x = (i / (costData.length - 1)) * 100
+              const y = 100 - (v / maxCost) * 100
+              return <circle key={i} cx={x} cy={y} r="2.5" fill="var(--amber)" stroke="var(--bg-deep)" strokeWidth="1" />
+            })}
+          </svg>
+          <div className="linechart-labels">
+            {DAYS.map((day, i) => (
+              <span key={day} className="linechart-label">{day}</span>
+            ))}
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Est. Cost</div>
-            <div className="stat-value">S${(total * tariff).toFixed(0)}</div>
-            <div className="stat-unit">this month</div>
+          <div className="linechart-y-labels">
+            <span>S${maxCost.toFixed(2)}</span>
+            <span>S${(maxCost / 2).toFixed(2)}</span>
+            <span>S$0</span>
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Peak Day</div>
-            <div className="stat-value">{peak}</div>
-            <div className="stat-unit">kWh</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Low Day</div>
-            <div className="stat-value">{low}</div>
-            <div className="stat-unit">kWh</div>
-          </div>
-          <div className="stat-card stat-card-wide">
-            <div className="stat-label">Top Consumer</div>
-            <div className="stat-value">
-              {topAppliance.icon} {topAppliance.name}
-            </div>
-            <div className="stat-unit">
-              {currentUsage[topAppliance.id] ?? topAppliance.kwh} kWh
-            </div>
-          </div>
+        </div>
+        <div className="histogram-avg">
+          Total: <b>S${costData.reduce((s, v) => s + v, 0).toFixed(2)}</b> this week
         </div>
       </div>
     </div>

@@ -432,7 +432,7 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-dim);
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 .histogram-chart {
   display: flex;
@@ -488,6 +488,46 @@ body {
 }
 .histogram-avg b {
   color: var(--amber);
+}
+
+/* ── Line chart ─────────────────────────────────────────────────── */
+.linechart-container {
+  position: relative;
+  height: 140px;
+  margin-bottom: 4px;
+}
+.linechart-svg {
+  width: 100%;
+  height: 110px;
+  display: block;
+}
+.linechart-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0 0;
+}
+.linechart-label {
+  font-family: var(--font-pixel), monospace;
+  font-size: 7px;
+  color: var(--ink-dim);
+  flex: 1;
+  text-align: center;
+}
+.linechart-y-labels {
+  position: absolute;
+  top: 0;
+  left: -2px;
+  height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.linechart-y-labels span {
+  font-family: var(--font-pixel), monospace;
+  font-size: 6px;
+  color: var(--ink-dim);
+  opacity: 0.6;
 }
 
 .stat-grid {
