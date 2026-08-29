@@ -155,12 +155,13 @@ export function saveScore(
   const existing = scores[userId]
 
   /*
-   * `previous` is yesterday, and yesterday does not move.
+   * `previous` is the prior comparison period, and it does not move while the
+   * resident previews changes in the current period.
    *
    * It used to track the last score you held, which was wrong twice over:
    * re-saving on mount collapsed it into the current score, so the arrow read
    * 0; and undoing a what-if read as a real decline — resetting 85 back to 74
-   * showed "▼ -11 since yesterday" when nothing about yesterday had changed.
+   * showed "▼ -11" when the comparison period had not changed.
    *
    * Seeded once from the first score seen, then left alone. Today moves; the
    * comparison point does not.

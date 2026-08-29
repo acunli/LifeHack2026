@@ -38,8 +38,8 @@ export function EmptyState() {
       </span>
       <h2 className="pixel text-[12px] text-foreground">No scores yet</h2>
       <p className="pixel max-w-xs text-[9px] leading-relaxed text-muted-w">
-        The board resets each day. Be the first to save some energy and your
-        name will appear here.
+        Complete an energy audit and preview a savings plan to take your place
+        in the building league.
       </p>
     </div>
   )

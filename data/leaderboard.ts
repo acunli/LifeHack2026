@@ -74,12 +74,12 @@ function usageFactor(roomNumber: string, day: string): number {
 }
 
 /**
- * Yesterday's score, as today's plus a bounded drift.
+ * Previous-period score, as the current period plus a bounded drift.
  *
  * Previously this was a second independent draw for the previous day, which
- * made "yesterday" unrelated to today — the board showed daily changes of 40
- * and 50 points, and nobody's electricity habits move that far overnight.
- * Deriving it from today bounds the change to single digits by construction
+ * made the comparison unrelated to the current score — the board showed
+ * changes of 40 and 50 points. Deriving it from the current value bounds the
+ * change to single digits by construction
  * rather than hoping the hash cooperates.
  */
 function previousScoreFor(roomNumber: string, score: number): number {
@@ -136,8 +136,8 @@ export type CurrentUser = {
  */
 export function buildLeaderboard(
   current: CurrentUser | null,
-  today = 'day-30',
-  prev = 'day-29',
+  today = 'current-period',
+  prev = 'previous-period',
 ): LeaderboardEntry[] {
   const currentUserId = current ? userIdFromRoom(current.roomNumber) : null
 

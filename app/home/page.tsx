@@ -26,6 +26,9 @@ import {
   type ApplianceInstalledPayload,
 } from '@/lib/game/utils/gameEvents'
 import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
+import VoucherPopup from '@/components/VoucherPopup'
+import EnergyHistogram from '@/components/EnergyHistogram'
+import NewsFeed from '@/components/NewsFeed'
 
 /**
  * What-if changes persist across navigation.
@@ -328,6 +331,10 @@ export default function HomePage() {
   const [connectedTargets, setConnectedTargets] = useState<Set<string>>(
     () => new Set(),
   )
+  const [rewards, setRewards] = useState(0)
+  const [voucherOpen, setVoucherOpen] = useState(false)
+  const [rewardNotify, setRewardNotify] = useState(false)
+  const [rewardDelta, setRewardDelta] = useState<1 | -1>(1)
 
   const shownRef = useRef(0)
   const rafRef = useRef<number | null>(null)
@@ -562,6 +569,14 @@ export default function HomePage() {
       writeWhatIf(session.roomNumber, { cur: next, applied: [...nextApplied] })
     }
 
+    // Earn a reward when applying, lose it when undoing
+    if (rec.save > 0) {
+      setRewardDelta(done ? -1 : 1)
+      setRewards((r) => done ? Math.max(0, r - 1) : r + 1)
+      setRewardNotify(true)
+      setTimeout(() => setRewardNotify(false), 2500)
+    }
+
     animateTo(
       scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
       shownRef.current,
@@ -623,15 +638,31 @@ export default function HomePage() {
           </div>
           <div className="wl-controls">
             <div
-              className="wl-rewards"
+              className="wl-audit"
               role="status"
               aria-label={`${auditXp} audit XP. ${auditCount} of ${AUDIT_TOTAL} meters scanned.`}
               title="Earn 25 XP for every appliance meter you scan"
             >
-              <span className="wl-rewards-icon" aria-hidden>⚡</span>
-              <span className="wl-rewards-count wl-px">{auditXp}</span>
-              <span className="wl-rewards-label wl-px">Audit XP</span>
+              <span className="wl-audit-icon" aria-hidden>⚡</span>
+              <span className="wl-audit-count wl-px">{auditXp}</span>
+              <span className="wl-audit-label wl-px">Audit XP</span>
             </div>
+            {/* Rewards earned with notification badge */}
+            <button
+              className={'wl-rewards' + (rewardNotify ? ' notify' : '')}
+              title="Rewards earned"
+              onClick={() => {
+                if (leaderboardRank > 0 && leaderboardRank <= 3) {
+                  setVoucherOpen(true)
+                }
+              }}
+              style={{ cursor: leaderboardRank <= 3 ? 'pointer' : 'default' }}
+            >
+              <span className="wl-rewards-icon" aria-hidden>🔔</span>
+              <span className="wl-rewards-count wl-px">{rewards}</span>
+              <span className="wl-rewards-label wl-px">Rewards</span>
+              {rewardNotify && <span className={'wl-rewards-plus' + (rewardDelta < 0 ? ' negative' : '')}>{rewardDelta > 0 ? '+1' : '-1'}</span>}
+            </button>
             <button className="wl-btn" onClick={() => openDrawer(selected ? 'appliance' : 'home')}>
               💡 Ways to save
             </button>
@@ -885,6 +916,17 @@ export default function HomePage() {
           </aside>
         </div>
 
+        <div className="section-header">Energy Overview</div>
+        <EnergyHistogram
+          appliances={APPLIANCES}
+          currentUsage={cur}
+          total={total}
+          tariff={TARIFF}
+        />
+
+        <div className="section-header">Latest Energy News</div>
+        <NewsFeed />
+
         <div className="wl-foot">Prototype — pixel art by LimeZu, Modern Interiors</div>
       </div>
 
@@ -983,6 +1025,13 @@ export default function HomePage() {
           )}
         </div>
       </aside>
+
+      <VoucherPopup
+        open={voucherOpen}
+        onClose={() => setVoucherOpen(false)}
+        rank={leaderboardRank}
+        username={session.username}
+      />
     </div>
   )
 }
@@ -1043,12 +1092,21 @@ const css = `
 .wl-topbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 6px}
 @keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 
-/* Audit progress badge */
-.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line)}
+/* Audit progress badge. Renamed off .wl-rewards so it does not collide with
+   the rewards badge, which is a different counter. */
+.wl-audit{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line)}
+.wl-audit-icon,.wl-audit-count,.wl-audit-label{display:inline-block}
+/* Rewards earned badge */
+.wl-rewards{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-deep);border:3px solid var(--line);border-radius:4px;position:relative;transition:border-color .3s}
+.wl-rewards.notify{border-color:var(--amber);animation:wl-reward-pulse .6s ease}
+@keyframes wl-reward-pulse{0%{transform:scale(1)}30%{transform:scale(1.08)}100%{transform:scale(1)}}
 .wl-rewards-icon{font-size:14px;animation:wl-notif-bounce 2s ease-in-out infinite}
 @keyframes wl-notif-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .wl-rewards-count{font-size:12px;color:var(--amber);font-weight:700}
 .wl-rewards-label{font-size:8px;color:var(--ink-dim)}
+.wl-rewards-plus{position:absolute;top:-6px;right:-6px;background:var(--lime);color:var(--bg-deep);font-family:var(--font-pixel),monospace;font-size:8px;font-weight:700;padding:3px 5px;border-radius:50%;animation:wl-plus-pop .4s ease-out both}
+.wl-rewards-plus.negative{background:var(--red)}
+@keyframes wl-plus-pop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 
 .wl-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
