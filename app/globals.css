@@ -721,10 +721,12 @@ body {
 }
 
 /* ── Line chart ─────────────────────────────────────────────────── */
+/* Left margin makes room for the y-axis gutter, which sits at left:-34px.
+   Without it "S$0" landed on top of the "Mon" label. */
 .linechart-container {
   position: relative;
   height: 140px;
-  margin-bottom: 4px;
+  margin: 0 0 4px 38px;
 }
 .linechart-svg {
   width: 100%;
@@ -732,11 +734,14 @@ body {
   display: block;
 }
 .linechart-labels {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0 0;
+  position: relative;
+  height: 12px;
+  margin-top: 4px;
 }
 .linechart-label {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
   font-family: var(--font-pixel), monospace;
   font-size: 7px;
   color: var(--ink-dim);
@@ -760,14 +765,15 @@ body {
   position: absolute;
   top: 10%;
   bottom: 8%;
-  left: 0;
+  left: -34px;
+  width: 30px;
+  text-align: right;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-items: flex-end;
   pointer-events: none;
   transform: translateY(-0.35em);
-  padding-right: 4px;
-  background: linear-gradient(90deg, var(--panel) 70%, transparent);
 }
 .linechart-y-labels span {
   font-family: var(--font-pixel), monospace;

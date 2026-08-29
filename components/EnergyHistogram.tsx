@@ -68,17 +68,22 @@ export default function EnergyHistogram({
    */
   const PLOT_TOP = 10
   const PLOT_BOTTOM = 92
+  // Inset horizontally too: at x=0 and x=100 the first and last dots were
+  // centred on the container edges and rendered half-clipped.
+  const PLOT_LEFT = 3
+  const PLOT_RIGHT = 97
+  const xFor = (i: number, n: number) =>
+    PLOT_LEFT + (i / (n - 1)) * (PLOT_RIGHT - PLOT_LEFT)
   const yFor = (v: number) =>
     PLOT_BOTTOM - (v / maxCost) * (PLOT_BOTTOM - PLOT_TOP)
 
   const linePoints = costData.map((v, i) => {
-    const x = (i / (costData.length - 1)) * 100
-    return `${x},${yFor(v)}`
+    return `${xFor(i, costData.length)},${yFor(v)}`
   })
   const linePath = `M${linePoints.join(' L')}`
 
   // Area fill path (closes at bottom)
-  const areaPath = `${linePath} L100,${PLOT_BOTTOM} L0,${PLOT_BOTTOM} Z`
+  const areaPath = `${linePath} L${PLOT_RIGHT},${PLOT_BOTTOM} L${PLOT_LEFT},${PLOT_BOTTOM} Z`
 
   return (
     <div className="histogram-section">
@@ -124,14 +129,24 @@ export default function EnergyHistogram({
                 key={i}
                 className="linechart-dot"
                 style={{
-                  left: `${(i / (costData.length - 1)) * 100}%`,
+                  left: `${xFor(i, costData.length)}%`,
                   top: `${yFor(v)}%`,
                 }}
               />
             ))}
+            {/* Positioned at the same percentages as the dots. With
+                space-between the first label's left edge sat at 0 while the
+                first point's centre did, so every label was offset from the
+                point it names. */}
             <div className="linechart-labels">
-              {DAYS.map((day) => (
-                <span key={day} className="linechart-label">{day}</span>
+              {DAYS.map((day, i) => (
+                <span
+                  key={day}
+                  className="linechart-label"
+                  style={{ left: `${xFor(i, DAYS.length)}%` }}
+                >
+                  {day}
+                </span>
               ))}
             </div>
             <div className="linechart-y-labels">
