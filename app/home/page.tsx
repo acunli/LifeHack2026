@@ -486,10 +486,10 @@ export default function HomePage() {
     <div style={styles.page}>
       <style>{css}</style>
       <div className="wl-app">
-        {/* Top bar: WattLah logo + electricity symbol */}
+        {/* Top bar. The wordmark already carries a bolt as its exclamation,
+            so the separate emoji beside it was a second, mismatched one. */}
         <div className="wl-topbar">
           <WattLahLogo className="text-[18px]" />
-          <span className="wl-electricity" aria-hidden>⚡</span>
         </div>
         {/* Header */}
         <header className="wl-panel wl-header">
@@ -870,7 +870,6 @@ const css = `
 
 /* Top bar: WattLah logo + electricity symbol */
 .wl-topbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 0 6px}
-.wl-electricity{font-size:22px;animation:wl-bolt-pulse 1.2s steps(2) infinite}
 @keyframes wl-bolt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 
 /* Rewards earned badge */
