@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useSession } from '@/lib/useSession'
+import { logout } from '@/lib/session'
 import UsernameSetup from '@/components/UsernameSetup'
 
 /**
@@ -343,35 +343,6 @@ export default function HomePage() {
 
   return (
     <div style={styles.page}>
-      <nav
-        style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          top: 0,
-          zIndex: 60,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
-          padding: '14px 12px 18px',
-          background:
-            'linear-gradient(180deg, var(--bg-deep) 40%, transparent 100%)',
-        }}
-      >
-        <Link
-          href="/leaderboard"
-          className="pixel pixel-btn-ghost"
-          style={{
-            padding: '10px 16px',
-            fontSize: 9,
-            textTransform: 'uppercase',
-            letterSpacing: '0.16em',
-          }}
-        >
-          League
-        </Link>
-      </nav>
       <style>{css}</style>
       <div className="wl-app">
         {/* Header */}
@@ -396,8 +367,18 @@ export default function HomePage() {
             >
               {whatIf ? 'What-if: ON' : 'What-if mode'}
             </button>
-            <button className="wl-ghost">League</button>
-            <button className="wl-ghost">Log out</button>
+            <button className="wl-ghost" onClick={() => router.push('/leaderboard')}>
+              League
+            </button>
+            <button
+              className="wl-ghost"
+              onClick={() => {
+                logout()
+                router.replace('/')
+              }}
+            >
+              Log out
+            </button>
           </div>
         </header>
 
@@ -667,7 +648,6 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundAttachment: 'fixed',
     color: 'var(--ink)',
     padding: 18,
-    paddingTop: 64,
     display: 'flex',
     justifyContent: 'center',
   },
