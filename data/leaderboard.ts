@@ -70,6 +70,20 @@ function usageFactor(roomNumber: string, day: string): number {
   return 0.5 + u // [0.5, 1.5)
 }
 
+/**
+ * Yesterday's score, as today's plus a bounded drift.
+ *
+ * Previously this was a second independent draw for the previous day, which
+ * made "yesterday" unrelated to today — the board showed daily changes of 40
+ * and 50 points, and nobody's electricity habits move that far overnight.
+ * Deriving it from today bounds the change to single digits by construction
+ * rather than hoping the hash cooperates.
+ */
+function previousScoreFor(roomNumber: string, score: number): number {
+  const drift = Math.round((seededUnit(`${roomNumber}:drift`) - 0.5) * 13);
+  return Math.max(0, Math.min(100, score - drift));
+}
+
 function scoreFor(resident: Resident, day: string): number {
   const factor = usageFactor(resident.roomNumber, day)
   return computeScore({
@@ -86,7 +100,7 @@ function toEntry(
   currentUserId: string | null,
 ): Omit<LeaderboardEntry, 'rank'> {
   const score = scoreFor(resident, today)
-  const previousScore = scoreFor(resident, prev)
+  const previousScore = previousScoreFor(resident.roomNumber, score)
   const id = userIdFromRoom(resident.roomNumber)
   return {
     id,

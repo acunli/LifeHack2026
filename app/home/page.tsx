@@ -351,10 +351,12 @@ export default function HomePage() {
           top: 0,
           zIndex: 40,
           display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
-          gap: 8,
-          padding: 12,
-          background: 'linear-gradient(180deg, var(--bg-deep), transparent)',
+          gap: 10,
+          padding: '14px 12px 18px',
+          background:
+            'linear-gradient(180deg, var(--bg-deep) 40%, transparent 100%)',
         }}
       >
         {[
@@ -364,15 +366,12 @@ export default function HomePage() {
           <Link
             key={item.href}
             href={item.href}
-            className="pixel"
+            className="pixel pixel-btn-ghost"
             style={{
-              padding: '9px 14px',
+              padding: '10px 16px',
               fontSize: 9,
               textTransform: 'uppercase',
-              letterSpacing: '0.14em',
-              color: 'var(--ink-dim)',
-              border: '3px solid var(--line)',
-              background: 'var(--panel)',
+              letterSpacing: '0.16em',
             }}
           >
             {item.label}

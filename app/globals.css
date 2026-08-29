@@ -95,13 +95,20 @@ body {
 }
 
 .pixel-btn-ghost {
-  background: transparent;
+  background: var(--panel);
   color: var(--ink-dim);
   border: 3px solid var(--line);
+  box-shadow: 0 4px 0 0 var(--bg-deep);
+  transition: transform 60ms steps(2), box-shadow 60ms steps(2);
 }
 .pixel-btn-ghost:hover {
   color: var(--ink);
   border-color: var(--line-hi);
+}
+/* Same depress as the primary button, so every control feels physical. */
+.pixel-btn-ghost:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 var(--bg-deep);
 }
 
 @keyframes wattlah-bolt {
