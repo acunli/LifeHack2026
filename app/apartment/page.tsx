@@ -9,8 +9,7 @@ import ApartmentRoom from "@/components/ApartmentRoom";
 import EnergyDashboard from "@/components/EnergyDashboard";
 import Mascot from "@/components/Mascot";
 import { applianceScore, type Appliance } from "@/data/appliances";
-import { MOCK_APARTMENT } from "@/data/mockApartment";
-import { computeScore } from "@/lib/scoring";
+import { useEnergyState } from "@/lib/useEnergyState";
 
 /**
  * INTEGRATION SHELL — keep it thin (README §15.7). It composes; it does not
@@ -20,6 +19,7 @@ export default function ApartmentPage() {
   const router = useRouter();
   const session = useSession();
   const [hovered, setHovered] = useState<Appliance | null>(null);
+  const energy = useEnergyState();
 
   // Derived, not synchronised: the dashboard is open whenever a session has
   // resolved and the resident has not dismissed it. Expressing it this way
@@ -34,7 +34,7 @@ export default function ApartmentPage() {
 
   if (!session) return null;
 
-  const result = computeScore(MOCK_APARTMENT);
+  const result = energy.result;
   const hoveredAppliance = hovered;
 
   function handleLogout() {
@@ -86,7 +86,11 @@ export default function ApartmentPage() {
       </header>
 
       <section className="pixel-panel flex flex-col items-center gap-4 p-5">
-        <ApartmentRoom onHover={setHovered} selectedId={hovered?.id ?? null} />
+        <ApartmentRoom
+            onHover={setHovered}
+            selectedId={hovered?.id ?? null}
+            kwh={energy.kwh}
+          />
 
         {/* Readout swaps to the hovered appliance, falls back to the legend. */}
         <div className="flex min-h-10 w-full max-w-xl items-center justify-center">
@@ -97,7 +101,7 @@ export default function ApartmentPage() {
                 <strong>{hoveredAppliance.name}</strong>
               </span>
               <span className="text-sm tabular-nums text-ink-dim">
-                {hoveredAppliance.kwh} kWh
+                {energy.kwh[hoveredAppliance.id] ?? hoveredAppliance.kwh} kWh
               </span>
               <span
                 className="text-[10px] uppercase tracking-widest"
@@ -134,6 +138,7 @@ export default function ApartmentPage() {
       {showDashboard && (
         <EnergyDashboard
           roomNumber={session.roomNumber}
+          energy={energy}
           onClose={() => setDismissed(true)}
         />
       )}

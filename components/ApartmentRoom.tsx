@@ -1,6 +1,7 @@
 "use client";
 
-import { APPLIANCES, applianceLoad, type Appliance } from "@/data/appliances";
+import { APPLIANCES, type Appliance } from "@/data/appliances";
+import type { KwhById } from "@/lib/useEnergyState";
 
 /**
  * The apartment.
@@ -30,13 +31,19 @@ interface Props {
   showHeat?: boolean;
   onHover?: (a: Appliance | null) => void;
   selectedId?: string | null;
+  /** Live consumption. Applying a recommendation visibly cools its blob. */
+  kwh?: KwhById;
 }
 
 export default function ApartmentRoom({
   showHeat = true,
   onHover,
   selectedId = null,
+  kwh,
 }: Props) {
+  // Normalised against the authored peak, not the live one, so cooling an
+  // appliance does not make every other blob look hotter by comparison.
+  const peak = Math.max(...APPLIANCES.map((a) => a.kwh));
   return (
     <div className="relative w-full" style={{ maxWidth: 526 }}>
       {/* next/image re-encodes and blurs pixel art — AGENTS.md forbids it. */}
@@ -50,7 +57,8 @@ export default function ApartmentRoom({
       {showHeat && (
         <div className="absolute inset-0">
           {APPLIANCES.map((a) => {
-            const load = applianceLoad(a);
+            const live = kwh?.[a.id] ?? a.kwh;
+            const load = peak > 0 ? live / peak : 0;
             const colour = heatColour(load);
             const active = selectedId === a.id;
             return (
@@ -60,7 +68,7 @@ export default function ApartmentRoom({
                 onMouseLeave={() => onHover?.(null)}
                 onFocus={() => onHover?.(a)}
                 onBlur={() => onHover?.(null)}
-                aria-label={`${a.name}, ${a.kwh} kilowatt hours`}
+                aria-label={`${a.name}, ${live} kilowatt hours`}
                 className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity"
                 style={{
                   left: `${a.x}%`,
