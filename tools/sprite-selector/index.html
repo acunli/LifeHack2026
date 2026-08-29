@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lane B Room Builder — WattWise</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #2c3e50;
+            color: #ecf0f1;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background: #34495e;
+            padding: 15px 20px;
+            border-bottom: 3px solid #3498db;
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .app-header .subtitle {
+            font-size: 13px;
+            color: #95a5a6;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            height: calc(100vh - 80px);
+            gap: 0;
+        }
+
+        /* LEFT PANEL - Sprite Sheet Viewer */
+        .left-panel {
+            background: #34495e;
+            border-right: 2px solid #2c3e50;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #2c3e50;
+            padding: 12px 15px;
+            border-bottom: 2px solid #1a252f;
+            font-weight: 700;
+            font-size: 14px;
+            color: #3498db;
+        }
+
+        .sheet-controls {
+            padding: 15px;
+            background: #2c3e50;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #bdc3c7;
+            margin-bottom: 6px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 8px;
+            background: #34495e;
+            border: 1px solid #4a5f7f;
+            border-radius: 4px;
+            color: #ecf0f1;
+            font-size: 13px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .zoom-controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        button {
+            padding: 8px 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button.secondary {
+            background: #7f8c8d;
+        }
+
+        button.secondary:hover {
+            background: #6c7a7b;
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        button.success {
+            background: #27ae60;
+        }
+
+        button.success:hover {
+            background: #229954;
+        }
+
+        button.active {
+            background: #f39c12;
+            box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sprite-viewer-wrapper {
+            flex: 1;
+            overflow: auto;
+            background: #1a252f;
+        }
+
+        .sprite-viewer {
+            position: relative;
+            display: inline-block;
+            cursor: crosshair;
+            user-select: none;
+        }
+
+        .sprite-image {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .selection-overlay, .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .selection-info {
+            padding: 12px 15px;
+            background: #2c3e50;
+            border-top: 2px solid #1a252f;
+            font-size: 11px;
+        }
+
+        .selection-info h4 {
+            color: #3498db;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 6px;
+            background: #34495e;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .info-label {
+            color: #95a5a6;
+        }
+
+        .info-value {
+            color: #ecf0f1;
+            font-weight: 600;
+        }
+
+        /* CENTER PANEL - Room Canvas */
+        .center-panel {
+            background: #1a252f;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .room-controls {
+            background: #2c3e50;
+            padding: 12px 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            border-bottom: 2px solid #1a252f;
+        }
+
+        .room-canvas-wrapper {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .room-canvas-container {
+            position: relative;
+            background: #34495e;
+            border: 3px solid #4a5f7f;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        #room-canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            cursor: crosshair;
+        }
+
+        .room-stats {
+            background: #2c3e50;
+            padding: 10px 15px;
+            border-top: 2px solid #1a252f;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* RIGHT PANEL - Palette & Properties */
+        .right-panel {
+            background: #34495e;
+            border-left: 2px solid #2c3e50;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sprite-palette {
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            border-bottom: 2px solid #2c3e50;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .palette-item {
+            background: #2c3e50;
+            border: 2px solid #4a5f7f;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .palette-item:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+
+        .palette-item.selected {
+            border-color: #f39c12;
+            background: #3a4d5e;
+            box-shadow: 0 0 10px rgba(243, 156, 18, 0.3);
+        }
+
+        .palette-item img {
+            image-rendering: pixelated;
+            max-width: 100%;
+            margin-bottom: 6px;
+        }
+
+        .palette-item-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #ecf0f1;
+            margin-bottom: 3px;
+        }
+
+        .palette-item-size {
+            font-size: 10px;
+            color: #95a5a6;
+        }
+
+        .placed-objects-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .placed-object-item {
+            background: #2c3e50;
+            border: 2px solid #4a5f7f;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .placed-object-item:hover {
+            border-color: #3498db;
+        }
+
+        .placed-object-item.selected {
+            border-color: #f39c12;
+            background: #3a4d5e;
+        }
+
+        .object-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .object-name {
+            font-weight: 700;
+            font-size: 12px;
+            color: #3498db;
+        }
+
+        .object-details {
+            font-size: 11px;
+            color: #95a5a6;
+        }
+
+        .object-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .object-actions button {
+            padding: 5px;
+            font-size: 10px;
+        }
+
+        .object-properties {
+            padding: 15px;
+            background: #2c3e50;
+            border-top: 2px solid #1a252f;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .property-item {
+            margin-bottom: 10px;
+        }
+
+        .property-label {
+            font-size: 11px;
+            color: #95a5a6;
+            margin-bottom: 4px;
+        }
+
+        .property-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ecf0f1;
+        }
+
+        .property-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 4px;
+        }
+
+        .property-controls button {
+            flex: 1;
+            padding: 6px;
+            font-size: 10px;
+        }
+
+        /* Export Section */
+        .export-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #2c3e50;
+            border-top: 3px solid #3498db;
+            padding: 15px 20px;
+            display: none;
+        }
+
+        .export-panel.visible {
+            display: block;
+        }
+
+        .export-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .export-output {
+            background: #1a252f;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            max-height: 300px;
+            overflow: auto;
+            white-space: pre;
+            border: 1px solid #4a5f7f;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            padding: 8px 15px;
+            background: #34495e;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+
+        .tab.active {
+            background: #1a252f;
+            color: #3498db;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        .mode-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .room-settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+            background: #2c3e50;
+            border-bottom: 2px solid #1a252f;
+        }
+
+        .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-group label {
+            font-size: 11px;
+            color: #95a5a6;
+            white-space: nowrap;
+        }
+
+        .settings-group input {
+            width: 60px;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        .validation-errors {
+            background: #e74c3c;
+            color: white;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .validation-errors.visible {
+            display: block;
+        }
+
+        .validation-errors ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #2c3e50;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4a5f7f;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a6f8f;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1>Lane B Room Builder</h1>
+        <p class="subtitle">WattWise — Visual Apartment Construction Tool</p>
+    </div>
+
+    <div class="main-container">
+        <!-- LEFT PANEL: Sprite Sheet Viewer -->
+        <div class="left-panel">
+            <div class="panel-header">Sprite Sheet Selector</div>
+
+            <div class="sheet-controls">
+                <div class="control-group">
+                    <label>Sprite Sheet</label>
+                    <select id="sheet-select">
+                        <option value="interiors">Interiors 32×32</option>
+                        <option value="room_builder">Room Builder 32×32</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Sprite Name</label>
+                    <input type="text" id="sprite-name" placeholder="e.g., bed, sofa">
+                </div>
+
+                <div class="control-group">
+                    <label>Sheet Zoom</label>
+                    <div class="zoom-controls">
+                        <button class="secondary" data-zoom="1">1×</button>
+                        <button class="secondary" data-zoom="2">2×</button>
+                        <button class="secondary" data-zoom="3">3×</button>
+                        <button class="secondary" data-zoom="4">4×</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <button class="success" id="add-sprite-btn" style="width: 100%; padding: 10px;">Add to Palette</button>
+                </div>
+
+                <div class="control-group">
+                    <button class="secondary" id="clear-selection" style="width: 100%;">Clear Selection</button>
+                </div>
+            </div>
+
+            <div class="sprite-viewer-wrapper">
+                <div class="sprite-viewer" id="sprite-viewer">
+                    <img id="sprite-image" class="sprite-image" alt="Sprite Sheet">
+                    <canvas id="grid-overlay" class="grid-overlay"></canvas>
+                    <canvas id="selection-overlay" class="selection-overlay"></canvas>
+                </div>
+            </div>
+
+            <div class="selection-info">
+                <h4>Current Selection</h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Columns:</span>
+                        <span class="info-value" id="info-cols">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Rows:</span>
+                        <span class="info-value" id="info-rows">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Size:</span>
+                        <span class="info-value" id="info-size">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Pixels:</span>
+                        <span class="info-value" id="info-pixels">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: Room Canvas -->
+        <div class="center-panel">
+            <div class="panel-header">Apartment Room Builder</div>
+
+            <div class="room-settings">
+                <div class="settings-group">
+                    <label>Room Width:</label>
+                    <input type="number" id="room-cols" value="24" min="10" max="50">
+                    <span style="font-size: 11px; color: #7f8c8d;">tiles</span>
+                </div>
+                <div class="settings-group">
+                    <label>Room Height:</label>
+                    <input type="number" id="room-rows" value="18" min="10" max="40">
+                    <span style="font-size: 11px; color: #7f8c8d;">tiles</span>
+                </div>
+            </div>
+
+            <div class="room-controls">
+                <div class="control-group">
+                    <label style="margin-bottom: 5px;">Build Mode</label>
+                    <div class="mode-buttons">
+                        <button id="mode-select" class="active">Select</button>
+                        <button id="mode-place">Place</button>
+                        <button id="mode-paint">Paint</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom: 5px;">Canvas Zoom</label>
+                    <div class="zoom-controls">
+                        <button class="secondary" data-canvas-zoom="0.5">50%</button>
+                        <button class="secondary" data-canvas-zoom="1">100%</button>
+                        <button class="secondary" data-canvas-zoom="1.5">150%</button>
+                        <button class="secondary" data-canvas-zoom="2">200%</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom: 5px;">Actions</label>
+                    <button class="secondary" id="undo-btn">Undo</button>
+                    <button class="secondary" id="redo-btn" style="margin-top: 5px;">Redo</button>
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom: 5px;">Room</label>
+                    <button class="secondary" id="preview-room">Preview</button>
+                    <button class="danger" id="clear-room" style="margin-top: 5px;">Clear Room</button>
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom: 5px;">Data</label>
+                    <button class="success" id="save-room">Save JSON</button>
+                    <button class="secondary" id="load-room" style="margin-top: 5px;">Load JSON</button>
+                </div>
+
+                <div class="control-group">
+                    <label style="margin-bottom: 5px;">Export</label>
+                    <button class="success" id="show-export">Show Export Panel</button>
+                </div>
+            </div>
+
+            <div class="room-canvas-wrapper">
+                <div class="room-canvas-container" id="room-canvas-container">
+                    <canvas id="room-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="room-stats">
+                <span id="room-dimensions">Room: 24 × 18 tiles (768 × 576 px)</span>
+                <span id="placed-count">Objects: 0</span>
+                <span id="selected-info">No selection</span>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Palette & Properties -->
+        <div class="right-panel">
+            <div class="panel-header">Sprite Palette</div>
+            <div class="sprite-palette">
+                <div class="palette-grid" id="palette-grid">
+                    <div class="empty-state">No sprites in palette<br>Add sprites from the left panel</div>
+                </div>
+            </div>
+
+            <div class="panel-header">Placed Objects (<span id="object-count">0</span>)</div>
+            <div class="placed-objects-section" id="placed-objects-list">
+                <div class="empty-state">No objects placed<br>Select a sprite and click on the canvas</div>
+            </div>
+
+            <div class="object-properties" id="object-properties">
+                <div class="empty-state" style="padding: 20px;">Select an object to edit</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Panel (toggleable) -->
+    <div class="export-panel" id="export-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: #3498db;">Export Final Room</h3>
+            <button class="secondary" id="close-export">Close</button>
+        </div>
+
+        <div class="validation-errors" id="validation-errors">
+            <strong>⚠ Validation Errors:</strong>
+            <ul id="error-list"></ul>
+        </div>
+
+        <div class="export-controls">
+            <button class="success" id="export-spritemap">Download spriteMap.ts</button>
+            <button class="success" id="export-layout">Download apartmentLayout.ts</button>
+            <button class="success" id="export-all">Download Both Files</button>
+            <button class="secondary" id="copy-spritemap">Copy spriteMap.ts</button>
+            <button class="secondary" id="copy-layout">Copy apartmentLayout.ts</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="spritemap">spriteMap.ts</button>
+            <button class="tab" data-tab="layout">apartmentLayout.ts</button>
+        </div>
+
+        <div class="export-output" id="export-spritemap-output"></div>
+        <div class="export-output" id="export-layout-output" style="display: none;"></div>
+    </div>
+
+    <input type="file" id="load-file-input" accept=".json" style="display: none;">
+
+    <script src="room-builder.js"></script>
+</body>
+</html>

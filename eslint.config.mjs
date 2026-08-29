@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone browser tooling for authoring sprite layouts. Not part of the
+    // Next build and not written against the app's lint rules.
+    "tools/**",
   ]),
 ]);
 
