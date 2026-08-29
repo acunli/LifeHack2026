@@ -29,7 +29,6 @@ import {
 import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
 import VoucherPopup from '@/components/VoucherPopup'
 import EnergyHistogram from '@/components/EnergyHistogram'
-import NewsFeed from '@/components/NewsFeed'
 
 /**
  * What-if changes persist across navigation.
@@ -686,27 +685,17 @@ export default function HomePage() {
             </div>
           </div>
           <div className="wl-controls">
-            <div
-              className="wl-audit"
-              role="status"
-              aria-label={`${auditXp} audit XP. ${auditCount} of ${AUDIT_TOTAL} meters scanned.`}
-              title="Earn 25 XP for every appliance meter you scan"
-            >
-              <span className="wl-audit-icon" aria-hidden>⚡</span>
-              <span className="wl-audit-count wl-px">{auditXp}</span>
-              <span className="wl-audit-label wl-px">Audit XP</span>
-            </div>
             {/* Rewards earned with notification badge */}
             <button
               className={
                 'wl-rewards' +
                 (rewardNotify ? ' notify' : '') +
-                (leaderboardRank > 0 && leaderboardRank <= 3 ? ' unlocked' : ' locked')
+                (applied.size > 0 ? ' unlocked' : ' locked')
               }
-              aria-label={`${rewards} rewards earned${leaderboardRank > 0 && leaderboardRank <= 3 ? '. Open sample voucher.' : ''}`}
-              title={leaderboardRank > 0 && leaderboardRank <= 3 ? 'Open sample voucher' : 'Reach the top 3 to unlock a sample voucher'}
+              aria-label={`${rewards} rewards earned${applied.size > 0 ? '. Open sample voucher.' : ''}`}
+              title={applied.size > 0 ? 'Open sample voucher' : 'Apply a saving to unlock your voucher'}
               onClick={() => {
-                if (leaderboardRank > 0 && leaderboardRank <= 3) {
+                if (applied.size > 0) {
                   setVoucherOpen(true)
                 }
               }}
@@ -715,7 +704,7 @@ export default function HomePage() {
               <span className="wl-rewards-icon" aria-hidden>🔔</span>
               <span className="wl-rewards-count wl-px">{rewards}</span>
               <span className="wl-rewards-label wl-px">
-                {leaderboardRank > 0 && leaderboardRank <= 3 ? 'Rewards' : '🔒 Top 3'}
+                {applied.size > 0 ? 'Rewards' : '🔒 Save first'}
               </span>
               {rewardNotify && <span className={'wl-rewards-plus' + (rewardDelta < 0 ? ' negative' : '')}>{rewardDelta > 0 ? '+1' : '-1'}</span>}
             </button>
@@ -981,7 +970,6 @@ export default function HomePage() {
         />
 
         <div className="section-header">Illustrative Energy Briefing</div>
-        <NewsFeed />
 
         <div className="wl-foot">Prototype — pixel art by LimeZu, Modern Interiors</div>
       </div>
@@ -1150,10 +1138,6 @@ const css = `
 
 /* Audit progress badge. Renamed off .wl-rewards so it does not collide with
    the rewards badge, which is a different counter. */
-/* Audit badge. Sized to match the other header chips — without an explicit
-   font-size it inherited the panel's and rendered far larger than its
-   neighbours. */
-.wl-audit{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;
   background:var(--bg-deep);border:3px solid var(--line);line-height:1}
 .wl-audit-icon{font-size:11px}
 .wl-audit-count{font-size:10px;color:var(--amber)}

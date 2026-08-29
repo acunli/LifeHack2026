@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChangeIndicator } from '@/components/ChangeIndicator'
+import Countdown from '@/components/Countdown'
 import { LeaderboardRow } from '@/components/LeaderboardRow'
 import { Podium } from '@/components/Podium'
 import { ScoreMeter } from '@/components/ScoreMeter'
@@ -77,6 +78,14 @@ export function LeaderboardBoard({
 
   return (
     <div className="mx-auto w-full max-w-2xl pb-4">
+      {/* Daily reset countdown. THIS HAS BEEN LOST TO MERGES THREE TIMES.
+          It is the only thing on the board giving a reason to come back
+          tomorrow rather than just showing today's standing, so if it
+          disappears again, this is what to put back. */}
+      <div className="mb-4 flex items-center justify-end">
+        <Countdown />
+      </div>
+
       {/* Current user summary */}
       {status === 'ok' && me && (
         <div className="pixel-panel pixel-panel-gold mb-6 flex items-center justify-between gap-3 p-4">

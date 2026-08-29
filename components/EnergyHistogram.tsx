@@ -73,32 +73,8 @@ export default function EnergyHistogram({
     <div className="histogram-section">
       <div className="histogram-row">
         {/* Left: Histogram */}
-        <div className="histogram-panel">
-          <div className="histogram-title">Weekly Usage Trend</div>
-          <div
-            className="histogram-chart"
-            role="img"
-            aria-label={`Illustrative weekly usage. Daily average ${avg} kilowatt-hours.`}
-          >
-            {DAYS.map((day, i) => (
-              <div key={day} className="histogram-bar-col">
-                <div className="histogram-bar-wrap">
-                  <div
-                    className="histogram-bar"
-                    style={{ height: `${(weeklyData[i] / maxVal) * 100}%` }}
-                  />
-                </div>
-                <div className="histogram-bar-label">{day}</div>
-                <div className="histogram-bar-value">{weeklyData[i]}</div>
-              </div>
-            ))}
-          </div>
-          <div className="histogram-avg">
-            Avg: <b>{avg}</b> kWh/day
-          </div>
-        </div>
-
-        {/* Right: Line Chart — Daily Cost Trend */}
+        {/* Daily cost trend. The weekly usage bars were removed: two charts
+            saying much the same thing, and cost is more concrete than kWh. */}
         <div className="histogram-panel">
           <div className="histogram-title">Daily Cost Trend</div>
           <div

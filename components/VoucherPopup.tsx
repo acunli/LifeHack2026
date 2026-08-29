@@ -59,9 +59,9 @@ export default function VoucherPopup({ open, onClose, rank, username }: VoucherP
           ✕
         </button>
         <div className="voucher-badge">
-          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
+          {'🎟️'}
         </div>
-        <div id="voucher-title" className="voucher-title">Top {rank} Reward!</div>
+        <div id="voucher-title" className="voucher-title">Saving Unlocked!</div>
         <div className="voucher-sub">
           Congratulations <b>{username}</b>!
         </div>
@@ -71,7 +71,7 @@ export default function VoucherPopup({ open, onClose, rank, username }: VoucherP
           <div className="voucher-card-desc">
             Valid for next month&apos;s electricity bill
           </div>
-          <div className="voucher-card-code">ECOVOLT-TOP{rank}-2026</div>
+          <div className="voucher-card-code">ECOVOLT-SAVE-2026</div>
         </div>
         <div className="voucher-note">
           This is a sample voucher for demo purposes.
