@@ -3,12 +3,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { useSession } from '@/lib/useSession'
-import ApartmentRoom from '@/components/ApartmentRoom'
 import Mascot from '@/components/Mascot'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
 import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
+
+// Phaser needs a browser, so these load client-side only - same pattern as
+// app/interactive-apartment/page.tsx, which owns the canonical version of
+// this game.
+const ApartmentGameCanvas = dynamic(
+  () => import('@/components/apartment-game/ApartmentGameCanvas'),
+  { ssr: false }
+)
+const InteractionPrompt = dynamic(
+  () => import('@/components/apartment-game/InteractionPrompt'),
+  { ssr: false }
+)
+const ApplianceSelector = dynamic(
+  () => import('@/components/apartment-game/ApplianceSelector'),
+  { ssr: false }
+)
+const AppliancePanel = dynamic(
+  () => import('@/components/apartment-game/AppliancePanel'),
+  { ssr: false }
+)
 
 /**
  * The standalone appliance dashboard, taken verbatim from the
@@ -453,10 +473,14 @@ export default function HomePage() {
           {/* Room */}
           <section className="wl-panel wl-roomwrap">
             <div className="wl-stage">
-              {/* Ayushman's tile renderer, replacing the flat room.png. Its
-                  sprite coordinates come from the room-builder tool, so they
-                  are verified rather than estimated. */}
-              <ApartmentRoom />
+              {/* The interactive Phaser apartment, replacing the static tile
+                  render. Its own systems (movement, sockets, install/inspect)
+                  run independently of the heat-zone overlay below - the two
+                  aren't wired together. */}
+              <ApartmentGameCanvas />
+              <InteractionPrompt />
+              <ApplianceSelector />
+              <AppliancePanel />
               {APPLIANCES.map((a) => {
                 const load = maxCur > 0 ? cur[a.id] / maxCur : 0
                 const c = heat(load)
@@ -763,11 +787,11 @@ const css = `
 @media(max-width:1080px){.wl-split{grid-template-columns:1fr}}
 
 .wl-roomwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px}
-/* The renderer draws at a fixed 736x576 (23x18 tiles at 32px). The stage is
-   sized to match so the percentage-positioned pins resolve against the same
-   box as the room. Scaled with zoom rather than transform, because transform
-   would leave the pins measuring against the unscaled parent. */
-.wl-stage{position:relative;line-height:0;width:736px;height:576px;
+/* Sized to match the Phaser game's fixed 768x576 canvas, so the
+   percentage-positioned pins resolve against the same box as the room.
+   Scaled with zoom rather than transform, because transform would leave the
+   pins measuring against the unscaled parent. */
+.wl-stage{position:relative;line-height:0;width:768px;height:576px;
   margin:0 auto;image-rendering:pixelated;
   /* Contain the room's z-indexes. Its layout objects go up to 315 and the heat
      zones to 500, which outranked the drawer (50) and scrim (40) — the
