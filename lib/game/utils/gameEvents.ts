@@ -76,6 +76,17 @@ export interface PlayerMoveRequestPayload {
   y: number;
 }
 
+export type WattlahmanStatus = 'thinking' | 'acting' | 'done' | 'dismissed' | 'nothing-to-do';
+
+export interface WattlahmanSummonRequestPayload {
+  /** Kimi K3 API key, or null to run WattLahMan in offline/heuristic mode. */
+  apiKey: string | null;
+}
+
+export interface WattlahmanStatusPayload {
+  status: WattlahmanStatus;
+}
+
 export const GAME_EVENTS = {
   SOCKET_NEAR: 'socket:near',
   SOCKET_FAR: 'socket:far',
@@ -90,6 +101,9 @@ export const GAME_EVENTS = {
   APPLIANCE_PLACE_CUSTOM_REQUEST: 'appliance:place-custom-request',
   PLAYER_MOVE_REQUEST: 'player:move-request',
   PLAYER_INTERACT_REQUEST: 'player:interact-request',
+  WATTLAHMAN_SUMMON_REQUEST: 'wattlahman:summon-request',
+  WATTLAHMAN_DISMISS_REQUEST: 'wattlahman:dismiss-request',
+  WATTLAHMAN_STATUS: 'wattlahman:status',
 } as const;
 
 type GameEventMap = {
@@ -106,6 +120,9 @@ type GameEventMap = {
   [GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST]: [PlaceCustomAppliancePayload];
   [GAME_EVENTS.PLAYER_MOVE_REQUEST]: [PlayerMoveRequestPayload];
   [GAME_EVENTS.PLAYER_INTERACT_REQUEST]: [];
+  [GAME_EVENTS.WATTLAHMAN_SUMMON_REQUEST]: [WattlahmanSummonRequestPayload];
+  [GAME_EVENTS.WATTLAHMAN_DISMISS_REQUEST]: [];
+  [GAME_EVENTS.WATTLAHMAN_STATUS]: [WattlahmanStatusPayload];
 };
 
 type GameEventName = keyof GameEventMap;

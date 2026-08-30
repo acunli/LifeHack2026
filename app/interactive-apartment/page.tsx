@@ -41,6 +41,11 @@ const AppliancePalette = dynamic(
   { ssr: false }
 );
 
+const WattlahManButton = dynamic(
+  () => import('@/components/apartment-game/WattlahManButton'),
+  { ssr: false }
+);
+
 export default function InteractiveApartmentPage() {
   const router = useRouter()
   const { session, needsUsername } = useSession()
@@ -114,6 +119,10 @@ export default function InteractiveApartmentPage() {
         >
           Manage your energy consumption through interactive gameplay
         </p>
+      </div>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <WattlahManButton />
       </div>
 
       <Fragment key={session.roomNumber}>
