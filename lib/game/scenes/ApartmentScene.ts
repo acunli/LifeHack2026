@@ -124,6 +124,7 @@ export default class ApartmentScene extends Phaser.Scene {
         id: applianceDef.id,
         name: applianceDef.name,
         dailyKwh: applianceDef.dailyKwh,
+        referenceDailyKwh: applianceDef.referenceDailyKwh,
         hoursPerDay: applianceDef.hoursPerDay,
         tip: applianceDef.tip,
         isCustom: false,
@@ -574,10 +575,16 @@ export default class ApartmentScene extends Phaser.Scene {
   }
 
   private currentScore(): number {
-    const onKwh = [...this.appliancesByTargetId.values()]
-      .filter(appliance => appliance.isOn())
-      .map(appliance => appliance.info.dailyKwh);
-    return calculateEnergyScore(onKwh).score;
+    // Every installed appliance goes in, on or off - the calculator needs the
+    // switched-off ones to build the reference. Filtering to `isOn()` here
+    // would shrink the benchmark alongside the consumption and leave the
+    // score barely moving when WattLahMan switches something off.
+    const installed = [...this.appliancesByTargetId.values()].map(appliance => ({
+      dailyKwh: appliance.info.dailyKwh,
+      referenceDailyKwh: appliance.info.referenceDailyKwh,
+      isOn: appliance.isOn(),
+    }));
+    return calculateEnergyScore(installed).score;
   }
 
   private handleWattlahmanSummon(payload: WattlahmanSummonRequestPayload): void {
@@ -709,6 +716,7 @@ export default class ApartmentScene extends Phaser.Scene {
       id: targetId,
       name: customType.name,
       dailyKwh: customType.dailyKwh,
+      referenceDailyKwh: customType.referenceDailyKwh,
       hoursPerDay: customType.hoursPerDay,
       tip: customType.tip,
       isCustom: true,

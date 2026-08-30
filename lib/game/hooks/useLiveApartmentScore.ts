@@ -56,6 +56,7 @@ export function useLiveApartmentScore(): LiveApartmentScore {
             id: definition.id,
             name: definition.name,
             dailyKwh: definition.dailyKwh,
+            referenceDailyKwh: definition.referenceDailyKwh,
             hoursPerDay: definition.hoursPerDay,
             tip: definition.tip,
             isCustom: false,
@@ -99,7 +100,15 @@ export function useLiveApartmentScore(): LiveApartmentScore {
   }, []);
 
   const onCount = installed.filter(e => e.isOn).length;
-  const result = calculateEnergyScore(installed.filter(e => e.isOn).map(e => e.appliance.dailyKwh));
+  // All installed entries, not just the on ones: the calculator builds the
+  // reference from everything scanned and the consumption from what's on.
+  const result = calculateEnergyScore(
+    installed.map(e => ({
+      dailyKwh: e.appliance.dailyKwh,
+      referenceDailyKwh: e.appliance.referenceDailyKwh,
+      isOn: e.isOn,
+    })),
+  );
 
   return { installed, onCount, result };
 }

@@ -13,6 +13,8 @@ export interface CustomApplianceType {
   icon: string;
   color: number; // Phaser fill color for the placeholder tile
   dailyKwh: number;
+  /** Typical-flat draw for this appliance, daily kWh - see applianceData.ts. */
+  referenceDailyKwh: number;
   hoursPerDay: number;
   tip: string;
   /**
@@ -30,6 +32,7 @@ export const customApplianceTypes: CustomApplianceType[] = [
     icon: '🌀',
     color: 0x60a5fa,
     dailyKwh: 0.4,
+    referenceDailyKwh: 0.35,
     hoursPerDay: 6,
     tip: 'A fan uses a fraction of an air conditioner\'s power for similar comfort on mild days.',
     inconvenience: 2,
@@ -40,6 +43,7 @@ export const customApplianceTypes: CustomApplianceType[] = [
     icon: '❄️',
     color: 0x38bdf8,
     dailyKwh: 2.5,
+    referenceDailyKwh: 2.2,
     hoursPerDay: 5,
     tip: 'Set it a couple degrees warmer — each degree lower can add 5-10% to its energy use.',
     // Real comfort cost - switching it off outright is a bigger ask than
@@ -52,6 +56,7 @@ export const customApplianceTypes: CustomApplianceType[] = [
     icon: '🔥',
     color: 0xf97316,
     dailyKwh: 1.8,
+    referenceDailyKwh: 1.6,
     hoursPerDay: 4,
     tip: 'Heat only the room you\'re in rather than running central heating for an empty apartment.',
     inconvenience: 4,
@@ -62,6 +67,7 @@ export const customApplianceTypes: CustomApplianceType[] = [
     icon: '🔊',
     color: 0xa78bfa,
     dailyKwh: 0.15,
+    referenceDailyKwh: 0.15,
     hoursPerDay: 3,
     tip: 'Bluetooth speakers idle at very low power, but unplug them if unused for long stretches.',
     inconvenience: 1,
@@ -72,6 +78,7 @@ export const customApplianceTypes: CustomApplianceType[] = [
     icon: '🎮',
     color: 0x34d399,
     dailyKwh: 0.3,
+    referenceDailyKwh: 0.25,
     hoursPerDay: 2,
     tip: 'Enable auto-sleep so it doesn\'t idle at full power after you stop playing.',
     // Might be mid-game.
@@ -83,6 +90,7 @@ export const customApplianceTypes: CustomApplianceType[] = [
     icon: '☕',
     color: 0xfacc15,
     dailyKwh: 0.2,
+    referenceDailyKwh: 0.2,
     hoursPerDay: 0.5,
     tip: 'Boil only the water you need — reheating a full kettle for one cup wastes most of it.',
     inconvenience: 1,

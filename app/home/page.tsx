@@ -832,7 +832,10 @@ export default function HomePage() {
           {/* HUD */}
           <aside className="wl-panel wl-hud">
             <div className="wl-scorewrap">
-              <div className="wl-h3">Current month</div>
+              {/* The live reading is a daily figure (the catalog is in kWh/day),
+                  so this said "Current month" over a number that was never
+                  monthly - the S$0.51 "monthly bill" underneath gave it away. */}
+              <div className="wl-h3">Today</div>
               <div style={{ marginTop: 10 }}>
                 <span className="wl-bigscore" style={{ color: colour }}>
                   {displayScore}
@@ -873,12 +876,12 @@ export default function HomePage() {
               {over > 0 ? (
                 <>
                   You used <b>{over}% more</b> than a comparable flat — about{' '}
-                  <b>S${liveResult.estimatedCost.toFixed(2)}</b> this month.
+                  <b>S${liveResult.estimatedCost.toFixed(2)}</b> today.
                 </>
               ) : (
                 <>
                   You&apos;re <b>{Math.abs(over)}% below</b> a comparable flat — about{' '}
-                  <b>S${liveResult.estimatedCost.toFixed(2)}</b> this month.
+                  <b>S${liveResult.estimatedCost.toFixed(2)}</b> today.
                 </>
               )}
             </p>

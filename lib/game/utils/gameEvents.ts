@@ -14,6 +14,8 @@ export interface AppliancePayload {
   id: string;
   name: string;
   dailyKwh: number;
+  /** Typical-flat draw for this appliance, daily kWh - see applianceData.ts. */
+  referenceDailyKwh: number;
   hoursPerDay: number;
   tip: string;
   isCustom: boolean;
