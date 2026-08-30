@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PixelNote from "@/components/PixelNote";
 
 /**
  * Background music toggle.
@@ -84,12 +85,13 @@ export default function MusicToggle() {
         right: 14,
         bottom: 14,
         zIndex: 900,
-        padding: "9px 12px",
-        fontSize: 12,
-        lineHeight: 1,
+        padding: 9,
+        lineHeight: 0,
+        display: "grid",
+        placeItems: "center",
       }}
     >
-      {playing ? "♪" : "♪̸"}
+      <PixelNote muted={!playing} />
     </button>
   );
 }

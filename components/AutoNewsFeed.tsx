@@ -83,25 +83,46 @@ export default function AutoNewsFeed() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  /**
+   * Centre a card in the strip by moving the strip's own scroll offset.
+   *
+   * This used to call scrollIntoView, which does not scroll one element — it
+   * walks up and scrolls every scrollable ancestor, the document included. So
+   * each time the carousel advanced on its own it dragged the whole page down
+   * to itself, wherever the reader happened to be. `block: 'nearest'` limits
+   * how far it goes vertically but does not stop it.
+   *
+   * Measuring from bounding rects rather than offsetLeft keeps this correct
+   * regardless of which ancestor turns out to be the offset parent.
+   */
   const scrollToIndex = useCallback((index: number) => {
-    if (!scrollRef.current) return
-    const cards = scrollRef.current.children
-    if (cards[index]) {
-      (cards[index] as HTMLElement).scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      })
-    }
+    const strip = scrollRef.current
+    const card = strip?.children[index] as HTMLElement | undefined
+    if (!strip || !card) return
+    const stripBox = strip.getBoundingClientRect()
+    const cardBox = card.getBoundingClientRect()
+    const delta =
+      cardBox.left + cardBox.width / 2 - (stripBox.left + stripBox.width / 2)
+    const still =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    strip.scrollTo({
+      left: strip.scrollLeft + delta,
+      behavior: still ? 'auto' : 'smooth',
+    })
   }, [])
 
   const advance = useCallback(() => {
-    setActiveIndex((prev) => {
-      const next = (prev + 1) % NEWS_ARTICLES.length
-      scrollToIndex(next)
-      return next
-    })
-  }, [scrollToIndex])
+    setActiveIndex((prev) => (prev + 1) % NEWS_ARTICLES.length)
+  }, [])
+
+  /*
+   * Scrolling belongs here rather than inside the setState updater it used to
+   * live in: an updater must be pure, and React is free to call it twice.
+   */
+  useEffect(() => {
+    scrollToIndex(activeIndex)
+  }, [activeIndex, scrollToIndex])
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -124,10 +145,7 @@ export default function AutoNewsFeed() {
           <article
             key={article.id}
             className={'auto-news-card' + (i === activeIndex ? ' active' : '')}
-            onClick={() => {
-              setActiveIndex(i)
-              scrollToIndex(i)
-            }}
+            onClick={() => setActiveIndex(i)}
           >
             <div className="auto-news-thumb" style={{ background: article.color }}>
               <span className="auto-news-icon">{article.icon}</span>
@@ -148,10 +166,7 @@ export default function AutoNewsFeed() {
           <button
             key={i}
             className={'auto-news-dot' + (i === activeIndex ? ' active' : '')}
-            onClick={() => {
-              setActiveIndex(i)
-              scrollToIndex(i)
-            }}
+            onClick={() => setActiveIndex(i)}
             aria-label={`Go to article ${i + 1}`}
           />
         ))}
