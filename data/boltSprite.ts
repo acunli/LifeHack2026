@@ -1,6 +1,12 @@
 /**
  * The WattLah bolt, as pixel art.
  *
+ * NOT dead code, despite nothing importing it: `app/icon.svg` — the favicon —
+ * was generated from this matrix, and this is the record of how. The on-screen
+ * wordmark is Varun's PNG (`public/wattlah-logo.png`); only the tab icon comes
+ * from here. Regenerate the icon from this file if the mark ever changes, so
+ * the tab and the logo do not drift apart.
+ *
  * Replaces the flat two-tone SVG path the wordmark used to carry. The shape is
  * the same bolt — top bar, step out to the right at the waist, long diagonal to
  * a point, step out to the left — but rasterised onto a grid so it can carry a
