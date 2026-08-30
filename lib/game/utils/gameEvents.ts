@@ -17,6 +17,8 @@ export interface AppliancePayload {
   hoursPerDay: number;
   tip: string;
   isCustom: boolean;
+  /** 1-5, how disruptive switching this off is right now - see applianceData.ts. */
+  inconvenience: number;
 }
 
 export interface SocketNearPayload {
