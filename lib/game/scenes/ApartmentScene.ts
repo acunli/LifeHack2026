@@ -11,6 +11,7 @@ import Player from '../entities/Player';
 import Socket from '../entities/Socket';
 import Appliance from '../entities/Appliance';
 import { buildCollisionGroup } from '../utils/collisionHelpers';
+import { auraAlpha, auraSize, heatAt, HEAT_COOL, HEAT_HOT } from '../heat';
 import { socketDefinitions, INTERACTION_RADIUS } from '../data/socketDefinitions';
 import { applianceCatalog } from '../data/applianceData';
 import { customApplianceTypes, CustomApplianceType } from '../data/customApplianceTypes';
@@ -378,30 +379,25 @@ export default class ApartmentScene extends Phaser.Scene {
    * something hungry.
    */
   private updateHeatAura(): void {
-    const RANGE = 140;
-    let heat = 0;
+    const t = heatAt(
+      this.player.x,
+      this.player.y,
+      [...this.appliancesByTargetId.values()].map((a) => {
+        const c = a.getCentre();
+        return { x: c.x, y: c.y, dailyKwh: a.info.dailyKwh, drawing: a.isDrawing() };
+      }),
+    );
 
-    for (const appliance of this.appliancesByTargetId.values()) {
-      if (!appliance.isDrawing()) continue;
-      const c = appliance.getCentre();
-      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, c.x, c.y);
-      if (dist > RANGE) continue;
-      // Normalised draw, 0-1, against a hungry appliance at ~6 kWh/day.
-      const draw = Math.min(1, appliance.info.dailyKwh / 6);
-      heat = Math.max(heat, draw * (1 - dist / RANGE));
-    }
-
-    const t = Phaser.Math.Clamp(heat, 0, 1);
-    const cool = Phaser.Display.Color.ValueToColor(0x9be564);
-    const hot = Phaser.Display.Color.ValueToColor(0xff7a6b);
+    const cool = Phaser.Display.Color.ValueToColor(HEAT_COOL);
+    const hot = Phaser.Display.Color.ValueToColor(HEAT_HOT);
     const mix = Phaser.Display.Color.Interpolate.ColorWithColor(cool, hot, 100, t * 100);
 
     this.heatAura.setPosition(this.player.x, this.player.y - 4);
     this.heatAura.setFillStyle(
       Phaser.Display.Color.GetColor(mix.r, mix.g, mix.b),
-      0.16 + t * 0.3,
+      auraAlpha(t),
     );
-    const size = 84 + t * 60;
+    const size = auraSize(t);
     this.heatAura.setSize(size, size / 2);
   }
 
