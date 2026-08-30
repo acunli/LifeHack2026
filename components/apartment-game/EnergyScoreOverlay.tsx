@@ -2,25 +2,12 @@
 
 /**
  * EnergyScoreOverlay - live score badge that updates as appliances (fixed
- * or custom) are installed, removed, or switched on/off. Reuses
- * lib/scoring.ts's computeScore via energyCalculator.ts so this game's
- * score follows the same formula as the rest of the app.
+ * or custom) are installed, removed, or switched on/off. The tracking logic
+ * lives in useLiveApartmentScore so /home's own score panel reads the exact
+ * same number - see that hook's docstring.
  */
 
-import { useEffect, useState } from 'react';
-import {
-  gameEvents,
-  GAME_EVENTS,
-  AppliancePayload,
-  ApplianceInstalledPayload,
-  AppliancePowerChangedPayload,
-  ApplianceRemovedPayload,
-} from '@/lib/game/utils/gameEvents';
-import { calculateEnergyScore } from '@/lib/game/utils/energyCalculator';
-import { readAuditProgress } from '@/lib/game/utils/auditProgress';
-import { socketDefinitions } from '@/lib/game/data/socketDefinitions';
-import { applianceCatalog } from '@/lib/game/data/applianceData';
-import { readRawSession } from '@/lib/session';
+import { useLiveApartmentScore } from '@/lib/game/hooks/useLiveApartmentScore';
 
 const STATUS_COLOR: Record<string, string> = {
   'Energy Saver': '#4ade80',
@@ -29,72 +16,8 @@ const STATUS_COLOR: Record<string, string> = {
   'Needs Improvement': '#f87171',
 };
 
-interface InstalledEntry {
-  installTargetId: string;
-  appliance: AppliancePayload;
-  isOn: boolean;
-}
-
 export default function EnergyScoreOverlay() {
-  const [installed, setInstalled] = useState<InstalledEntry[]>([]);
-
-  useEffect(() => {
-    const restoreFrame = requestAnimationFrame(() => {
-      const roomNumber = readRawSession()?.roomNumber?.trim() || 'demo';
-      const progress = readAuditProgress(roomNumber);
-      const restored = progress.connectedTargetIds.flatMap((targetId) => {
-        const socket = socketDefinitions.find(candidate => candidate.id === targetId);
-        if (!socket) return [];
-        const definition = applianceCatalog[socket.applianceId];
-        return [{
-          installTargetId: targetId,
-          appliance: {
-            id: definition.id,
-            name: definition.name,
-            dailyKwh: definition.dailyKwh,
-            hoursPerDay: definition.hoursPerDay,
-            tip: definition.tip,
-            isCustom: false,
-          },
-          isOn: progress.powerByTargetId[targetId] !== false,
-        }];
-      });
-      setInstalled(prev => {
-        const entries = new Map(prev.map(entry => [entry.installTargetId, entry]));
-        restored.forEach(entry => entries.set(entry.installTargetId, entry));
-        return [...entries.values()];
-      });
-    });
-
-    const handleInstalled = (payload: ApplianceInstalledPayload) => {
-      setInstalled(prev =>
-        prev.some(e => e.installTargetId === payload.installTargetId)
-          ? prev
-          : [...prev, { installTargetId: payload.installTargetId, appliance: payload.appliance, isOn: true }]
-      );
-    };
-    const handlePowerChanged = (payload: AppliancePowerChangedPayload) => {
-      setInstalled(prev =>
-        prev.map(e => (e.installTargetId === payload.installTargetId ? { ...e, isOn: payload.isOn } : e))
-      );
-    };
-    const handleRemoved = (payload: ApplianceRemovedPayload) => {
-      setInstalled(prev => prev.filter(e => e.installTargetId !== payload.installTargetId));
-    };
-
-    gameEvents.on(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
-    gameEvents.on(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
-    gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
-    return () => {
-      cancelAnimationFrame(restoreFrame);
-      gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALLED, handleInstalled);
-      gameEvents.off(GAME_EVENTS.APPLIANCE_POWER_CHANGED, handlePowerChanged);
-      gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVED, handleRemoved);
-    };
-  }, []);
-
-  const onCount = installed.filter(e => e.isOn).length;
-  const result = calculateEnergyScore(installed.filter(e => e.isOn).map(e => e.appliance.dailyKwh));
+  const { installed, onCount, result } = useLiveApartmentScore();
 
   return (
     <div

@@ -10,7 +10,6 @@ import WattLahLogo from '@/components/WattLahLogo'
 import { isLoggedIn, logout, saveScore, userIdFromRoom } from '@/lib/session'
 import UsernameSetup from '@/components/UsernameSetup'
 import { buildLeaderboard } from '@/data/leaderboard'
-import { MOCK_APARTMENT } from '@/data/mockApartment'
 import {
   computeScore,
   statusFor,
@@ -28,6 +27,7 @@ import {
   type ApplianceRemovedPayload,
 } from '@/lib/game/utils/gameEvents'
 import { socketDefinitions } from '@/lib/game/data/socketDefinitions'
+import { useLiveApartmentScore } from '@/lib/game/hooks/useLiveApartmentScore'
 import VoucherPopup from '@/components/VoucherPopup'
 import EnergyHistogram from '@/components/EnergyHistogram'
 import AutoNewsFeed from '@/components/AutoNewsFeed'
@@ -106,7 +106,6 @@ const WattlahManButton = dynamic(
  * Only the session guard and the back link were added.
  */
 
-const REFERENCE = MOCK_APARTMENT.referenceConsumptionKwh
 const TARIFF = TARIFF_SGD_PER_KWH
 
 type Appliance = {
@@ -287,13 +286,6 @@ const RECS: Rec[] = [
   },
 ]
 
-const scoreOf = (t: number) =>
-  computeScore({
-    roomNumber: 'dashboard',
-    totalConsumptionKwh: t,
-    referenceConsumptionKwh: REFERENCE,
-    costPerKwh: TARIFF,
-  }).score
 const rankOf = statusFor
 const scoreColour = (s: number) =>
   s >= 90 ? 'var(--lime)' : s >= 50 ? 'var(--amber)' : 'var(--red)'
@@ -306,8 +298,6 @@ const applianceScore = (curKwh: number, ref: number) =>
   }).score
 
 
-const BASE_SCORE = scoreOf(APPLIANCES.reduce((x, a) => x + a.kwh, 0))
-const BASE_TOTAL = APPLIANCES.reduce((sum, appliance) => sum + appliance.kwh, 0)
 const FIXED_AUDIT_TARGETS = new Set(socketDefinitions.map((socket) => socket.id))
 const AUDIT_TOTAL = FIXED_AUDIT_TARGETS.size
 const DASHBOARD_APPLIANCE_BY_GAME_ID: Record<string, string> = {
@@ -377,16 +367,22 @@ export default function HomePage() {
       ),
     [cur, poweredOff],
   )
-  const score = scoreOf(total)
+  // The headline Score/rank/leaderboard figure is the live room's real
+  // reading (the same one WattLahMan and EnergyScoreOverlay compute) - not
+  // `total` above, which only feeds the "Every appliance" list and the
+  // "Ways to save" what-if drawer, a separate illustrative sandbox with its
+  // own fictional appliance set. Before this, the two were unconnected: the
+  // headline score never moved when WattLahMan (or the player) actually
+  // changed something in the room.
+  const { result: liveResult } = useLiveApartmentScore()
+  const score = liveResult.score
   const rank = rankOf(score)
   const colour = scoreColour(score)
-  const over = Math.round(((total - REFERENCE) / REFERENCE) * 100)
-  const planActive = applied.size > 0
+  const over = Math.round(liveResult.comparisonPercent)
   const rewards = useMemo(
     () => [...applied].filter((id) => RECS.some((rec) => rec.id === id && rec.save > 0)).length,
     [applied],
   )
-  const savedKwh = BASE_TOTAL - total
   const auditCount = [...connectedTargets].filter((id) =>
     FIXED_AUDIT_TARGETS.has(id),
   ).length
@@ -435,17 +431,21 @@ export default function HomePage() {
     rafRef.current = requestAnimationFrame(step)
   }, [])
 
-  // Reveal on load. Deferred into a frame callback rather than called
-  // synchronously in the effect body, which would set state before the first
-  // paint and cascade a render.
+  // Reveal on load, then re-animate to the live score any time it actually
+  // changes - useLiveApartmentScore updates as the game reports installs,
+  // power toggles, and removals, so this is what makes the number on screen
+  // follow along in real time as WattLahMan (or the player) changes
+  // something in the room, not just on the next full page load.
+  const revealedRef = useRef(false)
   useEffect(() => {
-    const id = requestAnimationFrame(() => animateTo(score, 0))
+    const from = revealedRef.current ? shownRef.current : 0
+    revealedRef.current = true
+    const id = requestAnimationFrame(() => animateTo(score, from))
     return () => {
       cancelAnimationFrame(id)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [animateTo, score])
 
   useEffect(() => {
     if (!drawerOpen) return
@@ -484,13 +484,10 @@ export default function HomePage() {
   /**
    * Restore what-if changes made before navigating away.
    *
-   * Without this the dashboard rebuilt from the authored baseline on every
-   * visit while the leaderboard read the saved score, so applying a fix,
-   * checking the league and coming back showed 80 there and 74 here.
-   *
-   * animateTo is called too: the reveal has already run to the baseline by
-   * this point, and the number on screen comes from displayScore rather than
-   * `score`, so restoring the state alone leaves the dial reading 74.
+   * Only affects the "Ways to save" drawer's own sandbox (cur/applied) - the
+   * headline score is the live room reading now (see useLiveApartmentScore
+   * above) and animates itself independently whenever it actually changes,
+   * so this no longer needs to touch animateTo/displayScore at all.
    */
   useEffect(() => {
     if (!roomNumber) return
@@ -512,14 +509,10 @@ export default function HomePage() {
       setCur(restored)
       setApplied(new Set(validApplied))
       setSelected(null)
-      animateTo(
-        scoreOf(APPLIANCES.reduce((sum, appliance) => sum + restored[appliance.id], 0)),
-        shownRef.current,
-      )
       setHydratedRoom(roomNumber)
     })
     return () => cancelAnimationFrame(raf)
-  }, [animateTo, roomNumber])
+  }, [roomNumber])
 
   /**
    * Persist the score so the league reflects what the resident actually did.
@@ -534,11 +527,13 @@ export default function HomePage() {
   useEffect(() => {
     if (!roomNumber || hydratedRoom !== roomNumber) return
     saveScore(userIdFromRoom(roomNumber), score, {
-      isProjected: planActive,
-      // The measured figure is the flat's actual usage, before any plan.
-      measured: BASE_SCORE,
+      // Always the live, measured reading now - see useLiveApartmentScore
+      // above. The "Ways to save" drawer's what-if preview no longer moves
+      // this figure, so there's nothing to mark as a projection.
+      isProjected: false,
+      measured: score,
     })
-  }, [hydratedRoom, planActive, roomNumber, score])
+  }, [hydratedRoom, roomNumber, score])
 
   // Phaser owns movement and visuals; this page owns the product journey.
   // A meter scan updates the mission, XP, and the matching dashboard row.
@@ -627,10 +622,10 @@ export default function HomePage() {
   function applyRec(rec: Rec) {
     const done = applied.has(rec.id)
 
-    // Compute the next usage map here, not inside the setCur updater. React
-    // defers the updater, so reading newScore out of it and handing that to
-    // animateTo animated to the PREVIOUS score — the number never moved even
-    // though `cur` was updating correctly.
+    // Only affects the "Ways to save" drawer's own sandbox (cur/applied) -
+    // the headline score is the live room reading (see
+    // useLiveApartmentScore above) and doesn't move when a what-if item is
+    // applied here.
     const target = rec.for !== 'home' ? rec.for : rec.affects
     const appliance = target ? APPLIANCES.find((a) => a.id === target) : undefined
 
@@ -660,11 +655,6 @@ export default function HomePage() {
         rewardTimerRef.current = null
       }, 2500)
     }
-
-    animateTo(
-      scoreOf(APPLIANCES.reduce((sum, a) => sum + next[a.id], 0)),
-      shownRef.current,
-    )
   }
 
   function reset() {
@@ -672,7 +662,6 @@ export default function HomePage() {
     setCur(base)
     setApplied(new Set())
     if (session) writeWhatIf(session.roomNumber, { cur: base, applied: [] })
-    animateTo(BASE_SCORE, shownRef.current)
   }
 
   const selectedAppliance = selected
@@ -694,8 +683,6 @@ export default function HomePage() {
   const potential = drawerItems
     .filter((r) => !applied.has(r.id))
     .reduce((s, r) => s + r.save, 0)
-
-  const delta = displayScore > BASE_SCORE ? score - BASE_SCORE : 0
 
   // After every hook, and needsUsername first: useSession reports a null
   // session for a signed-in resident who has not picked a handle yet.
@@ -760,7 +747,6 @@ export default function HomePage() {
                 onClick={reset}
                 title="Undo every applied change"
               >
-                {score > BASE_SCORE ? `+${score - BASE_SCORE} · ` : ''}
                 {applied.size} in plan — reset
               </button>
             )}
@@ -777,7 +763,7 @@ export default function HomePage() {
                 textDecoration: 'none',
               }}
             >
-              #{leaderboardRank} {planActive ? 'Projected' : 'Rank'}
+              #{leaderboardRank} Rank
             </Link>
             {/* Log out shipped dead on both sides; ours is wired. */}
             <button
@@ -847,9 +833,7 @@ export default function HomePage() {
           {/* HUD */}
           <aside className="wl-panel wl-hud">
             <div className="wl-scorewrap">
-              <div className="wl-h3">
-                {planActive ? 'Projected after your plan' : 'Current month'}
-              </div>
+              <div className="wl-h3">Current month</div>
               <div style={{ marginTop: 10 }}>
                 <span className="wl-bigscore" style={{ color: colour }}>
                   {displayScore}
@@ -860,35 +844,42 @@ export default function HomePage() {
                 {rank}
               </div>
               <div className="wl-delta" role="status" aria-live="polite">
-                {delta > 0 ? `▲ +${delta} points in preview` : 'Measured reading'}
+                Measured reading
               </div>
               <div className="wl-bar">
                 <i style={{ width: score + '%', background: colour }} />
               </div>
               <div className="wl-ticks">
-                <span>0</span>
-                <span>50</span>
-                <span>75</span>
-                <span>90</span>
-                <span>100</span>
+                {/* Positioned by actual value, not evenly spaced - 0/50/75/90/100
+                    aren't evenly spaced numbers, so flex space-between put "90"
+                    two-thirds of the way along a bar where the fill is a true
+                    linear percentage, making the labels lie about where the
+                    score sat relative to the fill. */}
+                {[0, 50, 75, 90, 100].map((tick) => (
+                  <span
+                    key={tick}
+                    style={{
+                      position: 'absolute',
+                      left: `${tick}%`,
+                      transform: tick === 0 ? 'none' : tick === 100 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    }}
+                  >
+                    {tick}
+                  </span>
+                ))}
               </div>
             </div>
 
             <p className="wl-line">
-              {planActive ? (
-                <>
-                  This plan could save <b>{savedKwh} kWh</b> and about{' '}
-                  <b>S${(savedKwh * TARIFF).toFixed(2)}</b> each month.
-                </>
-              ) : over > 0 ? (
+              {over > 0 ? (
                 <>
                   You used <b>{over}% more</b> than a comparable flat — about{' '}
-                  <b>S${(total * TARIFF).toFixed(2)}</b> this month.
+                  <b>S${liveResult.estimatedCost.toFixed(2)}</b> this month.
                 </>
               ) : (
                 <>
                   You&apos;re <b>{Math.abs(over)}% below</b> a comparable flat — about{' '}
-                  <b>S${(total * TARIFF).toFixed(2)}</b> this month.
+                  <b>S${liveResult.estimatedCost.toFixed(2)}</b> this month.
                 </>
               )}
             </p>
@@ -1266,7 +1257,7 @@ const css = `
 .wl-delta{font-family:var(--font-pixel),monospace;font-size:9px;letter-spacing:.1em;margin-top:9px;min-height:12px;color:var(--lime)}
 .wl-bar{height:14px;background:var(--bg-deep);border:2px solid var(--line);margin-top:14px;position:relative}
 .wl-bar > i{position:absolute;inset:0 auto 0 0;display:block;background:var(--amber);transition:width .5s ease,background .3s}
-.wl-ticks{display:flex;justify-content:space-between;font-size:7px;color:var(--ink-dim);
+.wl-ticks{position:relative;height:9px;font-size:7px;color:var(--ink-dim);
   font-family:var(--font-pixel),monospace;margin-top:6px;letter-spacing:.06em}
 .wl-line{font-size:13px;color:var(--ink-dim);line-height:1.55;text-align:center;margin:0}
 .wl-line b{color:var(--ink)}
