@@ -23,6 +23,13 @@ export interface ApplianceDefinition {
   dailyKwh: number;
   hoursPerDay: number;
   tip: string;
+  /**
+   * 1 (barely noticed) to 5 (actively disruptive) - how much it costs the
+   * resident to have this switched off right now, e.g. mid-use. WattLahMan
+   * weighs this against dailyKwh rather than just maximizing score; see
+   * lib/wattlahman/kimiClient.ts.
+   */
+  inconvenience: number;
 }
 
 export const applianceCatalog: Record<string, ApplianceDefinition> = {
@@ -33,6 +40,10 @@ export const applianceCatalog: Record<string, ApplianceDefinition> = {
     dailyKwh: 1.4,
     hoursPerDay: 24,
     tip: 'Keep it at 4°C (fridge) / -18°C (freezer) — colder settings waste energy without extra freshness.',
+    // Runs continuously and is excluded from WattLahMan's candidates
+    // outright (see ApartmentScene's ESSENTIAL_HOURS_PER_DAY filter) -
+    // the rating here is moot but kept high for consistency/documentation.
+    inconvenience: 5,
   },
   microwave: {
     id: 'microwave',
@@ -41,6 +52,8 @@ export const applianceCatalog: Record<string, ApplianceDefinition> = {
     dailyKwh: 0.3,
     hoursPerDay: 0.25,
     tip: 'Reheating in a microwave uses a fraction of the energy an oven would for the same job.',
+    // Used in short bursts; almost never mid-use when scanned.
+    inconvenience: 1,
   },
   television: {
     id: 'television',
@@ -49,6 +62,8 @@ export const applianceCatalog: Record<string, ApplianceDefinition> = {
     dailyKwh: 0.6,
     hoursPerDay: 4,
     tip: 'Switch off at the wall instead of standby — standby draw adds up over a month.',
+    // Might be mid-show.
+    inconvenience: 3,
   },
   monitor: {
     id: 'monitor',
@@ -57,6 +72,8 @@ export const applianceCatalog: Record<string, ApplianceDefinition> = {
     dailyKwh: 1.0,
     hoursPerDay: 8,
     tip: 'Enable sleep mode after a few idle minutes to cut power draw when you step away.',
+    // Might be mid-task/work.
+    inconvenience: 3,
   },
   washing_machine: {
     id: 'washing_machine',
@@ -65,5 +82,7 @@ export const applianceCatalog: Record<string, ApplianceDefinition> = {
     dailyKwh: 0.6,
     hoursPerDay: 1,
     tip: 'Wash on a cold or eco cycle — heating the water is most of a washing machine\'s energy use.',
+    // Interrupting a cycle mid-wash is a real hassle, not just an inconvenience.
+    inconvenience: 4,
   },
 };

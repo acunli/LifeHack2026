@@ -127,6 +127,7 @@ export default class ApartmentScene extends Phaser.Scene {
         hoursPerDay: applianceDef.hoursPerDay,
         tip: applianceDef.tip,
         isCustom: false,
+        inconvenience: applianceDef.inconvenience,
       };
       const appliance = new Appliance(this, info, sprite);
       this.addApplianceHaze(appliance, sprite);
@@ -568,6 +569,7 @@ export default class ApartmentScene extends Phaser.Scene {
         name: appliance.info.name,
         dailyKwh: appliance.info.dailyKwh,
         tip: appliance.info.tip,
+        inconvenience: appliance.info.inconvenience,
       }));
   }
 
@@ -602,14 +604,19 @@ export default class ApartmentScene extends Phaser.Scene {
    * Repeatedly: ask the "brain" (Kimi K3, or the offline heuristic) which
    * currently-on, non-essential appliance to switch off next, walk
    * WattLahMan there, flip it, and let him say why - until the score is
-   * already optimal, nothing switchable is left on, dismissed, or a step
-   * cap is hit so a misbehaving API response can't loop forever.
+   * already optimal, nothing switchable is left worth the disruption,
+   * dismissed, or a step cap is hit so a misbehaving API response can't
+   * loop forever.
    *
    * He deliberately does NOT empty every socket in the room: the goal is
    * the best achievable score (see lib/scoring.ts - a flat at or under the
    * reference consumption already scores 100), not the fewest appliances
-   * running, so the loop stops the moment that's reached rather than
-   * continuing to switch things off with nothing left to gain.
+   * running, so the loop stops the moment that's reached. He also stops
+   * short of that if what's left isn't worth it - the brain weighs each
+   * appliance's savings against its `inconvenience` rating (how disruptive
+   * switching it off is right now, e.g. a washer mid-cycle) and can decide
+   * nothing left clears the bar, returning null rather than being forced to
+   * empty the room for a couple more points.
    */
   private async runWattlahmanLoop(apiKey: string | null): Promise<void> {
     const MAX_STEPS = 6;
@@ -633,7 +640,12 @@ export default class ApartmentScene extends Phaser.Scene {
 
       gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'thinking' });
       const decision = await decideNextAction(candidates, this.currentScore(), apiKey);
-      if (this.wattlahmanDismissed || !this.wattlahman || !decision) break;
+      if (this.wattlahmanDismissed || !this.wattlahman) break;
+      if (decision.action === 'skip') {
+        gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'nothing-to-do' });
+        await this.wattlahman.say(decision.message);
+        break;
+      }
 
       const appliance = this.appliancesByTargetId.get(decision.installTargetId);
       if (!appliance || !appliance.isOn()) continue;
@@ -700,6 +712,7 @@ export default class ApartmentScene extends Phaser.Scene {
       hoursPerDay: customType.hoursPerDay,
       tip: customType.tip,
       isCustom: true,
+      inconvenience: customType.inconvenience,
     };
 
     const appliance = new Appliance(this, info, container, () => {
