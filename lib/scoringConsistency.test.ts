@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { computeScore as apartmentScore } from "./scoring";
 import { computeScore as leagueScore } from "./leagueScoring";
@@ -57,5 +59,47 @@ describe("one scoring definition across every surface", () => {
     const r = apartmentScore(MOCK_APARTMENT);
     expect(Math.round(r.comparisonPercent)).toBe(26);
     expect(r.score).toBe(74);
+  });
+});
+
+/**
+ * The room is allowed exactly one scorer, and it must borrow the shared
+ * formula rather than invent one.
+ *
+ * This started as a stricter rule — that nothing under lib/game may score at
+ * all — written while the room was being made a pure consumer of the
+ * dashboard's number. That direction was abandoned because it froze the score:
+ * switching appliances off in the flat left the dial unmoved, which is the
+ * whole point of the game. The room scores itself again, from what is actually
+ * installed and powered.
+ *
+ * What still must not happen is a *second* one appearing beside it. Before
+ * this boundary existed the room and the dashboard showed different numbers on
+ * the same screen, and WattLahMan read the room's aloud — telling a resident
+ * looking at 74 they were "already maxed at 100".
+ */
+describe("the game layer has exactly one scorer", () => {
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((entry) => {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) return walk(full);
+      return /\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) ? [full] : [];
+    });
+
+  const gameFiles = walk(join(import.meta.dirname, "game"));
+
+  it("only energyCalculator turns usage into a score", () => {
+    const scorers = gameFiles
+      .filter((f) => /computeScore\s*\(/.test(readFileSync(f, "utf8")))
+      .map((f) => f.split("/lib/")[1]);
+    expect(scorers).toEqual(["game/utils/energyCalculator.ts"]);
+  });
+
+  it("and it defers to the shared contract instead of its own formula", () => {
+    const src = readFileSync(join(import.meta.dirname, "game/utils/energyCalculator.ts"), "utf8");
+    expect(src).toMatch(/from ['"]@\/lib\/scoring['"]/);
+    // A hand-rolled 100 - percentage would mean the room had drifted off the
+    // shared definition even while importing it.
+    expect(src).not.toMatch(/100\s*-\s*/);
   });
 });
