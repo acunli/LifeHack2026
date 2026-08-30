@@ -146,8 +146,6 @@ export default function LoginForm() {
       </section>
 
       <p className="mt-6 text-center text-xs text-ink-dim/70">
-        Demo build — any room number works.
-        <br />
         Pixel art by{" "}
         <a
           href="https://limezu.itch.io/moderninteriors"
