@@ -74,9 +74,9 @@ function writeWhatIf(roomNumber: string, state: WhatIfState) {
   }
 }
 
-// Phaser needs a browser, so these load client-side only - same pattern as
-// app/interactive-apartment/page.tsx, which owns the canonical version of
-// this game.
+// Phaser needs a browser, so these load client-side only. This is the only
+// route that runs the game now; the standalone /interactive-apartment and
+// /room-test pages were unrouted duplicates and have been removed.
 const ApartmentGameCanvas = dynamic(
   () => import('@/components/apartment-game/ApartmentGameCanvas'),
   { ssr: false }
@@ -390,7 +390,6 @@ export default function HomePage() {
   const auditCount = [...connectedTargets].filter((id) =>
     FIXED_AUDIT_TARGETS.has(id),
   ).length
-  const auditXp = auditCount * 25
 
   // Calculate the resident's live standing from the current preview without
   // waiting for the localStorage persistence effect to run after paint.
@@ -410,7 +409,7 @@ export default function HomePage() {
               entry.username.localeCompare(username) < 0)),
       ).length
     )
-  }, [roomNumber, score, username])
+  }, [roomNumber, score, username, mascot])
 
   const animateTo = useCallback((target: number, from: number) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)

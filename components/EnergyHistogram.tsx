@@ -39,9 +39,7 @@ export default function EnergyHistogram({
     return weeklyData.map((kwh) => Math.round(kwh * tariff * 100) / 100)
   }, [weeklyData, tariff])
 
-  const maxVal = Math.max(...weeklyData, 1)
   const maxCost = Math.max(...costData, 1)
-  const avg = Math.round((weeklyData.reduce((s, v) => s + v, 0) / 7) * 10) / 10
   const peak = Math.max(...weeklyData)
   const low = Math.min(...weeklyData)
 

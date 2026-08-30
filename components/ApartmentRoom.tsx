@@ -9,6 +9,14 @@
  * DO NOT modify this to add interactivity, hover, or game mechanics.
  * This component is ONLY the static visual renderer.
  */
+/*
+ * No longer routed. This is Lane B's CSS-grid room from the pre-Phaser plan,
+ * superseded by lib/game/scenes/ApartmentScene.ts once the walkable flat
+ * became the product. Kept as the record of that work — its only consumer was
+ * the /room-test dev route, which has been removed — so nothing imports it and
+ * it costs nothing at runtime.
+ */
+
 
 import { apartmentLayout } from "@/data/apartmentLayout";
 import { spriteMap, SPRITE_SHEETS, TILE_SIZE } from "@/data/spriteMap";
