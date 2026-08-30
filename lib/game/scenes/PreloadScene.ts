@@ -5,6 +5,7 @@
 
 import * as Phaser from 'phaser';
 import { getRequiredSprites } from '../data/apartmentMap';
+import { WATTLAHMAN_ALL_SHEETS } from '../data/wattlahmanSpriteFrames';
 
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -64,9 +65,24 @@ export default class PreloadScene extends Phaser.Scene {
       '/game-assets/sierrassets/characters/Adam_idle_16x16.png',
       { frameWidth: 16, frameHeight: 32 }
     );
+
+    // WattLahMan: each sheet is a single plain image (its frames are
+    // trimmed to irregular widths, not a uniform grid), so frames are
+    // registered by hand in create() from the measured rects in
+    // wattlahmanSpriteFrames.ts rather than loaded as a spritesheet.
+    WATTLAHMAN_ALL_SHEETS.forEach(({ key, path }) => {
+      this.load.image(key, path);
+    });
   }
 
   create() {
+    WATTLAHMAN_ALL_SHEETS.forEach(({ key, frames }) => {
+      const texture = this.textures.get(key);
+      frames.forEach((frame, index) => {
+        texture.add(index, 0, frame.x, frame.y, frame.width, frame.height);
+      });
+    });
+
     this.scene.start('ApartmentScene');
   }
 }

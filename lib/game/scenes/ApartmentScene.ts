@@ -10,10 +10,13 @@ import { apartmentLayout, normalizeSpritePath } from '../data/apartmentMap';
 import Player from '../entities/Player';
 import Socket from '../entities/Socket';
 import Appliance from '../entities/Appliance';
+import WattlahMan from '../entities/WattlahMan';
 import { buildCollisionGroup } from '../utils/collisionHelpers';
 import { socketDefinitions, INTERACTION_RADIUS } from '../data/socketDefinitions';
 import { applianceCatalog } from '../data/applianceData';
 import { customApplianceTypes, CustomApplianceType } from '../data/customApplianceTypes';
+import { calculateEnergyScore } from '../utils/energyCalculator';
+import { findPath } from '../utils/pathfinding';
 import {
   gameEvents,
   GAME_EVENTS,
@@ -23,6 +26,7 @@ import {
   ApplianceTogglePowerRequestPayload,
   PlayerMoveRequestPayload,
   PlaceCustomAppliancePayload,
+  WattlahmanSummonRequestPayload,
 } from '../utils/gameEvents';
 import {
   connectAuditTarget,
@@ -31,12 +35,16 @@ import {
   setAuditTargetPower,
 } from '../utils/auditProgress';
 import { readRawSession } from '@/lib/session';
+import { decideNextAction, WattlahmanApplianceState } from '@/lib/wattlahman/kimiClient';
 
 // Spawn just below the apartment's only door, facing up into the room.
 const SPAWN_X = 368;
 const SPAWN_Y = 344;
 
 const PLACEHOLDER_SIZE = 28;
+
+/** Runs continuously (e.g. the fridge) - WattLahMan never suggests switching these off. */
+const ESSENTIAL_HOURS_PER_DAY = 24;
 
 /** Hover halo: gold, so nothing else in the room competes with it. */
 const HAZE_COLOR = 0xffc866;
@@ -74,6 +82,11 @@ export default class ApartmentScene extends Phaser.Scene {
   private keyE!: Phaser.Input.Keyboard.Key;
   private customApplianceCounter = 0;
   private roomNumber = 'demo';
+
+  private collisionGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private wattlahman?: WattlahMan;
+  private wattlahmanBusy = false;
+  private wattlahmanDismissed = false;
 
   constructor() {
     super({ key: 'ApartmentScene' });
@@ -143,9 +156,11 @@ export default class ApartmentScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, canvas.width_px, canvas.height_px);
 
     // Walls + major furniture block movement; small decorations and the
-    // doorway do not (see collisionHelpers.ts for the exact rules).
-    const collisionGroup = buildCollisionGroup(this);
-    this.physics.add.collider(this.player, collisionGroup);
+    // doorway do not (see collisionHelpers.ts for the exact rules). Stored
+    // on the scene so WattLahMan - created later, on summon - can collide
+    // against the same group rather than walking straight through furniture.
+    this.collisionGroup = buildCollisionGroup(this);
+    this.physics.add.collider(this.player, this.collisionGroup);
 
     // LAYER 4: Sockets - small pixel indicators that glow on approach
     this.sockets = socketDefinitions.map(def => new Socket(this, def));
@@ -171,6 +186,8 @@ export default class ApartmentScene extends Phaser.Scene {
     gameEvents.on(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, this.handleRemoveRequest, this);
     gameEvents.on(GAME_EVENTS.PLAYER_MOVE_REQUEST, this.handlePlayerMoveRequest, this);
     gameEvents.on(GAME_EVENTS.PLAYER_INTERACT_REQUEST, this.handlePlayerInteractRequest, this);
+    gameEvents.on(GAME_EVENTS.WATTLAHMAN_SUMMON_REQUEST, this.handleWattlahmanSummon, this);
+    gameEvents.on(GAME_EVENTS.WATTLAHMAN_DISMISS_REQUEST, this.handleWattlahmanDismiss, this);
     const removeEventHandlers = () => {
       gameEvents.off(GAME_EVENTS.APPLIANCE_INSTALL_REQUEST, this.handleInstallRequest, this);
       gameEvents.off(GAME_EVENTS.APPLIANCE_PLACE_CUSTOM_REQUEST, this.handlePlaceCustomRequest, this);
@@ -178,6 +195,11 @@ export default class ApartmentScene extends Phaser.Scene {
       gameEvents.off(GAME_EVENTS.APPLIANCE_REMOVE_REQUEST, this.handleRemoveRequest, this);
       gameEvents.off(GAME_EVENTS.PLAYER_MOVE_REQUEST, this.handlePlayerMoveRequest, this);
       gameEvents.off(GAME_EVENTS.PLAYER_INTERACT_REQUEST, this.handlePlayerInteractRequest, this);
+      gameEvents.off(GAME_EVENTS.WATTLAHMAN_SUMMON_REQUEST, this.handleWattlahmanSummon, this);
+      gameEvents.off(GAME_EVENTS.WATTLAHMAN_DISMISS_REQUEST, this.handleWattlahmanDismiss, this);
+      this.wattlahmanDismissed = true;
+      this.wattlahman?.destroy();
+      this.wattlahman = undefined;
     };
     // Phaser can destroy a game without dispatching Scene SHUTDOWN first.
     // Listening for both lifecycle exits keeps the module-level React/Phaser
@@ -278,10 +300,11 @@ export default class ApartmentScene extends Phaser.Scene {
     return 'furniture_' + normalized.replace('.png', '').replace(/[^a-zA-Z0-9]/g, '_');
   }
 
-  update() {
+  update(_time: number, delta: number) {
     this.player.update();
     this.updateSocketProximity();
     this.updateHeatAura();
+    this.wattlahman?.update(delta);
   }
 
   /**
@@ -531,6 +554,137 @@ export default class ApartmentScene extends Phaser.Scene {
     if (!this.nearestSocketId) return;
     const socket = this.sockets.find(candidate => candidate.definition.id === this.nearestSocketId);
     if (socket) this.emitInteract(socket.definition.id, socket.definition.purpose);
+  }
+
+  /**
+   * Appliances currently drawing power that are reasonable to switch off -
+   * excludes anything that needs to run continuously (24h/day, e.g. the
+   * fridge; see applianceData.ts). WattLahMan should never suggest turning
+   * off a fridge, so it's filtered out before the brain ever sees it rather
+   * than trusted to a model's judgement call.
+   */
+  private collectSwitchableAppliances(): WattlahmanApplianceState[] {
+    return [...this.appliancesByTargetId.entries()]
+      .filter(([, appliance]) => appliance.isOn())
+      .filter(([, appliance]) => appliance.info.hoursPerDay < ESSENTIAL_HOURS_PER_DAY)
+      .map(([installTargetId, appliance]) => ({
+        installTargetId,
+        name: appliance.info.name,
+        dailyKwh: appliance.info.dailyKwh,
+        tip: appliance.info.tip,
+      }));
+  }
+
+  private currentScore(): number {
+    const onKwh = [...this.appliancesByTargetId.values()]
+      .filter(appliance => appliance.isOn())
+      .map(appliance => appliance.info.dailyKwh);
+    return calculateEnergyScore(onKwh).score;
+  }
+
+  private handleWattlahmanSummon(payload: WattlahmanSummonRequestPayload): void {
+    if (this.wattlahmanBusy) return;
+    if (!this.wattlahman) {
+      this.wattlahman = new WattlahMan(this, this.player.x + 36, this.player.y);
+      // Same collider the player has, so he stops at walls and furniture
+      // instead of walking over them - see WattlahMan.ts.
+      this.physics.add.collider(this.wattlahman.getPhysicsObject(), this.collisionGroup);
+    }
+    this.wattlahmanDismissed = false;
+    void this.runWattlahmanLoop(payload.apiKey);
+  }
+
+  private handleWattlahmanDismiss(): void {
+    this.wattlahmanDismissed = true;
+    if (!this.wattlahmanBusy) {
+      this.wattlahman?.destroy();
+      this.wattlahman = undefined;
+    }
+  }
+
+  /**
+   * Repeatedly: ask the "brain" (Kimi K3, or the offline heuristic) which
+   * currently-on, non-essential appliance to switch off next, walk
+   * WattLahMan there, flip it, and let him say why - until the score is
+   * already optimal, nothing switchable is left on, dismissed, or a step
+   * cap is hit so a misbehaving API response can't loop forever.
+   *
+   * He deliberately does NOT empty every socket in the room: the goal is
+   * the best achievable score (see lib/scoring.ts - a flat at or under the
+   * reference consumption already scores 100), not the fewest appliances
+   * running, so the loop stops the moment that's reached rather than
+   * continuing to switch things off with nothing left to gain.
+   */
+  private async runWattlahmanLoop(apiKey: string | null): Promise<void> {
+    const MAX_STEPS = 6;
+    this.wattlahmanBusy = true;
+
+    for (let step = 0; step < MAX_STEPS; step += 1) {
+      if (this.wattlahmanDismissed || !this.wattlahman) break;
+
+      if (this.currentScore() >= 100) {
+        gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'nothing-to-do' });
+        await this.wattlahman.say("Score's already maxed at 100 — nothing more needed, lah!");
+        break;
+      }
+
+      const candidates = this.collectSwitchableAppliances();
+      if (candidates.length === 0) {
+        gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'nothing-to-do' });
+        await this.wattlahman.say("Everything left on needs to keep running — nothing safe to switch off.");
+        break;
+      }
+
+      gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'thinking' });
+      const decision = await decideNextAction(candidates, this.currentScore(), apiKey);
+      if (this.wattlahmanDismissed || !this.wattlahman || !decision) break;
+
+      const appliance = this.appliancesByTargetId.get(decision.installTargetId);
+      if (!appliance || !appliance.isOn()) continue;
+
+      gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'acting' });
+      const socket = this.sockets.find(s => s.definition.id === decision.installTargetId);
+      const target = socket
+        ? { x: socket.definition.x, y: socket.definition.y + 4 }
+        : appliance.getCentre();
+      await this.walkWattlahmanTo(target.x, target.y);
+      if (this.wattlahmanDismissed || !this.wattlahman) break;
+
+      appliance.setOn(false);
+      if (socket) setAuditTargetPower(this.roomNumber, decision.installTargetId, false);
+      gameEvents.emit(GAME_EVENTS.APPLIANCE_POWER_CHANGED, {
+        installTargetId: decision.installTargetId,
+        appliance: appliance.info,
+        isOn: false,
+      });
+
+      await this.wattlahman.say(decision.message);
+    }
+
+    this.wattlahmanBusy = false;
+    if (this.wattlahmanDismissed) {
+      this.wattlahman?.destroy();
+      this.wattlahman = undefined;
+      gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'dismissed' });
+    } else {
+      gameEvents.emit(GAME_EVENTS.WATTLAHMAN_STATUS, { status: 'done' });
+    }
+  }
+
+  /**
+   * Routes WattLahMan to (x, y) through a short chain of grid waypoints
+   * (see pathfinding.ts) rather than one straight tween-free hop - a direct
+   * line from most spawn points clips a furniture corner in this room and
+   * wedges him there until his own per-leg timeout frees him. Each leg is
+   * one open grid cell, so it can't clip a corner the same way.
+   */
+  private async walkWattlahmanTo(targetX: number, targetY: number): Promise<void> {
+    if (!this.wattlahman) return;
+    const waypoints = findPath(this.wattlahman.x, this.wattlahman.y, targetX, targetY);
+    for (const point of waypoints) {
+      if (this.wattlahmanDismissed || !this.wattlahman) return;
+      await this.wattlahman.walkTo(point.x, point.y);
+    }
   }
 
   /** Drops a new placeholder tile where the player dragged a custom appliance from the palette. */

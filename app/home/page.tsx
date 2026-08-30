@@ -93,6 +93,10 @@ const AppliancePanel = dynamic(
   () => import('@/components/apartment-game/AppliancePanel'),
   { ssr: false }
 )
+const WattlahManButton = dynamic(
+  () => import('@/components/apartment-game/WattlahManButton'),
+  { ssr: false }
+)
 
 /**
  * The standalone appliance dashboard, taken verbatim from the
@@ -816,6 +820,9 @@ export default function HomePage() {
                 <span className="wl-px">{auditCount}/{AUDIT_TOTAL}</span>
                 <i style={{ width: `${(auditCount / AUDIT_TOTAL) * 100}%` }} />
               </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <WattlahManButton />
             </div>
             <div className="wl-stage" key={roomNumber}>
               {/* The interactive Phaser apartment, replacing the static tile

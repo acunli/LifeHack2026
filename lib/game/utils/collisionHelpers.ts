@@ -61,21 +61,34 @@ function isUnderDoorway(tile: TileEntry, tileSize: number): boolean {
   });
 }
 
+export interface CollisionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /**
- * Builds a static physics group with one invisible rectangle per wall tile
- * and per collidable furniture item, ready to pass to `physics.add.collider`.
+ * The same wall-tile and furniture-footprint rectangles `buildCollisionGroup`
+ * turns into Arcade colliders, as plain data - reused by
+ * `lib/game/utils/pathfinding.ts` to build a walkable grid, so a route
+ * WattLahMan plans and the room's actual collision geometry never drift
+ * apart.
  */
-export function buildCollisionGroup(scene: Phaser.Scene): Phaser.Physics.Arcade.StaticGroup {
-  const group = scene.physics.add.staticGroup();
+export function buildCollisionRects(): CollisionRect[] {
+  const rects: CollisionRect[] = [];
   const { tiles, furniture, canvas } = apartmentLayout;
 
   tiles
     .filter(isWallTile)
     .filter(tile => !isUnderDoorway(tile, canvas.tile_size))
     .forEach(tile => {
-      const x = tile.tile_x * canvas.tile_size;
-      const y = tile.tile_y * canvas.tile_size;
-      addRect(scene, group, x, y, canvas.tile_size, canvas.tile_size);
+      rects.push({
+        x: tile.tile_x * canvas.tile_size,
+        y: tile.tile_y * canvas.tile_size,
+        width: canvas.tile_size,
+        height: canvas.tile_size,
+      });
     });
 
   furniture.filter(isCollidableFurniture).forEach(item => {
@@ -90,7 +103,7 @@ export function buildCollisionGroup(scene: Phaser.Scene): Phaser.Physics.Arcade.
 
     if (item.rotation_deg !== 0) {
       // Full bounding box for rotated items - keeps things simple and correct.
-      addRect(scene, group, centerX - boxW / 2, centerY - boxH / 2, boxW, boxH);
+      rects.push({ x: centerX - boxW / 2, y: centerY - boxH / 2, width: boxW, height: boxH });
       return;
     }
 
@@ -99,9 +112,19 @@ export function buildCollisionGroup(scene: Phaser.Scene): Phaser.Physics.Arcade.
     // them - the player can walk right up to and around them.
     const footprintHeight = Math.max(8, Math.round(boxH * 0.4));
     const y = item.y_px + boxH - footprintHeight;
-    addRect(scene, group, item.x_px, y, boxW, footprintHeight);
+    rects.push({ x: item.x_px, y, width: boxW, height: footprintHeight });
   });
 
+  return rects;
+}
+
+/**
+ * Builds a static physics group with one invisible rectangle per wall tile
+ * and per collidable furniture item, ready to pass to `physics.add.collider`.
+ */
+export function buildCollisionGroup(scene: Phaser.Scene): Phaser.Physics.Arcade.StaticGroup {
+  const group = scene.physics.add.staticGroup();
+  buildCollisionRects().forEach(rect => addRect(scene, group, rect.x, rect.y, rect.width, rect.height));
   return group;
 }
 
