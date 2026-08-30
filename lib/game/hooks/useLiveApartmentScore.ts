@@ -59,6 +59,7 @@ export function useLiveApartmentScore(): LiveApartmentScore {
             hoursPerDay: definition.hoursPerDay,
             tip: definition.tip,
             isCustom: false,
+            inconvenience: definition.inconvenience,
           },
           isOn: progress.powerByTargetId[targetId] !== false,
         }];

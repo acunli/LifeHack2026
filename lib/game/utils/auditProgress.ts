@@ -11,6 +11,27 @@ export type AuditProgress = {
 
 const EMPTY_PROGRESS: AuditProgress = { connectedTargetIds: [], powerByTargetId: {} };
 
+/**
+ * What a fresh room starts with, before the resident has scanned anything.
+ * A brand-new room reading 0 kWh clamps to a 100 score on arrival (see
+ * lib/scoring.ts's documented clamp behavior - not something to "fix"), which
+ * read as fake/inert on a first visit. Real flats already have things
+ * running: the fridge (always on, and excluded from WattLahMan's own
+ * candidates as essential), the TV, the study monitor, and the washer are
+ * seeded on so the opening score is a real, non-trivial reading. The
+ * microwave is deliberately left out - one socket stays undiscovered so the
+ * "map your biggest energy drains" audit mission still has something to do.
+ */
+const DEFAULT_PROGRESS: AuditProgress = {
+  connectedTargetIds: ['kitchen_fridge', 'living_tv', 'study_desk', 'bathroom_washer'],
+  powerByTargetId: {
+    kitchen_fridge: true,
+    living_tv: true,
+    study_desk: true,
+    bathroom_washer: true,
+  },
+};
+
 function storageKey(roomNumber: string): string {
   return `${STORAGE_PREFIX}:${roomNumber.trim().toLowerCase() || "demo"}`;
 }
@@ -48,7 +69,11 @@ export function readAuditProgress(roomNumber: string): AuditProgress {
   if (typeof window === "undefined") return EMPTY_PROGRESS;
   try {
     const raw = window.localStorage.getItem(storageKey(roomNumber));
-    return raw ? normalise(JSON.parse(raw)) : EMPTY_PROGRESS;
+    // No stored record at all means a genuinely fresh room - default it to
+    // a realistic starting state rather than empty. Once the resident
+    // changes anything, connectAuditTarget/setAuditTargetPower persist the
+    // real state, so this default is only ever read once per room.
+    return raw ? normalise(JSON.parse(raw)) : DEFAULT_PROGRESS;
   } catch {
     return EMPTY_PROGRESS;
   }
